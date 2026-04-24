@@ -15,12 +15,14 @@
 **Backend:** FastAPI (Python), Postgres + Redis + pgvector. Already complete through Phase 6. All endpoints live under `/api/v1`. See `frontend_prd.md §7` for every contract.
 
 **What this repo is:**
+
 - A single-page React 18 + TypeScript app bundled by Vite
 - Deployed as static assets; the backend at `warmupventures.com/api/*` is a separate service
 - Zero server-side rendering, zero Next.js, zero Node-side code
 - OTP-authenticated (no passwords, no signup form)
 
 **What this repo is NOT:**
+
 - Not a native app (web only — mobile-first responsive)
 - Not a public marketing site
 - Not the WhatsApp bot (that lives on WATI in Phase 4)
@@ -38,12 +40,12 @@ This repo is built by a **single Claude Opus 4.7 instance** working mostly auton
 
 ### 0.1.1 The four `.claude/` files
 
-| File | What it is | Who writes | When written |
-|---|---|---|---|
-| `.claude/decisions.md` | Living decisions log — `§ Pending` (awaiting human) + `§ Resolved` (answered) | Claude appends pending; human fills `Answer:`; Claude moves to resolved | Any time a decision is made or a blocker is hit |
-| `.claude/queue.md` | Feature build queue, dependency-ordered, with `- [ ]` checkboxes | Claude ticks boxes | When a feature completes all four gates |
-| `.claude/session.md` | Single-snapshot "where I stopped" — current feature, last action, next step, blockers, files touched | Claude **overwrites** (not appends) | END of every session |
-| `.claude/issues.md` | QA-found code issues, severity-tagged, with file:line references | Claude in QA mode (Stage 5) or spot-checks | During QA runs |
+| File                   | What it is                                                                                           | Who writes                                                              | When written                                    |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| `.claude/decisions.md` | Living decisions log — `§ Pending` (awaiting human) + `§ Resolved` (answered)                        | Claude appends pending; human fills `Answer:`; Claude moves to resolved | Any time a decision is made or a blocker is hit |
+| `.claude/queue.md`     | Feature build queue, dependency-ordered, with `- [ ]` checkboxes                                     | Claude ticks boxes                                                      | When a feature completes all four gates         |
+| `.claude/session.md`   | Single-snapshot "where I stopped" — current feature, last action, next step, blockers, files touched | Claude **overwrites** (not appends)                                     | END of every session                            |
+| `.claude/issues.md`    | QA-found code issues, severity-tagged, with file:line references                                     | Claude in QA mode (Stage 5) or spot-checks                              | During QA runs                                  |
 
 **All four files are committed to git.** They are the coordination surface — a fresh session with no memory must be able to resume correctly by reading these four files plus the relevant `§7.X` endpoint in the PRD.
 
@@ -77,6 +79,7 @@ Before ending a session, execute these steps in order:
 If during a session you encounter ANY of the situations below, **STOP**. Do not guess. Do not invent a plausible answer. Do not code around the unknown.
 
 **Trigger situations:**
+
 - A decision that could legitimately go multiple ways (design, UX copy, product behaviour).
 - A mismatch between `frontend_prd.md §7.X` contract and observed live backend response.
 - A library/tool not in the sanctioned list (§1.1, §1.2) that you believe is necessary.
@@ -141,7 +144,8 @@ When the human has answered a pending item:
 1. Read the filled-in `**Answer:**` line for each resolved P-N.
 2. **Move the item** from `§ Pending` to `§ Resolved` in `decisions.md`, rewriting it into the resolved template:
    ```markdown
-   ### [P-N] <short title>  ✅ resolved <YYYY-MM-DD>
+   ### [P-N] <short title> ✅ resolved <YYYY-MM-DD>
+
    - **Decision:** <the chosen option, verbatim from human answer>
    - **Rationale:** <human's reason if provided, else "per human direction">
    - **Touches:** <files / features that rely on this>
@@ -159,13 +163,13 @@ If unsure, ask: "will a session 3 weeks from now need to know this?" → yes = `
 
 ### 0.1.8 Never invent answers to these
 
-| Category | Examples | Action |
-|---|---|---|
-| Visual design choices | Icon for a feature, exact colour shade, empty-state copy | Append to `decisions.md § Pending`, banner |
-| Product behaviour | Should X show a confirm dialog, what happens on Y | Append to `decisions.md § Pending`, banner |
-| Backend contract drift | Live response differs from PRD §7.X | Append to `decisions.md § Pending`, banner |
-| Ambiguous spec | "and related filters" — which filters exactly | Append to `decisions.md § Pending`, banner |
-| Library selection | Which chart lib for analytics | Default to the sanctioned list (§1.1); if no sanctioned option exists, ask |
+| Category               | Examples                                                 | Action                                                                     |
+| ---------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Visual design choices  | Icon for a feature, exact colour shade, empty-state copy | Append to `decisions.md § Pending`, banner                                 |
+| Product behaviour      | Should X show a confirm dialog, what happens on Y        | Append to `decisions.md § Pending`, banner                                 |
+| Backend contract drift | Live response differs from PRD §7.X                      | Append to `decisions.md § Pending`, banner                                 |
+| Ambiguous spec         | "and related filters" — which filters exactly            | Append to `decisions.md § Pending`, banner                                 |
+| Library selection      | Which chart lib for analytics                            | Default to the sanctioned list (§1.1); if no sanctioned option exists, ask |
 
 ### 0.1.9 Workflow hooks
 
@@ -188,17 +192,17 @@ Never override these hooks. Never run `--no-verify` on commits. If a hook fails,
 
 For every task, load only the relevant slice of `frontend_prd.md` — not the whole file. A typical feature session needs ~500–800 lines of PRD context, not 7,000.
 
-| Task | Load from `frontend_prd.md` |
-|---|---|
-| Building a feature | §7.X (the endpoint) + §8.X (its types) + §8.12 (transforms row for each field) |
-| Shared error handling | §7.0.4 (one-time read) |
-| Pagination / envelope rules | §7.0.2–§7.0.3 (one-time read) |
-| Cache invalidation after mutation | §8.12.4 |
-| Role gating a screen | §4 (screen → roles) + §7.X (auth header + role list) |
-| Sidebar / routing | §10.3–§10.4 |
-| Execution Panel usage | §6.7 |
-| Debug dock | §6.8 |
-| Gap endpoint (feature-flagged) | §13.2 — find the `Gx` for your endpoint |
+| Task                              | Load from `frontend_prd.md`                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| Building a feature                | §7.X (the endpoint) + §8.X (its types) + §8.12 (transforms row for each field) |
+| Shared error handling             | §7.0.4 (one-time read)                                                         |
+| Pagination / envelope rules       | §7.0.2–§7.0.3 (one-time read)                                                  |
+| Cache invalidation after mutation | §8.12.4                                                                        |
+| Role gating a screen              | §4 (screen → roles) + §7.X (auth header + role list)                           |
+| Sidebar / routing                 | §10.3–§10.4                                                                    |
+| Execution Panel usage             | §6.7                                                                           |
+| Debug dock                        | §6.8                                                                           |
+| Gap endpoint (feature-flagged)    | §13.2 — find the `Gx` for your endpoint                                        |
 
 ---
 
@@ -242,15 +246,16 @@ For every task, load only the relevant slice of `frontend_prd.md` — not the wh
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
-    }
+      "@/*": ["src/*"],
+    },
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
 }
 ```
 
 **Rules:**
+
 - `strict: true` is non-negotiable.
 - `noUncheckedIndexedAccess: true` — if you access `arr[0]`, TS forces you to handle `undefined`.
 - `exactOptionalPropertyTypes: true` — `a?: string` is not the same as `a: string | undefined`. Match the API contract exactly.
@@ -264,6 +269,7 @@ For every task, load only the relevant slice of `frontend_prd.md` — not the wh
 ### 2.1 Feature-based modular design
 
 Each feature lives in `src/features/<feature>/` and owns:
+
 - `components/` — React components specific to this feature
 - `hooks/` — `useXxx` custom hooks (React Query wrappers)
 - `routes/` — page-level components wired into the router
@@ -280,6 +286,7 @@ api/client.ts     ← axios + interceptors
 ```
 
 **Rules:**
+
 - A `routes/` file MUST NOT import from `api/endpoints.ts` directly. Always go through `hooks/`.
 - A `components/` file MUST NOT use `useQuery`/`useMutation` directly for business data. Components consume hooks.
 - `lib/` is pure utilities — **never** imports from `api/`, `auth/`, or `features/`.
@@ -304,6 +311,7 @@ api/client.ts     ← axios + interceptors
 ### 2.5 Import alias
 
 Always import from `@/*`. Never use long relative paths.
+
 - ❌ `import { x } from '../../../lib/phone'`
 - ✅ `import { x } from '@/lib/phone'`
 
@@ -317,27 +325,56 @@ Always import from `@/*`. Never use long relative paths.
 
 ```ts
 // src/lib/role-capabilities.ts
-export type UserRole = 'lp' | 'potential_lp' | 'vc' | 'startup_inprogress'
-  | 'startup_onboarded' | 'startup_funded' | 'partner' | 'advisor' | 'admin' | 'super_admin';
+export type UserRole =
+  | 'lp'
+  | 'potential_lp'
+  | 'vc'
+  | 'startup_inprogress'
+  | 'startup_onboarded'
+  | 'startup_funded'
+  | 'partner'
+  | 'advisor'
+  | 'admin'
+  | 'super_admin';
 
 export const CAPABILITIES = {
-  'search.use':            ['lp','potential_lp','vc','startup_funded','partner','admin','super_admin'],
-  'search.see_contact':    [],  // never — contact only after accepted connection
-  'connections.request':   ['lp','potential_lp','vc','startup_funded','admin','super_admin'],
-  'connections.respond':   ['lp','potential_lp','vc','startup_inprogress','startup_onboarded','startup_funded','partner','advisor','admin','super_admin'],
-  'connections.approve':   ['admin','super_admin'],
-  'pitch.edit':            ['startup_inprogress','startup_onboarded','startup_funded','admin','super_admin'],
-  'mis.submit':            ['startup_funded','admin','super_admin'],
-  'matchmaking.respond':   ['lp','potential_lp','vc','startup_funded','admin','super_admin'],
-  'matchmaking.approve':   ['admin','super_admin'],
-  'admin.any':             ['admin','super_admin'],
-  'analytics.view':        ['admin','super_admin'],
-  'tracxn.ingest':         ['admin','super_admin'],
-  'card_scan.use':         ['lp','potential_lp','vc','admin','super_admin'],
+  'search.use': ['lp', 'potential_lp', 'vc', 'startup_funded', 'partner', 'admin', 'super_admin'],
+  'search.see_contact': [], // never — contact only after accepted connection
+  'connections.request': ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin'],
+  'connections.respond': [
+    'lp',
+    'potential_lp',
+    'vc',
+    'startup_inprogress',
+    'startup_onboarded',
+    'startup_funded',
+    'partner',
+    'advisor',
+    'admin',
+    'super_admin',
+  ],
+  'connections.approve': ['admin', 'super_admin'],
+  'pitch.edit': [
+    'startup_inprogress',
+    'startup_onboarded',
+    'startup_funded',
+    'admin',
+    'super_admin',
+  ],
+  'mis.submit': ['startup_funded', 'admin', 'super_admin'],
+  'matchmaking.respond': ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin'],
+  'matchmaking.approve': ['admin', 'super_admin'],
+  'admin.any': ['admin', 'super_admin'],
+  'analytics.view': ['admin', 'super_admin'],
+  'tracxn.ingest': ['admin', 'super_admin'],
+  'card_scan.use': ['lp', 'potential_lp', 'vc', 'admin', 'super_admin'],
   // ... add more as features ship
 } as const satisfies Record<string, readonly UserRole[]>;
 
-export function can(role: UserRole | null | undefined, capability: keyof typeof CAPABILITIES): boolean {
+export function can(
+  role: UserRole | null | undefined,
+  capability: keyof typeof CAPABILITIES,
+): boolean {
   return !!role && (CAPABILITIES[capability] as readonly UserRole[]).includes(role);
 }
 ```
@@ -361,6 +398,7 @@ The sidebar is built from `NAV_ITEMS` in `role-capabilities.ts` (see `frontend_p
 ### 3.5 Role-masked fields
 
 Backend returns role-masked objects. The frontend must not assume fields present:
+
 - `contact` on a connection is only present when `status === 'accepted'`.
 - Partner sees only `name`, `organisation`, `sector`, `stage`, `one_liner` — render "—" for absent fields, do not error.
 
@@ -402,7 +440,7 @@ Backend returns role-masked objects. The frontend must not assume fields present
     return useMutation({
       mutationFn: (args: { id: string; note?: string }) =>
         adminApproveConnection(args.id, { action: 'approve', note: args.note }),
-      onSuccess: () => qc.invalidateQueries({ queryKey: ['admin','connections'] }),
+      onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'connections'] }),
     });
   }
   ```
@@ -538,11 +576,13 @@ If the backend changes shape, Zod throws; the error boundary renders a debug mes
 - Additional stores only when: (a) the state is pure UI, (b) needed across >2 unrelated components, (c) cannot live in URL / React Query.
 
 Examples of **valid** Zustand use:
+
 - Sidebar collapsed / expanded
 - Global command-palette open/close
 - Theme preference (light/dark)
 
 Examples of **invalid** Zustand use:
+
 - Search results (TanStack Query)
 - Connection list (TanStack Query)
 - Current wizard step (component-local `useState` or URL param)
@@ -565,8 +605,8 @@ Examples of **invalid** Zustand use:
 new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,                     // 1 min
-      gcTime: 5 * 60_000,                    // 5 min
+      staleTime: 60_000, // 1 min
+      gcTime: 5 * 60_000, // 5 min
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       retry: (failureCount, error) => {
@@ -590,6 +630,7 @@ Override per-query when necessary (e.g. `staleTime: 0` on `/search`).
 ### 7.1 The four states — mandatory, always
 
 Every screen that fetches data implements **all four**:
+
 1. **Loading** — skeleton layout, not a spinner-only.
 2. **Empty** — icon + message + action.
 3. **Error** — `<ErrorState error={...} onRetry={...} />`.
@@ -613,20 +654,20 @@ A component that only renders the success case will fail PR review.
 // src/api/error-messages.ts
 export const USER_MESSAGES: Record<string, string> = {
   validation_error: 'Please check the highlighted fields.',
-  not_registered:   'This number is not registered. Please contact Warmup Ventures.',
-  otp_invalid:      'The code is incorrect. Please try again.',
-  otp_expired:      'The OTP expired. Request a new one.',
-  link_expired:     'This link has expired. Please sign in again.',
-  token_expired:    'Your session has expired. Please sign in again.',
-  insufficient_role:'You do not have access to this page.',
-  forbidden:        "You do not have access to this resource.",
-  conflict:         'This action conflicts with the current state.',
+  not_registered: 'This number is not registered. Please contact Warmup Ventures.',
+  otp_invalid: 'The code is incorrect. Please try again.',
+  otp_expired: 'The OTP expired. Request a new one.',
+  link_expired: 'This link has expired. Please sign in again.',
+  token_expired: 'Your session has expired. Please sign in again.',
+  insufficient_role: 'You do not have access to this page.',
+  forbidden: 'You do not have access to this resource.',
+  conflict: 'This action conflicts with the current state.',
   rate_limit_exceeded: 'Too many requests. Please try again shortly.',
-  not_found:        'We could not find what you were looking for.',
+  not_found: 'We could not find what you were looking for.',
   mis_already_submitted: 'MIS for this period was already submitted.',
   duplicate_contact: 'This contact already exists in the community.',
-  internal_error:   'Something went wrong on our side. Please try again.',
-  network_error:    'Network error. Please check your connection.',
+  internal_error: 'Something went wrong on our side. Please try again.',
+  network_error: 'Network error. Please check your connection.',
 };
 ```
 
@@ -807,6 +848,7 @@ Pre-commit hooks MUST NOT be bypassed (`--no-verify`). If a hook fails, fix the 
 ### 9.5 CI (GitHub Actions)
 
 Required jobs per PR:
+
 1. `pnpm install --frozen-lockfile`
 2. `pnpm lint`
 3. `pnpm typecheck`
@@ -840,11 +882,10 @@ Core git discipline lives in §0.1.10. Additional branch rules:
 
 ### 9.8 Environment-specific rules
 
-| Env | `VITE_APP_ENV` | `VITE_OTP_BYPASS_HINT` | Source maps | Sentry |
-|---|---|---|---|---|
-| development | `development` | `true` | inline | off |
-| staging | `staging` | `false` | hidden | on |
-| production | `production` | `false` | hidden | on |
+| Env         | `VITE_APP_ENV` | `VITE_OTP_BYPASS_HINT` | Source maps | Sentry |
+| ----------- | -------------- | ---------------------- | ----------- | ------ |
+| development | `development`  | `true`                 | inline      | off    |
+| production  | `production`   | `false`                | hidden      | on     |
 
 Never deploy `development` env config to a public host. Never expose the dev OTP hint in production.
 
@@ -898,17 +939,17 @@ When in doubt, open a PR in **draft** and tag a reviewer with the question. Neve
 
 ## 12. COMMON PITFALLS AND ANTIDOTES
 
-| Pitfall | Why it happens | Antidote |
-|---|---|---|
-| Pages that only render success | Forgot loading/empty/error | `<QueryStateBoundary>` higher-order wrapper that forces all four |
-| `any` creeps in | Axios response type inference | Always `apiClient.get<ApiEnvelope<T>>(...)` with explicit `T` |
-| Sidebar shows a disabled admin link for LPs | Nav filter missed a role | `NAV_ITEMS.filter(i => i.roles.includes('*') || i.roles.includes(role))` — test with each role |
-| Session persists after backend rotates JWT_SECRET | localStorage cache | `persist` store adds a `version` key; bump it when the auth-store schema changes to force clear |
-| Search results stale after filter change | Query key missing filter | Put every input (query, filters, limit, cursor) in the key tuple |
-| 429 storm after rate limit | Auto-retry on mutation | `retry: false` on mutations globally |
-| Role string typos (`'lp '`, `'Admin'`) | Not using the union type | Always import `UserRole` and rely on compiler |
-| Infinite-scroll re-fetches first page on return | `useInfiniteQuery` losing pages | `keepPreviousData` + `gcTime > 0` |
-| Memoisation "optimisations" make code worse | Premature optimisation | Profile first; `React.memo` only for leaf list items |
+| Pitfall                                           | Why it happens                  | Antidote                                                                                        |
+| ------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- | --- | ---------------------------------------------- |
+| Pages that only render success                    | Forgot loading/empty/error      | `<QueryStateBoundary>` higher-order wrapper that forces all four                                |
+| `any` creeps in                                   | Axios response type inference   | Always `apiClient.get<ApiEnvelope<T>>(...)` with explicit `T`                                   |
+| Sidebar shows a disabled admin link for LPs       | Nav filter missed a role        | `NAV_ITEMS.filter(i => i.roles.includes('\*')                                                   |     | i.roles.includes(role))` — test with each role |
+| Session persists after backend rotates JWT_SECRET | localStorage cache              | `persist` store adds a `version` key; bump it when the auth-store schema changes to force clear |
+| Search results stale after filter change          | Query key missing filter        | Put every input (query, filters, limit, cursor) in the key tuple                                |
+| 429 storm after rate limit                        | Auto-retry on mutation          | `retry: false` on mutations globally                                                            |
+| Role string typos (`'lp '`, `'Admin'`)            | Not using the union type        | Always import `UserRole` and rely on compiler                                                   |
+| Infinite-scroll re-fetches first page on return   | `useInfiniteQuery` losing pages | `keepPreviousData` + `gcTime > 0`                                                               |
+| Memoisation "optimisations" make code worse       | Premature optimisation          | Profile first; `React.memo` only for leaf list items                                            |
 
 ---
 
@@ -1009,11 +1050,13 @@ Paste this into your PR description. Check every box.
 These decisions are final. Do not propose alternatives in-session — open an ADR if you genuinely need to revisit.
 
 ### Workflow
+
 - **Single Opus 4.7 instance** is the operating model. Coordination state lives in `.claude/` (see §0.1). There is no 3-instance / Plan-Reviewer / QA-Reviewer split.
 - **Four `.claude/` files** are canonical: `decisions.md` (decisions log + human-input queue), `queue.md` (feature queue), `session.md` (where I stopped), `issues.md` (QA findings). All committed to git.
 - **Human input** is requested via the 🟡 HUMAN INPUT NEEDED banner + `decisions.md § Pending`. Never guessed.
 
 ### Stack
+
 - **React 18 + Vite SPA + TypeScript strict** — NO Next.js, NO CRA, NO SSR.
 - **TanStack Query v5** owns ALL server state. **Zustand v4** owns auth session + narrow UI flags only.
 - **axios v1** is the only HTTP client. `fetch()` is never used for backend calls.
@@ -1022,6 +1065,7 @@ These decisions are final. Do not propose alternatives in-session — open an AD
 - **pnpm** only. `package-lock.json` and `yarn.lock` are forbidden.
 
 ### Auth & data model
+
 - **JWT** lives in **Zustand + `localStorage['oc.auth']`**, NEVER in cookies.
 - **OTP session = 4 hours, no refresh.** Logout is pure client-side (§13 G15).
 - **Envelope** `{ data, error, pagination? }` is uniform for every endpoint. Cursor pagination everywhere except DLQ (legacy offset).
@@ -1029,6 +1073,7 @@ These decisions are final. Do not propose alternatives in-session — open an AD
 - **Partner role is EXCLUDED from search** — deliberate (PRD §7.4.1). Do not add Partner back without a product decision.
 
 ### Patterns
+
 - **`<ExecutionPanel>`** (PRD §6.7) is mandatory for all action screens. No inline `useMutation` inside route components.
 - **Every gap endpoint** (PRD §13.2) has (1) feature flag, (2) MSW handler, (3) interim service in `src/api/interim/`, (4) flip plan. No "we'll build it when backend ships" stubs.
 - **Role-based navigation** comes from a single `NAV_ITEMS` map in `src/lib/role-capabilities.ts`. No hardcoded sidebar entries.
@@ -1058,21 +1103,21 @@ _Builder rule:_ when you find a new non-blocking gotcha, add a dated row here in
 
 ## 17. QUICK LOOKUP — which PRD section for what
 
-| Looking for… | Read this in `frontend_prd.md` |
-|---|---|
-| A specific endpoint (method + path + JSON) | §7.1–§7.16 |
-| Shared error codes (401 / 403 / 429 / 500) | §7.0.4 |
-| Rules for envelope / pagination / timestamps | §7.0.2 / §7.0.3 / §7.0.6 |
-| TypeScript types for domain objects | §8 |
-| Transforming a field between UI and API | §8.12 |
-| Cache invalidation after a mutation | §8.12.4 |
-| Which roles can hit which endpoint | §4 (screen mapping) + §7.x per endpoint |
-| Sidebar / nav / route tree | §10.3–§10.4 |
-| Execution Panel usage | §6.7 |
-| Debug dock contents | §6.8 |
-| A gap endpoint's resolution (flag + interim + MSW) | §13.2 (by G-number) |
-| Backend gap acceptance criteria for PRs | §13.4 |
+| Looking for…                                       | Read this in `frontend_prd.md`          |
+| -------------------------------------------------- | --------------------------------------- |
+| A specific endpoint (method + path + JSON)         | §7.1–§7.16                              |
+| Shared error codes (401 / 403 / 429 / 500)         | §7.0.4                                  |
+| Rules for envelope / pagination / timestamps       | §7.0.2 / §7.0.3 / §7.0.6                |
+| TypeScript types for domain objects                | §8                                      |
+| Transforming a field between UI and API            | §8.12                                   |
+| Cache invalidation after a mutation                | §8.12.4                                 |
+| Which roles can hit which endpoint                 | §4 (screen mapping) + §7.x per endpoint |
+| Sidebar / nav / route tree                         | §10.3–§10.4                             |
+| Execution Panel usage                              | §6.7                                    |
+| Debug dock contents                                | §6.8                                    |
+| A gap endpoint's resolution (flag + interim + MSW) | §13.2 (by G-number)                     |
+| Backend gap acceptance criteria for PRs            | §13.4                                   |
 
 ---
 
-*End of frontend_claude.md. Version 1.1 — 2026-04-24. Paired with frontend_prd.md v1.1.*
+_End of frontend_claude.md. Version 1.1 — 2026-04-24. Paired with frontend_prd.md v1.1._

@@ -34,31 +34,32 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — pre-scaffold)_
+_(none — Stage 0 complete, awaiting human sign-off before Stage 1)_
 
 ### Last completed action
 
-_(none yet — repo just bootstrapped from templates)_
+Moved P-3..P-16 from `.claude/decisions.md § Pending` to `§ Resolved` after the human filled in all answers. All 14 Stage-0 decisions are now resolved (16 total including pre-filled P-1/P-2). `§ Pending` is empty.
 
 ### Next concrete step
 
-Begin **Stage 0 — upfront interview** per the human's instructions in `docs/plan.md`. Read `CLAUDE.md` and `docs/frontend_prd.md` fully, then compile every unknown into `.claude/decisions.md § Pending` as P-1, P-2, …
+Human has instructed (per `docs/plan.md` Stage 0 protocol) to say **"Stage 0 complete"** and stop. When the human returns, begin **Stage 1 — Scaffold** per `.claude/queue.md § Stage 1 — Scaffold` using the prompt in `docs/plan.md § Stage 1`. First sub-task in the queue: `chassis` (vite + deps + folder tree per PRD §6.2 + apiClient + authStore + ExecutionPanel + RoleGuard + MSW + CI + husky).
 
 ### Open blockers
 
-_(none — Stage 0 has not run yet)_
+_(none — all Stage 0 pending items resolved)_
 
 ### Files touched this session
 
-_(none)_
+- `.claude/decisions.md` (P-3..P-16 compiled, then resolved after human answers)
+- `.claude/session.md` (this file)
 
 ### Tests green?
 
-_(not yet applicable — no code exists)_
+_(not applicable — no code exists yet)_
 
 ### Last updated
 
-_(replace on first session end with actual ISO timestamp, e.g. `2026-04-24T11:30:00+05:30`)_
+2026-04-24T00:00:00+05:30
 
 ---
 
