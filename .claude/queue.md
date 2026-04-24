@@ -20,9 +20,9 @@ When a whole stage's boxes are ticked, pause and await human review before start
 
 ## Stage 1 — Scaffold (Opus: 1 session ~3 hr)
 
-- [ ] **chassis** — vite + deps + folder tree per §6.2 + apiClient + authStore + ExecutionPanel + RoleGuard + MSW + CI + husky. `pnpm lint && typecheck && test && build` all green.
-- [ ] **brand tokens wired** — `tailwind.config.ts` + `src/styles/globals.css` + `index.html` Google Fonts link all match PRD §6.6b. Add a visual smoke test: mount one `<Button>`, one `<Card>`, one `<Badge variant="success">` on `/dashboard` and confirm the colours render as primary blue, white surface with grey border, green-tinted success respectively.
-- [ ] **stub routes** — /signin, /dashboard, /expired, /unauthorized, /not-found (empty pages). Plus Phase-4 placeholder routes /documents (§13 G3) and /digest (§10.5) — each renders a "Coming soon" card pointing to the non-Phase-4 equivalent.
+- [x] **chassis** — vite + deps + folder tree per §6.2 + apiClient + authStore + ExecutionPanel + RoleGuard + MSW + CI + husky. `pnpm lint && typecheck && test && build` all green.
+- [x] **brand tokens wired** — `tailwind.config.ts` + `src/styles/globals.css` + `index.html` Google Fonts link all match PRD §6.6b. Add a visual smoke test: mount one `<Button>`, one `<Card>`, one `<Badge variant="success">` on `/dashboard` and confirm the colours render as primary blue, white surface with grey border, green-tinted success respectively.
+- [x] **stub routes** — /signin, /dashboard, /expired, /unauthorized, /not-found (empty pages). Plus Phase-4 placeholder routes /documents (§13 G3) and /digest (§10.5) — each renders a "Coming soon" card pointing to the non-Phase-4 equivalent.
 
 > Gate after Stage 1: human reviews scaffold in depth. Tag `v0.1-scaffold`.
 
