@@ -10,8 +10,6 @@ import { FormField } from '@/components/forms/FormField';
 import { PhoneInput } from '@/components/forms/PhoneInput';
 import { OTPInput } from '@/components/forms/OTPInput';
 import { ErrorState } from '@/components/error-state/ErrorState';
-import { env } from '@/lib/env';
-import { DEV_OTP_BYPASS_CODE } from '@/lib/dev-seed-users';
 import { toE164, isValidE164 } from '@/lib/phone';
 import { useAuthStore } from '@/auth/auth-store';
 import { useOtpSend } from '@/features/auth/hooks/use-otp-send';
@@ -55,8 +53,6 @@ export function SignInPage() {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
   }, [resendSecondsLeft]);
-
-  const showDevHint = env.OTP_BYPASS_HINT && env.APP_ENV === 'development';
 
   const handlePhoneSubmit = phoneForm.handleSubmit(({ phone: rawPhone }) => {
     const canonical = toE164(rawPhone);
@@ -129,9 +125,7 @@ export function SignInPage() {
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
           <BrandLogo size={40} />
-          <h1 className="text-2xl font-semibold text-ink-heading">
-            Warmup Ventures · One Community
-          </h1>
+          <h1 className="text-2xl font-semibold text-ink-heading">One Community</h1>
         </div>
         <Card>
           <CardHeader>
@@ -143,14 +137,6 @@ export function SignInPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {showDevHint ? (
-              <div className="rounded-md border border-brand/30 bg-brand/5 p-3 text-sm text-ink-body">
-                Dev mode: OTP is{' '}
-                <span className="font-mono font-semibold">{DEV_OTP_BYPASS_CODE}</span> for every
-                seeded user.
-              </div>
-            ) : null}
-
             {step === 'phone' ? (
               <form onSubmit={handlePhoneSubmit} className="flex flex-col gap-4">
                 <FormField
