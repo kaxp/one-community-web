@@ -1,0 +1,62 @@
+{
+  "$note": "Copy this file to <frontend-repo>/.claude/settings.json. Enables auto-lint on every Edit/Write + full typecheck+test on session stop. Claude sees failures in its own output and self-corrects without human prompting.",
+
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && pnpm -s lint --quiet 2>&1 | tail -40 || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && echo '\\n=== typecheck ===' && pnpm -s typecheck 2>&1 | tail -60; echo '\\n=== tests ===' && pnpm -s test --run --reporter=basic 2>&1 | tail -80"
+          }
+        ]
+      }
+    ]
+  },
+
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git rebase:*)",
+      "Bash(git pull --rebase*)",
+      "Bash(git push*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(pnpm publish*)",
+      "Bash(npm publish*)"
+    ]
+  },
+
+  "env": {
+    "CLAUDE_PROJECT_DIR": "."
+  }
+}
