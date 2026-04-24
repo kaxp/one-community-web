@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Caches
+.vite/
+.turbo/
+.cache/
+
+# Coverage + test artefacts
+coverage/
+playwright-report/
+test-results/
+
+# Claude coordination state (hand-maintained — don't reformat)
+.claude/
+
+# Lockfiles
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Generated MSW worker
+public/mockServiceWorker.js
+
+# Minified assets
+*.min.js
+*.min.css
+
+# Env
+.env
+.env.*
+!.env.example
+
+# IDE scratch
+.history/
