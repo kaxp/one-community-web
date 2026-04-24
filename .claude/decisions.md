@@ -291,7 +291,7 @@ Extract the mobile number for each user role and add them to some constant or si
 - **Feature:** scaffold (TopBar) + sign-in screen
 - **Blocking:** no (fallback specified by PRD §6.6b)
 - **Added:** 2026-04-24
-- **Context:** PRD §6.6b states: *"If a logo asset (SVG) is supplied in `.claude/decisions.md [P-logo]`, render it left of the wordmark at `h-8`. Otherwise render a solid-brand circular 'W' glyph as a fallback."* Top bar wordmark is already locked to `Warmup Ventures · One Community` (P-2).
+- **Context:** PRD §6.6b states: *"If a logo asset (SVG) is supplied in `.claude/decisions.md [P-logo]`, render it left of the wordmark at `h-8`. Otherwise render a solid-brand circular 'W' glyph as a fallback."* Top bar wordmark is already locked to `One Community` (P-2).
 - **Question:** Is there an official Warmup Ventures logo I should use, and if so in what form?
 - **Options:**
   - (a) **Paste a public URL** (e.g. the one on `warmupventures.com/favicon.svg` or a CDN link). I'll download it into `public/brand/logo.svg` at scaffold time.
@@ -453,7 +453,7 @@ maxWidth: {
 
 ### [P-2] Application name displayed in UI  ✅ resolved 2026-04-24
 
-- **Decision:** Top bar wordmark reads `Warmup Ventures · One Community`. Email sender name: `Warmup Ventures`. Page `<title>` pattern: `<Feature> · One Community`.
+- **Decision:** Top bar wordmark reads `One Community`. Email sender name: `Warmup Ventures`. Page `<title>` pattern: `<Feature> · One Community`.
 - **Rationale:** Keeps parent-brand recognition while labelling the product.
 - **Touches:** `src/components/layout/TopBar.tsx`, `index.html`, every route's page title.
 
@@ -543,7 +543,7 @@ maxWidth: {
 
 ### [P-13] Logo asset  ✅ resolved 2026-04-24
 
-- **Decision:** Use the provided Warmup Ventures logo URL. At Stage 1 scaffold time, download the SVG/PNG once into `public/brand/logo.png` (Google Sites CDN URLs are unstable — do not reference at runtime). Render in `<TopBar>` at `h-8` left of the `Warmup Ventures · One Community` wordmark per PRD §6.6b. Fall back to the solid-brand circular "W" glyph if the file is missing (resilience).
+- **Decision:** Use the provided Warmup Ventures logo URL. At Stage 1 scaffold time, download the SVG/PNG once into `public/brand/logo.png` (Google Sites CDN URLs are unstable — do not reference at runtime). Render in `<TopBar>` at `h-8` left of the `One Community` wordmark per PRD §6.6b. Fall back to the solid-brand circular "W" glyph if the file is missing (resilience).
 - **Source URL (download once, do NOT runtime-reference):** `https://lh3.googleusercontent.com/sitesv/AA5AbUB6SLqLgPY0Zp0rTu2XiIsSrirsvuq7RhqqYr8qKazHccjMm3XpiQjl7w7_By7p1CYUutKnSMndV1pQ6bgyvIln8FPridt6vn3h9jAaQpvcuECcCCgnsRnI0xoLsqeFJMk_O77W57kmn7-Tk1NCBGiMopOWhG5ecFtq0ndjPOAthilLrYXJFMPgMdw=w16383`
 - **Rationale:** Brand asset supplied. Downloading once into the repo protects against the Google Sites CDN URL expiring or rate-limiting. TopBar remains the single display point.
 - **Touches:** `public/brand/logo.png` (new — downloaded at scaffold time), `src/components/layout/TopBar.tsx`, `src/components/brand/BrandLogo.tsx` (new — handles img fallback to glyph). README should note the source URL for future re-downloads.

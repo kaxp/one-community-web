@@ -19,7 +19,7 @@ export function TopBar() {
       <Link to="/dashboard" className="flex items-center gap-2">
         <BrandLogo />
         <span className="hidden text-lg font-semibold text-ink-heading md:inline">
-          Warmup Ventures · One Community
+          One Community
         </span>
         <span className="text-lg font-semibold text-ink-heading md:hidden">One Community</span>
       </Link>

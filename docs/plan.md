@@ -10,6 +10,7 @@
 ### 0.1 What this document is
 
 A step-by-step runbook. Each stage has:
+
 - The goal
 - Your action
 - A copy-pasteable prompt
@@ -95,7 +96,7 @@ You are about to build the entire One Community web frontend solo. Before writin
 
 The human has already pre-answered two decisions (see .claude/decisions.md § Resolved):
 - [P-1] Brand / design tokens — Warmup Ventures palette locked (primary #1F73B7, light theme, Inter font, 0.5rem radius, shadcn CSS variables provided). Do NOT re-ask.
-- [P-2] Application name in UI — "Warmup Ventures · One Community". Do NOT re-ask.
+- [P-2] Application name in UI — "One Community". Do NOT re-ask.
 
 Now compile every REMAINING unknown you will need resolved to build the entire system end-to-end without interruption. Add every pending item to .claude/decisions.md § Pending using the P-N format (see CLAUDE.md § 0.1). Start numbering from P-3. Include at minimum:
 
@@ -113,12 +114,14 @@ Print the 🟡 HUMAN INPUT NEEDED banner referencing ALL pending items. Then sto
 ```
 
 **Expected output:**
+
 - Claude reads both docs (~1M tokens loaded).
 - Appends 15–25 items to `.claude/decisions.md § Pending`.
 - Prints the human-input banner.
 - Stops.
 
 **Your action (batch answer):**
+
 - Open `.claude/decisions.md`, read every pending item.
 - Answer all of them inline in that same file (fill the "Answer:" line under each P-N item).
 - Commit: `git commit -am "decisions: Stage 0 answers"`.
@@ -171,17 +174,18 @@ If you encounter a blocker, use the decisions.md pending protocol (CLAUDE.md §0
 
 This is the only time in the whole build where you read every file. Check:
 
-- [ ] `src/app/router.tsx` matches PRD §10.4 route tree
-- [ ] `src/auth/auth-store.ts` persists to `localStorage['oc.auth']`, has `expiresAt` check
-- [ ] `src/api/client.ts` has the envelope interceptor + 401 → clear → redirect logic per §6.5
-- [ ] `src/components/execution-panel/` has the ExecutionPanel, Dialog, InlineButton variants per §6.7
-- [ ] `src/lib/role-capabilities.ts` has the CAPABILITIES map + `can()` + `NAV_ITEMS`
-- [ ] `tsconfig.json` has `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` all true
-- [ ] CI workflow file runs all four gates
+- [x] `src/app/router.tsx` matches PRD §10.4 route tree
+- [x] `src/auth/auth-store.ts` persists to `localStorage['oc.auth']`, has `expiresAt` check
+- [x] `src/api/client.ts` has the envelope interceptor + 401 → clear → redirect logic per §6.5
+- [x] `src/components/execution-panel/` has the ExecutionPanel, Dialog, InlineButton variants per §6.7
+- [x] `src/lib/role-capabilities.ts` has the CAPABILITIES map + `can()` + `NAV_ITEMS`
+- [x] `tsconfig.json` has `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` all true
+- [x] CI workflow file runs all four gates
 
 **If anything is wrong, fix it yourself or ask Claude to fix via a targeted prompt.** This is the chassis — downstream features inherit its shape.
 
 Once approved:
+
 ```bash
 git tag v0.1-scaffold
 ```
@@ -214,6 +218,7 @@ After success:
 ```
 
 **🔴 YOUR GATE (30 min):**
+
 - Log in as a seeded LP → should land on `/search`
 - Log in as a seeded startup_inprogress → should land on `/pitch`
 - Wrong OTP → inline error, counter starts
@@ -242,6 +247,7 @@ Say "Stage 2b done. Review please." and stop.
 ```
 
 **🔴 YOUR GATE (45 min — deep review):**
+
 - All 4 UI states render (loading skeleton, empty, error, success)
 - Debounce works — no spam on keystroke
 - Pagination: scroll loads next page
@@ -274,6 +280,7 @@ Say "Stage 2c done. Review please." and stop.
 ```
 
 **🔴 YOUR GATE (30 min):**
+
 - Approve a pending → row animates out, badge count decrements on `/admin`
 - Try as LP → `/unauthorized`
 - 409 conflict on Approve → refetches + toast
@@ -325,12 +332,14 @@ If you hit a real blocker, use the decisions.md pending protocol (CLAUDE.md §0.
 ### Spot-check gates during Stage 3
 
 After every **4 completed features**, spend 30 min:
+
 - `pnpm dev`, click through the 4 new screens at 375/768/1440px
 - Verify all 4 UI states trigger
 - Look for replicated mistakes (same wrong pattern in multiple places)
 - If you find a systemic issue: fix it yourself ONCE, add a note to `.claude/decisions.md § Resolved`, and all future sessions inherit the correction
 
 Suggested spot-check gates:
+
 - After: profile-view, connections (list + pending), pitch, mis → **gate**
 - After: schedule, travel, matchmaking, profile-viewers → **gate**
 - After: onboarding/add-user → Stage 3 done
@@ -346,6 +355,7 @@ git tag v0.3-user-features
 Same prompt as Stage 3. The remaining admin features in `queue.md § Stage 4` follow identical patterns to the calibration ones (DataTable + tabs + mutations).
 
 Cluster them into 3 sessions:
+
 - **Session 1:** admin-home (/admin/summary) + admin-digest + admin-matchmaking-ops
 - **Session 2:** admin-quarterly-reports + admin-dead-letter-jobs + admin-lp-funnel
 - **Session 3:** admin-partner-referral + admin-tracxn + admin-analytics (last one needs Recharts)
@@ -404,15 +414,15 @@ git tag v1.0
 
 ## Time budget summary
 
-| Stage | Your time | Opus sessions |
-|---|---|---|
-| Stage 0: Interview | 30 min | 1 × 30 min |
-| Stage 1: Scaffold + review | 1 hr | 1 × 3 hrs |
-| Stage 2: Auth + 2 calibration features + review | 2 hrs | 3 × 2 hrs |
-| Stage 3: 8 user features + 2 spot-checks | 1 hr | 8 × 2-3 hrs |
-| Stage 4: 9 admin features + 3 spot-checks | 1 hr | 3 × 3 hrs (batched) |
-| Stage 5: QA + fixes | 1 hr | 2 × 2 hrs |
-| **Total** | **~6.5 hrs attention** | **~50-60 hrs Opus** |
+| Stage                                           | Your time              | Opus sessions       |
+| ----------------------------------------------- | ---------------------- | ------------------- |
+| Stage 0: Interview                              | 30 min                 | 1 × 30 min          |
+| Stage 1: Scaffold + review                      | 1 hr                   | 1 × 3 hrs           |
+| Stage 2: Auth + 2 calibration features + review | 2 hrs                  | 3 × 2 hrs           |
+| Stage 3: 8 user features + 2 spot-checks        | 1 hr                   | 8 × 2-3 hrs         |
+| Stage 4: 9 admin features + 3 spot-checks       | 1 hr                   | 3 × 3 hrs (batched) |
+| Stage 5: QA + fixes                             | 1 hr                   | 2 × 2 hrs           |
+| **Total**                                       | **~6.5 hrs attention** | **~50-60 hrs Opus** |
 
 Wall-clock: 8-12 days running 2-3 sessions per day.
 
@@ -421,18 +431,23 @@ Wall-clock: 8-12 days running 2-3 sessions per day.
 ## Emergency protocols
 
 ### Claude gets stuck mid-session
+
 It should self-halt via the `decisions.md` banner. If it doesn't and is producing garbage:
+
 1. Hit Esc, stop the run.
 2. Inspect `session.md` and `queue.md` — what feature was it on?
 3. Start a fresh session with: `"Revert any uncommitted changes. Read session.md. Resume cleanly."`
 
 ### You find a systemic mistake mid-build
+
 Do NOT prompt Claude to fix all occurrences one-by-one. Instead:
+
 1. Pick ONE file that exemplifies the right pattern.
 2. Prompt: `"File X at line Y is correct. Apply the same pattern to [list of files]. Run all four gates."`
 3. This refactor becomes the new template for future features.
 
 ### Backend contract changes mid-build
+
 1. Update `docs/frontend_prd.md §7.X` in YOUR editor with the new shape.
 2. Tell Claude: `"PRD §7.X updated. Invalidate all cached knowledge of this endpoint. Update the Zod schema, endpoint function, and every usage. Run all four gates."`
 3. Commit the PRD change separately from the code change so git blame stays clean.
@@ -442,6 +457,7 @@ Do NOT prompt Claude to fix all occurrences one-by-one. Instead:
 ## Success criteria
 
 Build is done when:
+
 - [ ] Every box in `queue.md` is ticked
 - [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all exit 0
 - [ ] `.claude/decisions.md § Pending` is empty
@@ -454,4 +470,4 @@ Tag it `v1.0`, push, and hand off to QA/staging.
 
 ---
 
-*Runbook version 1.0 — 2026-04-24. If this gets revised, bump the version in session.md's header.*
+_Runbook version 1.0 — 2026-04-24. If this gets revised, bump the version in session.md's header._

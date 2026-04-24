@@ -30,12 +30,12 @@
 
 This document is structured to be **read selectively**, not end-to-end. A single Claude Opus 4.7 session implementing one feature should load ~500–800 lines of PRD context — not the whole 6,800-line doc.
 
-| Task | Load from this PRD |
-|---|---|
-| Building a feature | §7.X (endpoint contract) · §8.X (types for the feature) · §8.12 (field transforms) · §13.2 Gx if the endpoint is a gap |
-| Setting up the project / chassis | §6.1 (stack) · §6.2 (folders) · §6.3–§6.5 (data flow, networking) · §6.7 (Execution Panel) · §6.8 (debug dock) |
-| Reviewing / QA pass | §5 (UI states) · §7.X (contracts touched) · §11 (edge cases) · §13.4 (gap PR gates) · `frontend_claude.md §10` (DoD) |
-| Planning / screen lookup | §2 (roles) · §3 (journeys) · §4 (screen map) · §10 (nav/routes) · §12 (execution plan) |
+| Task                             | Load from this PRD                                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Building a feature               | §7.X (endpoint contract) · §8.X (types for the feature) · §8.12 (field transforms) · §13.2 Gx if the endpoint is a gap |
+| Setting up the project / chassis | §6.1 (stack) · §6.2 (folders) · §6.3–§6.5 (data flow, networking) · §6.7 (Execution Panel) · §6.8 (debug dock)         |
+| Reviewing / QA pass              | §5 (UI states) · §7.X (contracts touched) · §11 (edge cases) · §13.4 (gap PR gates) · `frontend_claude.md §10` (DoD)   |
+| Planning / screen lookup         | §2 (roles) · §3 (journeys) · §4 (screen map) · §10 (nav/routes) · §12 (execution plan)                                 |
 
 **Section ID convention:** references use `§7.6.1` (section 7, subsection 6.1). Every `§n.x` reference is a stable anchor.
 
@@ -47,21 +47,21 @@ This document is structured to be **read selectively**, not end-to-end. A single
 
 **One Community** is Warmup Ventures' internal community platform. It is a **role-based dashboard** that connects Startups, LPs (Limited Partners), VCs, Service Partners, Advisors, and Admins.
 
-The platform is currently operating in **Phase 6** (backend complete). WhatsApp (WATI) integration is *deferred* to Phase 4 (see §10.5 — WATI Fallback). Until WATI goes live, **every WhatsApp capability must be exposed and testable through the web UI**.
+The platform is currently operating in **Phase 6** (backend complete). WhatsApp (WATI) integration is _deferred_ to Phase 4 (see §10.5 — WATI Fallback). Until WATI goes live, **every WhatsApp capability must be exposed and testable through the web UI**.
 
 ## 1.1 What the frontend is responsible for
 
-| Concern | Frontend owns | Backend owns |
-|---|---|---|
-| UI for all 60+ endpoints across 14 modules | ✅ | — |
-| RBAC gating (hide / disable / block) | ✅ (mirrors backend) | ✅ (enforces) |
-| Form validation (field-level) | ✅ | ✅ (authoritative) |
-| JWT storage & attach to every request | ✅ | — |
-| OTP/session lifecycle + expiry messaging | ✅ | ✅ (issues) |
-| Search query UX, pagination, filters | ✅ | ✅ (3-stage pipeline) |
-| File uploads (card image, pitch audio, deck, MIS) | ✅ (multipart or signed URL) | ✅ (Drive / OCR / Whisper) |
-| Real-time display of AI job state (pitch eval, matchmaking) | ✅ (poll `job_id`) | ✅ (Celery) |
-| WhatsApp delivery | — | ✅ (Phase 4 only) |
+| Concern                                                     | Frontend owns                | Backend owns               |
+| ----------------------------------------------------------- | ---------------------------- | -------------------------- |
+| UI for all 60+ endpoints across 14 modules                  | ✅                           | —                          |
+| RBAC gating (hide / disable / block)                        | ✅ (mirrors backend)         | ✅ (enforces)              |
+| Form validation (field-level)                               | ✅                           | ✅ (authoritative)         |
+| JWT storage & attach to every request                       | ✅                           | —                          |
+| OTP/session lifecycle + expiry messaging                    | ✅                           | ✅ (issues)                |
+| Search query UX, pagination, filters                        | ✅                           | ✅ (3-stage pipeline)      |
+| File uploads (card image, pitch audio, deck, MIS)           | ✅ (multipart or signed URL) | ✅ (Drive / OCR / Whisper) |
+| Real-time display of AI job state (pitch eval, matchmaking) | ✅ (poll `job_id`)           | ✅ (Celery)                |
+| WhatsApp delivery                                           | —                            | ✅ (Phase 4 only)          |
 
 ## 1.2 Headline features
 
@@ -80,12 +80,12 @@ The platform is currently operating in **Phase 6** (backend complete). WhatsApp 
 
 ## 1.3 Scope boundaries
 
-| In scope (frontend) | Out of scope (frontend) |
-|---|---|
-| Web dashboard at `warmupventures.com` | WhatsApp bot UI |
-| Responsive desktop + mobile (≥ 375px viewport) | Mobile native apps |
-| All authenticated roles | Public marketing site (separate) |
-| All backend modules with routers registered in `main.py` | Any endpoint not listed in §7 |
+| In scope (frontend)                                      | Out of scope (frontend)          |
+| -------------------------------------------------------- | -------------------------------- |
+| Web dashboard at `warmupventures.com`                    | WhatsApp bot UI                  |
+| Responsive desktop + mobile (≥ 375px viewport)           | Mobile native apps               |
+| All authenticated roles                                  | Public marketing site (separate) |
+| All backend modules with routers registered in `main.py` | Any endpoint not listed in §7    |
 
 ## 1.4 Environment / API base
 
@@ -103,30 +103,33 @@ Ten roles exist in the system (DB ENUM `user_role`). Each sees a **different nav
 
 ## 2.1 Role matrix
 
-| Role | Role key | Channel | Access tier |
-|---|---|---|---|
-| Admin | `admin` | Web + Email + WA (Phase 4) | Full — all modules |
-| Super Admin | `super_admin` | Web + Email + WA (Phase 4) | Full + system ops (DLQ, envs) |
-| Limited Partner | `lp` | Web + Email + WA (Phase 4) | Search, connections, digest, profile, card-scan, schedule, travel |
-| Potential LP | `potential_lp` | Web + Email + WA (Phase 4) | Same as LP — funnel stage differs |
-| Venture Capitalist | `vc` | Web + Email + WA (Phase 4) | Search, connections, digest, card-scan, schedule, travel |
-| Startup (Funded) | `startup_funded` | Web + Email + WA (Phase 4) | LP search, pitch, MIS, connections |
-| Startup (In Progress) | `startup_inprogress` | Web + WA (Phase 4) | Pitch, documents, schedule, MIS |
-| Startup (Onboarded) | `startup_onboarded` | Web + WA (Phase 4) | Pitch, documents only |
-| Service Partner | `partner` | Web + Email + WA (Phase 4) | Limited startup search (no contact details), schedule, travel |
-| Advisor | `advisor` | Web + Email + WA (Phase 4) | Connections respond, schedule, travel (memo review in Phase 4) |
+| Role                  | Role key             | Channel                    | Access tier                                                       |
+| --------------------- | -------------------- | -------------------------- | ----------------------------------------------------------------- |
+| Admin                 | `admin`              | Web + Email + WA (Phase 4) | Full — all modules                                                |
+| Super Admin           | `super_admin`        | Web + Email + WA (Phase 4) | Full + system ops (DLQ, envs)                                     |
+| Limited Partner       | `lp`                 | Web + Email + WA (Phase 4) | Search, connections, digest, profile, card-scan, schedule, travel |
+| Potential LP          | `potential_lp`       | Web + Email + WA (Phase 4) | Same as LP — funnel stage differs                                 |
+| Venture Capitalist    | `vc`                 | Web + Email + WA (Phase 4) | Search, connections, digest, card-scan, schedule, travel          |
+| Startup (Funded)      | `startup_funded`     | Web + Email + WA (Phase 4) | LP search, pitch, MIS, connections                                |
+| Startup (In Progress) | `startup_inprogress` | Web + WA (Phase 4)         | Pitch, documents, schedule, MIS                                   |
+| Startup (Onboarded)   | `startup_onboarded`  | Web + WA (Phase 4)         | Pitch, documents only                                             |
+| Service Partner       | `partner`            | Web + Email + WA (Phase 4) | Limited startup search (no contact details), schedule, travel     |
+| Advisor               | `advisor`            | Web + Email + WA (Phase 4) | Connections respond, schedule, travel (memo review in Phase 4)    |
 
 ## 2.2 Three persona clusters
 
 ### Admin cluster (`admin`, `super_admin`)
+
 - Full execution + monitoring
 - Own pages: `/admin`, `/admin/connections`, `/admin/digest`, `/admin/matchmaking`, `/admin/quarterly-reports`, `/admin/dead-letter-jobs`, `/admin/analytics`, `/admin/lp-funnel`, `/admin/partner-referral`, `/admin/tracxn`
 
 ### Internal Operators (`advisor`)
+
 - Limited admin-adjacent tools (deal memo review, advisor feedback)
 - Most routes are Phase 4; Phase 0–3 shows a simplified home with connections respond and schedule
 
 ### External Users (`lp`, `potential_lp`, `vc`, `startup_*`, `partner`)
+
 - Clean, task-focused UI
 - No "system" data visible (no DLQ, no analytics, no retry buttons)
 - Deep-link token entry via email/WA link **or** direct OTP session
@@ -278,43 +281,43 @@ Admin clicks "Approve & Send" → POST /digest/approve {digest_id}
 
 Full screen inventory with their primary APIs and the roles that can access them. Use this table as the master route spec. Routes are the **frontend routes**, not backend paths.
 
-| # | Screen / Route | Primary APIs | Allowed roles |
-|---|---|---|---|
-| 1 | `/` (Homepage) | — | Public |
-| 2 | `/signin` | `POST /auth/otp/send`, `POST /auth/otp/verify` | Public |
-| 3 | `/dashboard` | `GET /auth/me` + role-router | All authenticated |
-| 4 | `/onboarding/profile` | `PATCH /onboarding/profile` | All authenticated (when `profile_complete=false`) |
-| 5 | `/onboarding/lp-profile` | `POST /onboarding/lp-profile` | `lp`, `potential_lp`, `admin`, `super_admin` |
-| 6 | `/add-user` | `POST /onboarding/card-scan`, `GET /onboarding/card-scan/{id}` | All authenticated (exposed to `lp`, `vc`, `admin`, `super_admin` in nav) |
-| 7 | `/search` | `POST /search` | `lp`, `potential_lp`, `vc`, `startup_funded`, `partner` (limited fields), `admin`, `super_admin` |
-| 8 | `/profile/:id` | `GET /profile/{id}` (spec §4.4 — NOT currently exposed as router; see §13 gap), `POST /interactions/log` | Any searcher role |
-| 9 | `/connections` | `GET /connections?limit&cursor` | All authenticated |
-| 10 | `/connections/pending` | `GET /connections/pending?limit&cursor` | All authenticated |
-| 11 | `/pitch` | `GET /pitch/profile`, `POST /pitch/profile`, `POST /pitch/deck`, `GET /pitch/deck/jobs/{id}` | `startup_inprogress`, `startup_onboarded`, `startup_funded`, `admin`, `super_admin` |
-| 12 | `/documents` | (Phase 4 — placeholder screen; uses deep-link token, uploads via Drive) | Startup roles, `admin` |
-| 13 | `/mis` | `GET /portfolio/mis`, `GET /portfolio/mis/prefill`, `POST /portfolio/mis` | `startup_funded`, `admin`, `super_admin` |
-| 14 | `/schedule` | `GET /schedule/slots`, `POST /schedule/book`, `GET /schedule/bookings`, `DELETE /schedule/book/{id}` | All authenticated |
-| 15 | `/travel` | `POST /travel/plans`, `GET /travel/plans`, `DELETE /travel/plans/{id}`, `PUT /travel/home-city` | All authenticated |
-| 16 | `/matchmaking` | `GET /matchmaking/suggestions`, `POST /matchmaking/suggestions/{id}/respond` | `startup_funded`, `lp`, `potential_lp`, `vc`, `admin`, `super_admin` |
-| 17 | `/profile-viewers` ("Who viewed me") | `GET /interactions/profile-viewers` | All authenticated |
-| 18 | `/digest` (user-facing) | (Phase 4 — placeholder; email is primary channel now) | LP, Potential LP, VC, Startup Funded, Partner |
-| **Admin screens** | | | |
-| 19 | `/admin` | `GET /admin/summary` | `admin`, `super_admin` |
-| 20 | `/admin/connections` | `GET /admin/connections`, `PATCH /connections/{id}/admin` | `admin`, `super_admin` |
-| 21 | `/admin/digest` | `GET /digest/pending`, `GET /digest/history`, `POST /digest/generate`, `POST /digest/approve`, `POST /admin/digest/send` | `admin`, `super_admin` |
-| 22 | `/admin/matchmaking` | `POST /matchmaking/generate`, `GET /matchmaking/jobs/{id}`, `GET /matchmaking/pending`, `POST /matchmaking/approve` | `admin`, `super_admin` |
-| 23 | `/admin/quarterly-reports` | `GET /admin/quarterly-reports`, `POST /admin/quarterly-reports/approve` | `admin`, `super_admin` |
-| 24 | `/admin/dead-letter-jobs` | `GET /admin/dead-letter-jobs`, `POST /admin/dead-letter-jobs/{id}/retry` | `admin`, `super_admin` |
-| 25 | `/admin/analytics` | All `/analytics/*` endpoints | `admin`, `super_admin` |
-| 26 | `/admin/lp-funnel` | `PUT /admin/lp/{user_id}/funnel-status` (+ search to pick an LP) | `admin`, `super_admin` |
-| 27 | `/admin/partner-referral` | `POST /admin/partner-referral` | `admin`, `super_admin` |
-| 28 | `/admin/tracxn` (manual ingest console + extension paired view) | `POST /enrichment/tracxn` | `admin`, `super_admin` |
-| 29 | `/admin/users` (roster + find) | Derived from `/search` with admin filters (spec §4.4) | `admin`, `super_admin` |
-| **System screens** | | | |
-| 30 | `/health` (status) | `GET /health` | Public (optional in nav for admins) |
-| 31 | `/unauthorized` | — | All authenticated (redirect target for 403) |
-| 32 | `/expired` | — | All authenticated (redirect target for 401/token_expired) |
-| 33 | `/not-found` | — | 404 fallback |
+| #                  | Screen / Route                                                  | Primary APIs                                                                                                             | Allowed roles                                                                                    |
+| ------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| 1                  | `/` (Homepage)                                                  | —                                                                                                                        | Public                                                                                           |
+| 2                  | `/signin`                                                       | `POST /auth/otp/send`, `POST /auth/otp/verify`                                                                           | Public                                                                                           |
+| 3                  | `/dashboard`                                                    | `GET /auth/me` + role-router                                                                                             | All authenticated                                                                                |
+| 4                  | `/onboarding/profile`                                           | `PATCH /onboarding/profile`                                                                                              | All authenticated (when `profile_complete=false`)                                                |
+| 5                  | `/onboarding/lp-profile`                                        | `POST /onboarding/lp-profile`                                                                                            | `lp`, `potential_lp`, `admin`, `super_admin`                                                     |
+| 6                  | `/add-user`                                                     | `POST /onboarding/card-scan`, `GET /onboarding/card-scan/{id}`                                                           | All authenticated (exposed to `lp`, `vc`, `admin`, `super_admin` in nav)                         |
+| 7                  | `/search`                                                       | `POST /search`                                                                                                           | `lp`, `potential_lp`, `vc`, `startup_funded`, `partner` (limited fields), `admin`, `super_admin` |
+| 8                  | `/profile/:id`                                                  | `GET /profile/{id}` (spec §4.4 — NOT currently exposed as router; see §13 gap), `POST /interactions/log`                 | Any searcher role                                                                                |
+| 9                  | `/connections`                                                  | `GET /connections?limit&cursor`                                                                                          | All authenticated                                                                                |
+| 10                 | `/connections/pending`                                          | `GET /connections/pending?limit&cursor`                                                                                  | All authenticated                                                                                |
+| 11                 | `/pitch`                                                        | `GET /pitch/profile`, `POST /pitch/profile`, `POST /pitch/deck`, `GET /pitch/deck/jobs/{id}`                             | `startup_inprogress`, `startup_onboarded`, `startup_funded`, `admin`, `super_admin`              |
+| 12                 | `/documents`                                                    | (Phase 4 — placeholder screen; uses deep-link token, uploads via Drive)                                                  | Startup roles, `admin`                                                                           |
+| 13                 | `/mis`                                                          | `GET /portfolio/mis`, `GET /portfolio/mis/prefill`, `POST /portfolio/mis`                                                | `startup_funded`, `admin`, `super_admin`                                                         |
+| 14                 | `/schedule`                                                     | `GET /schedule/slots`, `POST /schedule/book`, `GET /schedule/bookings`, `DELETE /schedule/book/{id}`                     | All authenticated                                                                                |
+| 15                 | `/travel`                                                       | `POST /travel/plans`, `GET /travel/plans`, `DELETE /travel/plans/{id}`, `PUT /travel/home-city`                          | All authenticated                                                                                |
+| 16                 | `/matchmaking`                                                  | `GET /matchmaking/suggestions`, `POST /matchmaking/suggestions/{id}/respond`                                             | `startup_funded`, `lp`, `potential_lp`, `vc`, `admin`, `super_admin`                             |
+| 17                 | `/profile-viewers` ("Who viewed me")                            | `GET /interactions/profile-viewers`                                                                                      | All authenticated                                                                                |
+| 18                 | `/digest` (user-facing)                                         | (Phase 4 — placeholder; email is primary channel now)                                                                    | LP, Potential LP, VC, Startup Funded, Partner                                                    |
+| **Admin screens**  |                                                                 |                                                                                                                          |                                                                                                  |
+| 19                 | `/admin`                                                        | `GET /admin/summary`                                                                                                     | `admin`, `super_admin`                                                                           |
+| 20                 | `/admin/connections`                                            | `GET /admin/connections`, `PATCH /connections/{id}/admin`                                                                | `admin`, `super_admin`                                                                           |
+| 21                 | `/admin/digest`                                                 | `GET /digest/pending`, `GET /digest/history`, `POST /digest/generate`, `POST /digest/approve`, `POST /admin/digest/send` | `admin`, `super_admin`                                                                           |
+| 22                 | `/admin/matchmaking`                                            | `POST /matchmaking/generate`, `GET /matchmaking/jobs/{id}`, `GET /matchmaking/pending`, `POST /matchmaking/approve`      | `admin`, `super_admin`                                                                           |
+| 23                 | `/admin/quarterly-reports`                                      | `GET /admin/quarterly-reports`, `POST /admin/quarterly-reports/approve`                                                  | `admin`, `super_admin`                                                                           |
+| 24                 | `/admin/dead-letter-jobs`                                       | `GET /admin/dead-letter-jobs`, `POST /admin/dead-letter-jobs/{id}/retry`                                                 | `admin`, `super_admin`                                                                           |
+| 25                 | `/admin/analytics`                                              | All `/analytics/*` endpoints                                                                                             | `admin`, `super_admin`                                                                           |
+| 26                 | `/admin/lp-funnel`                                              | `PUT /admin/lp/{user_id}/funnel-status` (+ search to pick an LP)                                                         | `admin`, `super_admin`                                                                           |
+| 27                 | `/admin/partner-referral`                                       | `POST /admin/partner-referral`                                                                                           | `admin`, `super_admin`                                                                           |
+| 28                 | `/admin/tracxn` (manual ingest console + extension paired view) | `POST /enrichment/tracxn`                                                                                                | `admin`, `super_admin`                                                                           |
+| 29                 | `/admin/users` (roster + find)                                  | Derived from `/search` with admin filters (spec §4.4)                                                                    | `admin`, `super_admin`                                                                           |
+| **System screens** |                                                                 |                                                                                                                          |                                                                                                  |
+| 30                 | `/health` (status)                                              | `GET /health`                                                                                                            | Public (optional in nav for admins)                                                              |
+| 31                 | `/unauthorized`                                                 | —                                                                                                                        | All authenticated (redirect target for 403)                                                      |
+| 32                 | `/expired`                                                      | —                                                                                                                        | All authenticated (redirect target for 401/token_expired)                                        |
+| 33                 | `/not-found`                                                    | —                                                                                                                        | 404 fallback                                                                                     |
 
 ---
 
@@ -323,6 +326,7 @@ Full screen inventory with their primary APIs and the roles that can access them
 For each screen, the step-by-step **Input → API → Output** sequence lives inside the endpoint's `UI flow` section in §7. Find the primary API for the screen in the table above, then jump to the corresponding §7.x for the concrete flow including success / error / polling behaviour.
 
 Example:
+
 - `/mis` → primary call is `POST /portfolio/mis` → see §7.9.2 `UI flow`.
 - `/pitch` → primary is `POST /pitch/deck` + polling → see §7.3.3 and §7.3.4.
 
@@ -343,21 +347,22 @@ Every screen that fetches data must implement **all four** of these states. No e
 ## 5.2 Empty
 
 Every empty state shows:
+
 1. An icon or illustration (use `lucide-react` icons — `Inbox`, `SearchX`, `CalendarX`, etc.)
 2. A one-line explanation
 3. A primary action (if applicable)
 
 Example empty states:
 
-| Screen | Empty copy | Action |
-|---|---|---|
-| `/search` | "No results. Try a broader query or loosen filters." | [Clear filters] |
-| `/connections` | "You don't have any accepted connections yet." | [Explore search] |
-| `/connections/pending` | "No pending connection requests." | — |
-| `/matchmaking` | "No suggestions this week. Check back on Monday." | — |
-| `/schedule` (slots) | "No available slots in the next 7 days." | [Try 30 days] |
-| `/admin/connections` | "No pending requests to review." | — |
-| `/admin/dead-letter-jobs` | "All jobs are healthy." | — |
+| Screen                    | Empty copy                                           | Action           |
+| ------------------------- | ---------------------------------------------------- | ---------------- |
+| `/search`                 | "No results. Try a broader query or loosen filters." | [Clear filters]  |
+| `/connections`            | "You don't have any accepted connections yet."       | [Explore search] |
+| `/connections/pending`    | "No pending connection requests."                    | —                |
+| `/matchmaking`            | "No suggestions this week. Check back on Monday."    | —                |
+| `/schedule` (slots)       | "No available slots in the next 7 days."             | [Try 30 days]    |
+| `/admin/connections`      | "No pending requests to review."                     | —                |
+| `/admin/dead-letter-jobs` | "All jobs are healthy."                              | —                |
 
 ## 5.3 Error
 
@@ -381,30 +386,30 @@ Use the error catalogue in §11 to render a specific message. Generic "Something
 
 ## 6.1 Tech stack (mandatory — no substitutions without ADR)
 
-| Layer | Choice | Why this one |
-|---|---|---|
-| Language | **TypeScript 5.x** (strict mode) | Required for API contract safety across 60+ endpoints |
-| Framework | **React 18.3+** | Matches backend's role-based SPA pattern; no SSR need |
-| Bundler | **Vite 5.x** | Fast dev, simpler than Next.js for internal dashboard |
-| Routing | **React Router v6.22+** (data routers) | Loader-driven data fetching, nested layouts, route-level auth guards |
-| Server state | **TanStack Query v5** (`@tanstack/react-query`) | Cache, retry, dedupe for 60+ endpoints; pairs with Suspense |
-| Client state | **Zustand v4** | Auth session, UI flags only — no business state |
-| Forms | **React Hook Form v7** + **Zod v3** | Every payload is a Zod schema → shared with API contract |
-| HTTP | **Axios v1** (with interceptors) | JWT injection + global error → standardised error envelope |
-| Styling | **Tailwind CSS v3.4+** | Utility-first, predictable, handles mobile breakpoints |
-| UI primitives | **shadcn/ui** (Radix-based copy-paste) | Accessible, owned in-repo, themeable |
-| Icons | **lucide-react** | Consistent with shadcn/ui |
-| Dates | **date-fns v3** | Tree-shakeable, no moment |
-| Charts | **Recharts v2** | For Analytics screens (LP funnel, cohort, match success) |
-| Tables | **TanStack Table v8** | For admin lists with sort/filter/pagination |
-| Toasts | **sonner** | Lightweight, good DX |
-| File upload | **react-dropzone v14** | Multipart + drag-and-drop for card/pitch/deck |
-| Audio record | **Native MediaRecorder API** | Spec requires in-browser recording |
-| Tests | **Vitest** + **React Testing Library** + **MSW v2** | Unit + integration; MSW mocks backend |
-| E2E (optional Phase 5) | **Playwright** | Cross-browser |
-| Linter | **ESLint** + `@typescript-eslint` + `eslint-plugin-react` + Prettier | Standard TS/React rules |
-| Git hooks | **husky** + **lint-staged** | Pre-commit lint + type-check |
-| Package mgr | **pnpm** | Fast, disk-efficient; required for workspace style later |
+| Layer                  | Choice                                                               | Why this one                                                         |
+| ---------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Language               | **TypeScript 5.x** (strict mode)                                     | Required for API contract safety across 60+ endpoints                |
+| Framework              | **React 18.3+**                                                      | Matches backend's role-based SPA pattern; no SSR need                |
+| Bundler                | **Vite 5.x**                                                         | Fast dev, simpler than Next.js for internal dashboard                |
+| Routing                | **React Router v6.22+** (data routers)                               | Loader-driven data fetching, nested layouts, route-level auth guards |
+| Server state           | **TanStack Query v5** (`@tanstack/react-query`)                      | Cache, retry, dedupe for 60+ endpoints; pairs with Suspense          |
+| Client state           | **Zustand v4**                                                       | Auth session, UI flags only — no business state                      |
+| Forms                  | **React Hook Form v7** + **Zod v3**                                  | Every payload is a Zod schema → shared with API contract             |
+| HTTP                   | **Axios v1** (with interceptors)                                     | JWT injection + global error → standardised error envelope           |
+| Styling                | **Tailwind CSS v3.4+**                                               | Utility-first, predictable, handles mobile breakpoints               |
+| UI primitives          | **shadcn/ui** (Radix-based copy-paste)                               | Accessible, owned in-repo, themeable                                 |
+| Icons                  | **lucide-react**                                                     | Consistent with shadcn/ui                                            |
+| Dates                  | **date-fns v3**                                                      | Tree-shakeable, no moment                                            |
+| Charts                 | **Recharts v2**                                                      | For Analytics screens (LP funnel, cohort, match success)             |
+| Tables                 | **TanStack Table v8**                                                | For admin lists with sort/filter/pagination                          |
+| Toasts                 | **sonner**                                                           | Lightweight, good DX                                                 |
+| File upload            | **react-dropzone v14**                                               | Multipart + drag-and-drop for card/pitch/deck                        |
+| Audio record           | **Native MediaRecorder API**                                         | Spec requires in-browser recording                                   |
+| Tests                  | **Vitest** + **React Testing Library** + **MSW v2**                  | Unit + integration; MSW mocks backend                                |
+| E2E (optional Phase 5) | **Playwright**                                                       | Cross-browser                                                        |
+| Linter                 | **ESLint** + `@typescript-eslint` + `eslint-plugin-react` + Prettier | Standard TS/React rules                                              |
+| Git hooks              | **husky** + **lint-staged**                                          | Pre-commit lint + type-check                                         |
+| Package mgr            | **pnpm**                                                             | Fast, disk-efficient; required for workspace style later             |
 
 ## 6.2 Folder structure (exact — do not deviate)
 
@@ -506,7 +511,7 @@ one-community-web/
 
 - **Each feature folder is self-contained**: `components/`, `hooks/`, `routes/`, `schemas.ts`, `index.ts`.
 - **No feature imports from another feature's internals**. If two features need the same thing, promote it to `src/components/` or `src/lib/`.
-- **`src/features/admin/` holds ONLY admin-specific sub-routes** (DLQ, partner referral, quarterly reports, LP funnel console). Admin *pages* for connections and digest reuse the `connections` and `digest` features respectively via a different route path.
+- **`src/features/admin/` holds ONLY admin-specific sub-routes** (DLQ, partner referral, quarterly reports, LP funnel console). Admin _pages_ for connections and digest reuse the `connections` and `digest` features respectively via a different route path.
 - **No arbitrary `utils/` folders inside features**. Everything generic goes to `src/lib/`.
 
 ## 6.3 Data flow
@@ -534,13 +539,13 @@ Backend API (FastAPI)
 
 ## 6.4 State management
 
-| State kind | Where it lives | Examples |
-|---|---|---|
-| Server state (cache, refetch, optimistic) | TanStack Query | every GET endpoint response; user list, connections, digests |
-| Auth session | Zustand `auth-store` | `{ token, user, role, expiresAt, isAuthenticated }` + persisted to `localStorage` |
-| UI ephemeral | React local state | modal open, form input, wizard step |
-| Form state | React Hook Form | before submit |
-| Route/URL state | React Router + search params | filters, cursor on search, active tab on admin pages |
+| State kind                                | Where it lives               | Examples                                                                          |
+| ----------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
+| Server state (cache, refetch, optimistic) | TanStack Query               | every GET endpoint response; user list, connections, digests                      |
+| Auth session                              | Zustand `auth-store`         | `{ token, user, role, expiresAt, isAuthenticated }` + persisted to `localStorage` |
+| UI ephemeral                              | React local state            | modal open, form input, wizard step                                               |
+| Form state                                | React Hook Form              | before submit                                                                     |
+| Route/URL state                           | React Router + search params | filters, cursor on search, active tab on admin pages                              |
 
 **Never put server data in Zustand.** If TanStack Query can cache it, use TanStack Query. Zustand is only for auth and for cross-component UI flags (e.g. global sidebar-collapsed).
 
@@ -557,7 +562,7 @@ import { useAuthStore } from '@/auth/auth-store';
 import { ApiError } from './errors';
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: env.API_BASE_URL,         // e.g. http://localhost:8000/api/v1
+  baseURL: env.API_BASE_URL, // e.g. http://localhost:8000/api/v1
   timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -598,7 +603,7 @@ apiClient.interceptors.response.use(
 ```ts
 export class ApiError extends Error {
   constructor(
-    public readonly code: string,   // e.g. 'otp_invalid', 'validation_error'
+    public readonly code: string, // e.g. 'otp_invalid', 'validation_error'
     public readonly userMessage: string,
     public readonly status: number,
     public readonly detail?: unknown,
@@ -629,7 +634,8 @@ export const qk = {
   auth: { me: ['auth', 'me'] as const },
   connections: {
     list: (limit: number, cursor?: string) => ['connections', { limit, cursor }] as const,
-    pending: (limit: number, cursor?: string) => ['connections', 'pending', { limit, cursor }] as const,
+    pending: (limit: number, cursor?: string) =>
+      ['connections', 'pending', { limit, cursor }] as const,
   },
   matchmaking: {
     suggestions: ['matchmaking', 'suggestions'] as const,
@@ -667,20 +673,20 @@ Mirrors the visual language of https://www.warmupventures.com/. Locked in `.clau
 
 ### Palette
 
-| Token | Hex | Usage |
-|---|---|---|
-| `brand` / primary | `#1F73B7` | CTAs, links, focus rings, selected tabs, active-state borders |
-| `brand.hover` | `#1A5F98` | button hover / active |
-| `brand.foreground` | `#FFFFFF` | text on primary surfaces |
-| `surface.DEFAULT` | `#FFFFFF` | page + card background |
-| `surface.muted` | `#F5F5F5` | alternating sections, panels, disabled backgrounds |
-| `border` | `#E8E8E8` | card borders, divider lines, input borders |
-| `ink.heading` | `#1A1A1A` | h1–h3, prominent labels |
-| `ink.body` | `#4A4A4A` | paragraphs, descriptions |
-| `ink.muted` | `#666666` | captions, secondary metadata, placeholders |
-| `success` | `#16A34A` | success toasts, positive badges, accepted status |
-| `warning` | `#D97706` | warnings, pending-target status |
-| `error` | `#DC2626` | destructive actions, failed states, form errors |
+| Token              | Hex       | Usage                                                         |
+| ------------------ | --------- | ------------------------------------------------------------- |
+| `brand` / primary  | `#1F73B7` | CTAs, links, focus rings, selected tabs, active-state borders |
+| `brand.hover`      | `#1A5F98` | button hover / active                                         |
+| `brand.foreground` | `#FFFFFF` | text on primary surfaces                                      |
+| `surface.DEFAULT`  | `#FFFFFF` | page + card background                                        |
+| `surface.muted`    | `#F5F5F5` | alternating sections, panels, disabled backgrounds            |
+| `border`           | `#E8E8E8` | card borders, divider lines, input borders                    |
+| `ink.heading`      | `#1A1A1A` | h1–h3, prominent labels                                       |
+| `ink.body`         | `#4A4A4A` | paragraphs, descriptions                                      |
+| `ink.muted`        | `#666666` | captions, secondary metadata, placeholders                    |
+| `success`          | `#16A34A` | success toasts, positive badges, accepted status              |
+| `warning`          | `#D97706` | warnings, pending-target status                               |
+| `error`            | `#DC2626` | destructive actions, failed states, form errors               |
 
 ### Typography
 
@@ -726,50 +732,54 @@ theme: {
 ```css
 @layer base {
   :root {
-    --background:       0 0% 100%;
-    --foreground:       0 0% 10%;
-    --card:             0 0% 100%;
-    --card-foreground:  0 0% 10%;
-    --popover:          0 0% 100%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary:          207 71% 42%;
+    --primary: 207 71% 42%;
     --primary-foreground: 0 0% 100%;
-    --secondary:        0 0% 96%;
+    --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 10%;
-    --muted:            0 0% 96%;
+    --muted: 0 0% 96%;
     --muted-foreground: 0 0% 40%;
-    --accent:           207 71% 42%;
+    --accent: 207 71% 42%;
     --accent-foreground: 0 0% 100%;
-    --destructive:      0 84% 60%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border:           0 0% 91%;
-    --input:            0 0% 91%;
-    --ring:             207 71% 42%;
-    --radius:           0.5rem;
+    --border: 0 0% 91%;
+    --input: 0 0% 91%;
+    --ring: 207 71% 42%;
+    --radius: 0.5rem;
   }
-  * { @apply border-border; }
-  body { @apply bg-background text-foreground font-sans antialiased; }
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
 }
 ```
 
 ### Logo + wordmark
 
-Top bar wordmark reads **`Warmup Ventures · One Community`** (Inter 600 weight, `text-lg`, `ink.heading`). If a logo asset (SVG) is supplied in `.claude/decisions.md [P-logo]`, render it left of the wordmark at `h-8`. Otherwise render a solid-brand circular "W" glyph as a fallback.
+Top bar wordmark reads **`One Community`** (Inter 600 weight, `text-lg`, `ink.heading`). If a logo asset (SVG) is supplied in `.claude/decisions.md [P-logo]`, render it left of the wordmark at `h-8`. Otherwise render a solid-brand circular "W" glyph as a fallback.
 
 ### Application of these tokens
 
-| UI element | Token |
-|---|---|
-| Primary button | `bg-brand text-brand-foreground hover:bg-brand-hover` |
-| Secondary / outline button | `bg-surface border border-border text-ink-heading hover:bg-surface-muted` |
-| Destructive button | `bg-error text-white hover:bg-red-700` |
-| Card | `bg-surface border border-border rounded-lg shadow-sm` |
-| Input (idle / focus) | `border-border focus:border-brand focus:ring-brand/20` |
-| Status badges | success → `bg-success/10 text-success`; warning → `bg-warning/10 text-warning`; error → `bg-error/10 text-error` |
-| Role badge | colour per role via `src/lib/role-colours.ts` helper (see §13 G12 tag pattern) |
-| Link | `text-brand hover:underline` |
-| Selected sidebar item | `bg-brand/10 text-brand border-l-2 border-brand` |
-| Focus ring (keyboard) | `ring-2 ring-brand ring-offset-2` |
+| UI element                 | Token                                                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Primary button             | `bg-brand text-brand-foreground hover:bg-brand-hover`                                                            |
+| Secondary / outline button | `bg-surface border border-border text-ink-heading hover:bg-surface-muted`                                        |
+| Destructive button         | `bg-error text-white hover:bg-red-700`                                                                           |
+| Card                       | `bg-surface border border-border rounded-lg shadow-sm`                                                           |
+| Input (idle / focus)       | `border-border focus:border-brand focus:ring-brand/20`                                                           |
+| Status badges              | success → `bg-success/10 text-success`; warning → `bg-warning/10 text-warning`; error → `bg-error/10 text-error` |
+| Role badge                 | colour per role via `src/lib/role-colours.ts` helper (see §13 G12 tag pattern)                                   |
+| Link                       | `text-brand hover:underline`                                                                                     |
+| Selected sidebar item      | `bg-brand/10 text-brand border-l-2 border-brand`                                                                 |
+| Focus ring (keyboard)      | `ring-2 ring-brand ring-offset-2`                                                                                |
 
 These mappings are the default for every shadcn component. Do not override per-component unless a specific design spec requires it.
 
@@ -781,11 +791,11 @@ Every screen that combines **a form + a mutation + a response + an error state**
 
 ### 6.7.1 When to use
 
-| Use `<ExecutionPanel>` | Use a plain page |
-|---|---|
+| Use `<ExecutionPanel>`                                                                                                                                                                                 | Use a plain page                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | User submits a form and sees one response (MIS, pitch profile, card scan, connection request, DLQ retry, digest send, Tracxn ingest, matchmaking generate, quarterly report approve, partner referral) | Pure list/read screens (`/connections`, `/search`, `/admin/analytics`) |
-| Admin triggers a one-shot action that produces a result (digest generate, matchmaking generate, DLQ retry) | Navigation-only pages (`/dashboard`, `/admin`) |
-| Endpoint returns `202 + job_id` (pitch deck, matchmaking generate) | Static content (`/unauthorized`, `/expired`) |
+| Admin triggers a one-shot action that produces a result (digest generate, matchmaking generate, DLQ retry)                                                                                             | Navigation-only pages (`/dashboard`, `/admin`)                         |
+| Endpoint returns `202 + job_id` (pitch deck, matchmaking generate)                                                                                                                                     | Static content (`/unauthorized`, `/expired`)                           |
 
 ### 6.7.2 Component contract (TypeScript)
 
@@ -816,7 +826,7 @@ export interface ExecutionPanelProps<TInput, TOutput> {
   /** Optional override for the error renderer. Default reads ApiError.code → USER_MESSAGES. */
   renderError?: (err: ApiError, retry: () => void) => ReactNode;
   /** Submit button label. */
-  submitLabel?: string;              // default "Submit"
+  submitLabel?: string; // default "Submit"
   /** Action buttons rendered next to Submit (Reset, Cancel). */
   secondaryActions?: ReactNode;
   /** Whether the panel supports long-running jobs. If true, `mutation.data` MUST include `job_id`
@@ -954,7 +964,9 @@ export function MISPage() {
       )}
       renderResult={(data) => (
         <SuccessCard>
-          <p>MIS saved for <strong>{data.period}</strong>.</p>
+          <p>
+            MIS saved for <strong>{data.period}</strong>.
+          </p>
           <p className="text-sm text-muted-foreground">Submission ID: {data.submission_id}</p>
         </SuccessCard>
       )}
@@ -1036,14 +1048,14 @@ When `VITE_APP_ENV !== 'production'` AND `VITE_DEBUG_PANEL === 'true'`, the app 
 
 **Dock tabs (mandatory):**
 
-| Tab | Purpose |
-|---|---|
-| Requests | Ring buffer of last 50 HTTP calls: method, path, status, duration, `X-Trace-ID`, request+response JSON. |
-| Jobs | Every `202 + job_id` endpoint registers here. Shows `task_name`, state, result. Click → re-enter polling. |
-| Session | Decoded JWT, `expiresAt` countdown, `authStore` snapshot, active `VITE_*_ENABLED` flags. |
-| Query cache | Embedded `@tanstack/react-query-devtools`. |
-| Feature flags | Runtime toggle of `VITE_*_ENABLED` flags (session-scoped, stored in `sessionStorage['oc.debug.flags']`). |
-| Interactions log | `search_view` / `profile_view` dedup cache (§7.7.1) — fired vs deduped, last 5 min. |
+| Tab              | Purpose                                                                                                   |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| Requests         | Ring buffer of last 50 HTTP calls: method, path, status, duration, `X-Trace-ID`, request+response JSON.   |
+| Jobs             | Every `202 + job_id` endpoint registers here. Shows `task_name`, state, result. Click → re-enter polling. |
+| Session          | Decoded JWT, `expiresAt` countdown, `authStore` snapshot, active `VITE_*_ENABLED` flags.                  |
+| Query cache      | Embedded `@tanstack/react-query-devtools`.                                                                |
+| Feature flags    | Runtime toggle of `VITE_*_ENABLED` flags (session-scoped, stored in `sessionStorage['oc.debug.flags']`).  |
+| Interactions log | `search_view` / `profile_view` dedup cache (§7.7.1) — fired vs deduped, last 5 min.                       |
 
 **Mandatory wiring:**
 
@@ -1080,16 +1092,19 @@ When `VITE_APP_ENV !== 'production'` AND `VITE_DEBUG_PANEL === 'true'`, the app 
 ```
 
 **Content types:**
+
 - Standard requests/responses: `application/json`
 - File uploads: `multipart/form-data` (card image, pitch audio — Phase 4 deep-link endpoints per spec §4.2–4.3)
 - Current backend (Phase 0–3) uses **text-only** card scan (`raw_text` field) and **URL-based** deck upload (`deck_url`). OCR + Whisper endpoints from spec §4.1 are declared but not yet wired in routers (see §13 gap).
 
 **Auth header:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Rate limits:** Every endpoint has a per-IP limit (via slowapi). When exceeded, the backend returns:
+
 ```json
 HTTP 429
 { "data": null, "error": { "code": "rate_limit_exceeded", "message": "Too many requests. Please try again later." } }
@@ -1119,7 +1134,7 @@ X-Trace-ID:    <optional uuid>         # optional; backend echoes back for log c
 
 ```json
 {
-  "data": { },
+  "data": {},
   "error": null
 }
 ```
@@ -1132,7 +1147,7 @@ On failure:
   "error": {
     "code": "validation_error",
     "message": "Validation failed",
-    "detail": [ ]
+    "detail": []
   }
 }
 ```
@@ -1146,7 +1161,7 @@ On failure:
 
 ```json
 {
-  "data": { "items": [ ], "next_cursor": "opaque-string-or-null" },
+  "data": { "items": [], "next_cursor": "opaque-string-or-null" },
   "error": null
 }
 ```
@@ -1155,7 +1170,7 @@ On failure:
 
 ```json
 {
-  "data": [ ],
+  "data": [],
   "error": null,
   "pagination": { "limit": 50, "offset": 0 }
 }
@@ -1273,19 +1288,19 @@ These are network-layer and never include a JSON envelope. The axios interceptor
 
 ### 7.0.5 HTTP status semantics (cheat sheet)
 
-| Status | `error.code` values seen | Meaning | UI default |
-|---|---|---|---|
-| 200 | — | Success | Render `data` |
-| 201 | — | Created | Render `data` + success toast |
-| 202 | — | Accepted (async job queued) | Render job card, poll |
-| 400 | `validation_error`, `not_registered`, `duplicate_contact` | Client input error | Inline field error |
-| 401 | `missing_token`, `invalid_token`, `link_expired`, `token_expired`, `otp_invalid`, `otp_expired` | Auth failure | Redirect or inline (OTP) |
-| 403 | `insufficient_role`, `forbidden`, `token_action_mismatch`, `unknown_action` | Authorisation failure | `/unauthorized` or toast |
-| 404 | `not_found` | Resource missing | Empty state with back button |
-| 409 | `conflict`, `mis_already_submitted`, `duplicate_contact` | Conflict | Context-specific message |
-| 422 | `validation_error` | Pydantic validation (treat same as 400) | Inline field error |
-| 429 | `rate_limit_exceeded` | Rate limit | Toast + disable + countdown |
-| 500 | `internal_error`, `notion_sync_error`, `ai_provider_error`, `wa_provider_error`, `drive_error` | Server fault | Full-page error |
+| Status | `error.code` values seen                                                                        | Meaning                                 | UI default                    |
+| ------ | ----------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------- |
+| 200    | —                                                                                               | Success                                 | Render `data`                 |
+| 201    | —                                                                                               | Created                                 | Render `data` + success toast |
+| 202    | —                                                                                               | Accepted (async job queued)             | Render job card, poll         |
+| 400    | `validation_error`, `not_registered`, `duplicate_contact`                                       | Client input error                      | Inline field error            |
+| 401    | `missing_token`, `invalid_token`, `link_expired`, `token_expired`, `otp_invalid`, `otp_expired` | Auth failure                            | Redirect or inline (OTP)      |
+| 403    | `insufficient_role`, `forbidden`, `token_action_mismatch`, `unknown_action`                     | Authorisation failure                   | `/unauthorized` or toast      |
+| 404    | `not_found`                                                                                     | Resource missing                        | Empty state with back button  |
+| 409    | `conflict`, `mis_already_submitted`, `duplicate_contact`                                        | Conflict                                | Context-specific message      |
+| 422    | `validation_error`                                                                              | Pydantic validation (treat same as 400) | Inline field error            |
+| 429    | `rate_limit_exceeded`                                                                           | Rate limit                              | Toast + disable + countdown   |
+| 500    | `internal_error`, `notion_sync_error`, `ai_provider_error`, `wa_provider_error`, `drive_error`  | Server fault                            | Full-page error               |
 
 ### 7.0.6 UUID, timestamp, and phone conventions (applies everywhere)
 
@@ -1320,20 +1335,25 @@ admin, super_admin
 **Rate limit:** 5 per 10 minutes per IP + 3 per 10 minutes per phone. A 429 on the per-phone limit means the user has requested too many fresh OTPs for the same phone in 10 minutes.
 
 **Headers:**
+
 ```
 Content-Type: application/json
 ```
+
 (No `Authorization`.)
 
 **Request body:**
+
 ```json
 { "phone": "+919876543210" }
 ```
 
 **Request field rules:**
+
 - `phone` (string, required) — E.164 format. Regex: `^\+\d{10,15}$`. Example: `+919876543210`. Leading `+` mandatory.
 
 **Success 200:**
+
 ```json
 {
   "data": { "message": "OTP sent successfully" },
@@ -1342,6 +1362,7 @@ Content-Type: application/json
 ```
 
 **Error 400 — `not_registered` (development only):**
+
 ```json
 HTTP 400
 {
@@ -1352,9 +1373,11 @@ HTTP 400
   }
 }
 ```
-*In production, the backend deliberately returns the success envelope for unknown phones to prevent enumeration. Only dev builds surface this code.*
+
+_In production, the backend deliberately returns the success envelope for unknown phones to prevent enumeration. Only dev builds surface this code._
 
 **Error 422 — validation_error (malformed phone):**
+
 ```json
 HTTP 422
 {
@@ -1374,6 +1397,7 @@ HTTP 422
 **Error 500 — internal_error:** see §7.0.4.
 
 **UI flow (Input → API → Output):**
+
 1. User lands on `/signin`, enters phone in `<PhoneInput />`.
 2. Frontend validates E.164 client-side; on pass, enables "Send OTP".
 3. Click "Send OTP" → `POST /auth/otp/send { phone }`.
@@ -1384,6 +1408,7 @@ HTTP 422
 8. On 500 → full-page `<ErrorState>` with "Try again".
 
 **Data transformation notes:**
+
 - The phone MUST be normalised to E.164 BEFORE submission. Strip spaces, dashes. Prepend `+91` only if the user explicitly selected India country code.
 - The response `data.message` is a fixed literal in dev; do not display it to the user (only use the 200 status as the signal).
 
@@ -1398,20 +1423,24 @@ HTTP 422
 **Rate limit:** 5 per 10 minutes per IP + 5 per 10 minutes per phone (failure only — successful verify clears the counter).
 
 **Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "phone": "+919876543210", "otp": "000000" }
 ```
 
 **Request field rules:**
+
 - `phone` (string, required) — E.164, same regex as §7.1.1.
 - `otp` (string, required) — exactly 6 digits. Regex: `^\d{6}$`.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -1426,12 +1455,14 @@ Content-Type: application/json
 ```
 
 **Response field rules:**
+
 - `access_token` — JWT (HS256), payload includes `sub` (phone), `role`, `user_id`, `iat`, `exp`, `iss` (`"onecomm"`), `aud` (`"development"`|`"staging"`|`"production"`).
 - `token_type` — always `"bearer"`.
 - `expires_in` — seconds (4 hours = 14400).
 - `role` — one of the 10 ENUM values (see §7.0.7).
 
 **Error 401 — `otp_invalid` (uniform for every failure mode):**
+
 ```json
 HTTP 401
 {
@@ -1439,9 +1470,11 @@ HTTP 401
   "error": { "code": "otp_invalid", "message": "Invalid OTP" }
 }
 ```
+
 Covers: wrong code, OTP not in Redis (TTL expired), unknown phone (timing-constant by design). The frontend MUST NOT differentiate these — show the same inline error.
 
 **Error 401 — `otp_expired`** (semantic alias emitted by some paths):
+
 ```json
 HTTP 401
 {
@@ -1451,6 +1484,7 @@ HTTP 401
 ```
 
 **Error 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -1470,6 +1504,7 @@ HTTP 422
 **Error 500 — internal_error:** see §7.0.4.
 
 **UI flow:**
+
 1. User enters 6-digit OTP in `<OTPInput />`.
 2. Auto-submit on 6th digit OR Enter key → `POST /auth/otp/verify`.
 3. On 200 →
@@ -1483,6 +1518,7 @@ HTTP 422
 6. On 500 → full-page `<ErrorState>` with Retry.
 
 **Data transformation notes:**
+
 - Store the full `access_token` string verbatim. Never decode it client-side to read claims; ask `/auth/me` instead.
 - `expiresAt` is derived client-side; timezone-agnostic (epoch ms).
 - On ANY 401/429 during this endpoint, DO NOT clear auth store (there is none yet) and DO NOT navigate away.
@@ -1498,6 +1534,7 @@ HTTP 422
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Accept: application/json
@@ -1508,6 +1545,7 @@ Accept: application/json
 **Request body:** none.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -1526,6 +1564,7 @@ Accept: application/json
 ```
 
 **Response field rules:**
+
 - `user_id`, `phone`, `role` always present.
 - `name`, `email`, `organisation`, `designation`, `avatar_url` are nullable.
 - `profile_complete: boolean` — authoritative gate for whether the user can leave `/onboarding/profile`.
@@ -1533,6 +1572,7 @@ Accept: application/json
 **Error 401 — `missing_token` / `invalid_token` / `link_expired`:** see §7.0.4.
 
 **Error 404 — `not_found`:**
+
 ```json
 HTTP 404
 {
@@ -1540,6 +1580,7 @@ HTTP 404
   "error": { "code": "not_found", "message": "User not found" }
 }
 ```
+
 Only possible if the user was deleted between token issue and this call. Frontend: clear auth store, redirect to `/signin`.
 
 **Error 429 — rate_limit_exceeded:** see §7.0.4.
@@ -1547,6 +1588,7 @@ Only possible if the user was deleted between token issue and this call. Fronten
 **Error 500 — internal_error:** see §7.0.4.
 
 **UI flow:**
+
 1. Called automatically right after `POST /auth/otp/verify` returns 200.
 2. Also called on every cold-start when a persisted session is still valid (`Date.now() < expiresAt`).
 3. On 200 → `authStore.setUser(data)` → if `profile_complete=false` navigate to `/onboarding/profile` else to role home.
@@ -1554,6 +1596,7 @@ Only possible if the user was deleted between token issue and this call. Fronten
 5. On 404 → clear auth store, redirect `/signin` with toast "Account not found".
 
 **Data transformation notes:**
+
 - Render `name ?? phone` when showing the user identifier in the top bar.
 - `avatar_url` nullable — fall back to initials avatar (use `<Avatar />` with `fallback={initials(name)}`).
 - `profile_complete=false` MUST gate access to every other page except `/onboarding/profile`, `/signin`, `/expired`, `/unauthorized`.
@@ -1572,12 +1615,14 @@ Only possible if the user was deleted between token issue and this call. Fronten
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "raw_text": "Kapil Sahu\nPrincipal, Warmup Ventures\n+91-9876543210\nkapil@example.com",
@@ -1586,10 +1631,12 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `raw_text` (string, required, min length 10) — multi-line OCR output.
 - `image_url` (string URL, optional) — if the image is already hosted (e.g. S3/Supabase Storage); purely for audit/debug. Backend does not re-OCR.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -1611,11 +1658,20 @@ Content-Type: application/json
 ```
 
 **Success 200 — user auto-created (duplicate-free phone):**
+
 ```json
 {
   "data": {
     "scan_id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
-    "parsed": { "name": "Kapil Sahu", "phone": "+919876543210", "email": "kapil@example.com", "organisation": "Warmup Ventures", "designation": "Principal", "linkedin_url": null, "raw_text": "..." },
+    "parsed": {
+      "name": "Kapil Sahu",
+      "phone": "+919876543210",
+      "email": "kapil@example.com",
+      "organisation": "Warmup Ventures",
+      "designation": "Principal",
+      "linkedin_url": null,
+      "raw_text": "..."
+    },
     "user_created": true,
     "user_id": "0f3c0b0a-e6cc-4f1c-9a2e-a5b2e3f1c9d0"
   },
@@ -1624,11 +1680,13 @@ Content-Type: application/json
 ```
 
 **Response field rules:**
+
 - `parsed.name`, `parsed.phone`, `parsed.email`, `parsed.organisation`, `parsed.designation`, `parsed.linkedin_url` are all nullable — GPT-4o may fail to extract any field.
 - `user_created: true` iff the phone was not already in `users` AND the parser produced a valid phone.
 - When `user_created=false`, `user_id=null` — the scanner must manually confirm/create via the flow or handle duplicate.
 
 **Error 400 — validation_error:**
+
 ```json
 HTTP 400
 {
@@ -1646,6 +1704,7 @@ HTTP 400
 **Error 401 — missing_token / invalid_token / link_expired:** see §7.0.4.
 
 **Error 409 — duplicate_contact:**
+
 ```json
 HTTP 409
 {
@@ -1663,6 +1722,7 @@ HTTP 409
 **Error 500 — internal_error:** see §7.0.4 (often a GPT-4o upstream failure — treat as retryable).
 
 **UI flow:**
+
 1. User opens `/add-user`, drags card image into dropzone.
 2. Client-side OCR (`tesseract.js` Phase 0–3; replace with Google Vision via Phase-4 `POST /ocr`).
 3. On OCR complete, stitch multiline text → send `POST /onboarding/card-scan { raw_text }`.
@@ -1673,6 +1733,7 @@ HTTP 409
 8. On 409 → show "Already exists" modal with link to existing user id; allow "Update existing" (calls `PATCH /onboarding/profile` on that user — admin only) or "Cancel".
 
 **Data transformation notes:**
+
 - Normalise phone to E.164 before sending (`+91` auto-prepend for 10-digit Indian numbers).
 - Strip extra whitespace / double newlines from `raw_text` before submission.
 - `parsed.*` fields are the FINAL values suggested by GPT-4o; frontend should keep original OCR text available for fallback.
@@ -1689,14 +1750,17 @@ HTTP 409
 **Rate limit:** 20 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Path parameters:**
+
 - `scan_id` (UUID, required) — from §7.2.1 response.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -1720,12 +1784,14 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `image_url`, `ocr_raw`, `extracted_data.*` all nullable.
 - `status`: `"pending" | "processed" | "failed"`.
 
 **Error 401:** see §7.0.4.
 
 **Error 403 — forbidden:**
+
 ```json
 HTTP 403
 {
@@ -1735,6 +1801,7 @@ HTTP 403
 ```
 
 **Error 404 — not_found:**
+
 ```json
 HTTP 404
 {
@@ -1746,12 +1813,14 @@ HTTP 404
 **Error 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. Admin debugging a user; opens `/add-user?scan_id=...` or follows a deep link.
 2. `GET /onboarding/card-scan/{scan_id}` → render form pre-filled with `extracted_data`.
 3. On 403 → toast "Not your scan" → redirect to `/add-user`.
 4. On 404 → empty state "Scan not found or expired".
 
 **Data transformation notes:**
+
 - `extracted_data` is the persisted GPT-4o output; may differ from the fresh re-run of `/card-scan` on the same raw text (non-deterministic).
 - Prefer displaying `extracted_data` over `ocr_raw` for the form.
 
@@ -1766,12 +1835,14 @@ HTTP 404
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body (partial — send only what changes):**
+
 ```json
 {
   "name": "Kapil Sahu",
@@ -1784,6 +1855,7 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `name` (string, required on FIRST call, optional on subsequent) — 1–200 chars.
 - `email` (string, optional) — valid email.
 - `organisation`, `designation` (string, optional) — 1–200 chars.
@@ -1791,6 +1863,7 @@ Content-Type: application/json
 - Fields not present are unchanged. Sending `null` is **not supported** (backend has no allowlist for clearing).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -1804,9 +1877,11 @@ Content-Type: application/json
 ```
 
 **Response field rules:**
+
 - `profile_complete` transitions to `true` once `name` is set. Not reversible without admin action.
 
 **Error 400 / 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -1824,6 +1899,7 @@ HTTP 422
 **Error 401:** see §7.0.4.
 
 **Error 409 — conflict (email/linkedin uniqueness):**
+
 ```json
 HTTP 409
 {
@@ -1835,11 +1911,13 @@ HTTP 409
   }
 }
 ```
+
 Backend has unique indexes on `lower(email)` and `lower(linkedin_url)`.
 
 **Error 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. User on `/onboarding/profile` submits form.
 2. React Hook Form + Zod validate; strip `undefined` fields.
 3. `PATCH /onboarding/profile { ... }`.
@@ -1848,6 +1926,7 @@ Backend has unique indexes on `lower(email)` and `lower(linkedin_url)`.
 6. On 422 → inline field errors from `detail`.
 
 **Data transformation notes:**
+
 - Before submit, strip keys with `undefined` / empty strings — DO NOT send them.
 - After success, invalidate query keys: `qk.auth.me`, `qk.connections.*` (for name/avatar updates).
 
@@ -1862,12 +1941,14 @@ Backend has unique indexes on `lower(email)` and `lower(linkedin_url)`.
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body (all optional):**
+
 ```json
 {
   "fund_name": "Acme Capital",
@@ -1883,6 +1964,7 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `fund_name` (string, optional) — 1–200 chars.
 - `aum_crore` (number, optional) — ≥ 0; INR crore.
 - `thesis` (string, optional) — 1–2000 chars.
@@ -1893,6 +1975,7 @@ Content-Type: application/json
 - `co_invest_interest` (boolean, optional).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -1905,6 +1988,7 @@ Content-Type: application/json
 ```
 
 **Error 400 — validation_error (invalid stage):**
+
 ```json
 HTTP 422
 {
@@ -1922,6 +2006,7 @@ HTTP 422
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **Error 403 — insufficient_role:**
+
 ```json
 HTTP 403
 {
@@ -1931,6 +2016,7 @@ HTTP 403
 ```
 
 **UI flow:**
+
 1. LP completes onboarding profile (§7.2.3) → routed to `/onboarding/lp-profile`.
 2. Form with sector multi-select, stage multi-select (from ENUM), ticket range slider, co-invest toggle.
 3. Submit → `POST /onboarding/lp-profile`.
@@ -1939,6 +2025,7 @@ HTTP 403
 6. On 403 (wrong role) → shouldn't happen if routing is correct; redirect `/unauthorized`.
 
 **Data transformation notes:**
+
 - `preferred_sectors` and `geography` are free-form strings; lowercase them on submit for consistency.
 - Ticket-size fields are in INR crore (not USD). Show "₹ Cr" suffix in UI.
 - After 200, invalidate `qk.auth.me` (may flip `profile_complete`) and any pending `qk.matchmaking.suggestions` caches (new preferences = different suggestions).
@@ -1956,12 +2043,14 @@ HTTP 403
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "name": "Acme Technologies Pvt Ltd",
@@ -1979,6 +2068,7 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `name` (string, required) — 1–200 chars.
 - `tagline` (string, optional) — 1–280 chars.
 - `sector` (string, optional) — free-form, lowercase recommended.
@@ -1991,6 +2081,7 @@ Content-Type: application/json
 - `ask_amount_cr` (number, optional) — INR crore, ≥ 0.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -2015,11 +2106,13 @@ Content-Type: application/json
 ```
 
 **Response field rules:**
+
 - `startup_id` always present.
 - `deck_url` — null until `POST /pitch/deck` succeeds.
 - `notion_page_id` — set async after Notion sync; may be null for minutes after creation.
 
 **Error 400 / 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -2037,6 +2130,7 @@ HTTP 422
 **Error 401:** see §7.0.4.
 
 **Error 403 — insufficient_role:**
+
 ```json
 HTTP 403
 {
@@ -2048,6 +2142,7 @@ HTTP 403
 **Error 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. Founder opens `/pitch`. Hook calls `GET /pitch/profile` (§7.3.2); on 404, show empty form.
 2. On existing row, form prefilled.
 3. Submit → `POST /pitch/profile`.
@@ -2056,6 +2151,7 @@ HTTP 403
 6. On 403 → redirect `/unauthorized`.
 
 **Data transformation notes:**
+
 - `ask_amount_cr` is in INR crore. Show "₹ Cr" suffix in UI.
 - `stage` ENUM values are lowercase with underscores (e.g. `pre_seed`, not `Pre-Seed`). Display with `stageLabel(stage)` helper.
 - After success, invalidate `qk.pitch.profile` and `qk.pitch.deckJob.*` (clear any stale eval state).
@@ -2071,6 +2167,7 @@ HTTP 403
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
@@ -2082,6 +2179,7 @@ Authorization: Bearer <jwt>
 **Error 403 — insufficient_role:** see §7.3.1.
 
 **Error 404 — not_found:**
+
 ```json
 HTTP 404
 {
@@ -2089,9 +2187,11 @@ HTTP 404
   "error": { "code": "not_found", "message": "No startup profile found" }
 }
 ```
+
 Indicates the user has not yet created a profile. This is expected on first visit — the frontend treats 404 as "show the create form" (not an error toast).
 
 **UI flow:**
+
 1. `/pitch` mount → `useQuery` against `qk.pitch.profile`.
 2. If loading → skeleton.
 3. If error is `not_found` → show create form.
@@ -2099,7 +2199,8 @@ Indicates the user has not yet created a profile. This is expected on first visi
 5. If error is anything else → `<ErrorState>` with Retry.
 
 **Data transformation notes:**
-- Treat 404 as a *domain signal*, not an error. Zod schema for the hook unwraps this into `{ status: 'missing' | 'present', data?: StartupProfile }`.
+
+- Treat 404 as a _domain signal_, not an error. Zod schema for the hook unwraps this into `{ status: 'missing' | 'present', data?: StartupProfile }`.
 
 ---
 
@@ -2112,20 +2213,24 @@ Indicates the user has not yet created a profile. This is expected on first visi
 **Rate limit:** 5 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "deck_url": "https://drive.google.com/file/d/1abcDEF_GHI/view?usp=sharing" }
 ```
 
 **Request field rules:**
+
 - `deck_url` (string URL, required) — must be `http`/`https`; Google Drive link preferred (share permissions "Anyone with the link can view").
 
 **Success 202:**
+
 ```json
 HTTP 202
 {
@@ -2140,10 +2245,12 @@ HTTP 202
 ```
 
 **Response field rules:**
+
 - `job_id` is a Celery task UUID. Use for polling §7.3.4.
 - `status` always `"queued"` at this point.
 
 **Error 400 / 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -2161,6 +2268,7 @@ HTTP 422
 **Error 401 / 403 / 429 / 500:** see §7.0.4 / §7.3.1.
 
 **Error 404 — not_found:** The caller has no `startups` row yet. Frontend: auto-call `POST /pitch/profile` first, then retry.
+
 ```json
 HTTP 404
 {
@@ -2170,6 +2278,7 @@ HTTP 404
 ```
 
 **UI flow:**
+
 1. User on `/pitch` → "Deck" tab.
 2. Paste URL → `POST /pitch/deck`.
 3. On 202 → render `<DeckJobCard job_id={...} />` with polling; disable re-submit.
@@ -2177,6 +2286,7 @@ HTTP 404
 5. On 422 → inline error "Not a valid URL".
 
 **Data transformation notes:**
+
 - Persist `job_id` in component state (not React Query cache) for the active polling session.
 - Invalidate `qk.pitch.profile` on success (deck_url will change).
 
@@ -2191,14 +2301,17 @@ HTTP 404
 **Rate limit:** 30 per minute (accommodates the 3-second poll).
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Path parameters:**
+
 - `job_id` (UUID string, required) — from §7.3.3 response.
 
 **Success 200 — still running:**
+
 ```json
 {
   "data": {
@@ -2213,6 +2326,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Success 200 — completed:**
+
 ```json
 {
   "data": {
@@ -2233,6 +2347,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Success 200 — failed:**
+
 ```json
 {
   "data": {
@@ -2247,6 +2362,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `state` ∈ `"PENDING"`, `"STARTED"`, `"SUCCESS"`, `"FAILURE"`, `"RETRY"`, `"REVOKED"`.
 - `ready: true` only when state is SUCCESS or FAILURE.
 - `result` is the `AIEvaluationResult` payload (see §8.7 / pitch schemas). Null if state ≠ SUCCESS.
@@ -2257,6 +2373,7 @@ Authorization: Bearer <jwt>
 **Error 403 — forbidden:** Job belongs to another user. Frontend: stop polling; toast "Unknown job".
 
 **Error 404 — not_found:** Invalid `job_id`.
+
 ```json
 HTTP 404
 {
@@ -2266,6 +2383,7 @@ HTTP 404
 ```
 
 **UI flow:**
+
 1. `<DeckJobCard />` with `useQuery` + `refetchInterval: 3_000`, cap via `enabled: pollCount < 30 && !result.ready`.
 2. On `state=SUCCESS` → stop polling; render AI evaluation result block.
 3. On `state=FAILURE` → stop polling; show "Evaluation failed" with "Retry" button (re-POST §7.3.3).
@@ -2273,6 +2391,7 @@ HTTP 404
 5. On 404 → stop polling; reset UI to Deck tab.
 
 **Data transformation notes:**
+
 - Poll interval: exactly 3000ms. Do not lower — backend rate limit will trip.
 - When `result.signal === "weak"`, display concern list more prominently (red badge). Strong = green.
 - `recommended_lp_types` is an array of opaque tag strings — render as chips but treat as informational (no link-through yet).
@@ -2290,12 +2409,14 @@ HTTP 404
 **Rate limit:** 20 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "query": "fintech seed-stage startups in Bangalore with bank pilots",
@@ -2310,6 +2431,7 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `query` (string, required) — 1–500 chars, UTF-8.
 - `filters` (object, optional) — known keys:
   - `sector` (string[]) — any values; backend lowercases + matches GIN-indexed `sector_tags`.
@@ -2320,6 +2442,7 @@ Content-Type: application/json
 - `cursor` (string, optional, nullable) — opaque; reserved for Phase 4 continuation.
 
 **Success 200 — LP searching for startups (`target_type: "startup"`):**
+
 ```json
 {
   "data": {
@@ -2368,6 +2491,7 @@ Content-Type: application/json
 ```
 
 **Success 200 — Startup searching for LPs (`target_type: "lp"`):**
+
 ```json
 {
   "data": {
@@ -2403,6 +2527,7 @@ Content-Type: application/json
 
 **Success 200 — Stage 3 fallback (`stage3_applied: false`):**
 When GPT-4o is unavailable, backend returns Stage-2 (pgvector) ordering and `stage3_applied: false`. Items will lack `ai_rank` and `ai_reason`:
+
 ```json
 {
   "data": {
@@ -2434,6 +2559,7 @@ When GPT-4o is unavailable, backend returns Stage-2 (pgvector) ordering and `sta
 ```
 
 **Response field rules:**
+
 - `target_type` — `"lp" | "startup"`. Always exactly one; no mixed lists.
 - `total` — count of candidates after SQL filter (NOT total matched records in full corpus).
 - `stage3_applied` — `true` when GPT-4o re-rank ran; `false` when fallback to Stage-2 ordering.
@@ -2444,6 +2570,7 @@ When GPT-4o is unavailable, backend returns Stage-2 (pgvector) ordering and `sta
 - **Partner role role-masking:** backend returns only `{ user_id, name, organisation, sector, stage, one_liner }` per result. All other fields are absent (not null — missing). Frontend must handle missing-field case.
 
 **Error 400 / 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -2461,6 +2588,7 @@ HTTP 422
 **Error 401:** see §7.0.4.
 
 **Error 403 — insufficient_role (Partner trying to search):**
+
 ```json
 HTTP 403
 {
@@ -2474,6 +2602,7 @@ HTTP 403
 **Error 500 — internal_error:** see §7.0.4. Backend retries Stage-3 GPT-4o internally; if ALL stages fail, returns 500.
 
 **UI flow:**
+
 1. User on `/search` types query; debounce 400ms before submit.
 2. `POST /search { query, filters, limit: 20 }`.
 3. Show skeleton rows during fetch.
@@ -2486,6 +2615,7 @@ HTTP 403
 10. Click "Request Connect" → opens modal; on confirm → `POST /connections/request` (§7.6.1).
 
 **Data transformation notes:**
+
 - `stage` values are ENUM keys like `pre_seed`; convert to display `Pre-Seed` via a label map.
 - `funding_target_cr` is INR crore. Format as `₹{value} Cr`.
 - `sectors`, `stages`, `geography` are arrays — may be empty `[]` (not null).
@@ -2498,7 +2628,7 @@ HTTP 403
 
 ## 7.5 Profile View
 
-### 7.5.1 `GET /profile/{id}`  *(Phase-4 / gap — see §13 G1)*
+### 7.5.1 `GET /profile/{id}` _(Phase-4 / gap — see §13 G1)_
 
 > ⚠️ **Status as of 2026-04-23:** This endpoint is specified (spec §4.4) but NOT mounted in the current backend routers. The frontend MUST feature-flag this route behind `VITE_PROFILE_V1_ENABLED`. Until the backend ships it, `/profile/:id` is rendered from the search card as a modal (showing only search fields).
 >
@@ -2511,16 +2641,19 @@ HTTP 403
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Path parameters:**
+
 - `id` (UUID, required) — target `user_id`.
 
 **Query parameters:** none.
 
 **Success 200 — LP viewing a startup profile (no connection yet):**
+
 ```json
 {
   "data": {
@@ -2554,6 +2687,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Success 200 — after accepted connection (contact unlocked):**
+
 ```json
 {
   "data": {
@@ -2581,6 +2715,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Success 200 — Partner viewing a startup (masked):**
+
 ```json
 {
   "data": {
@@ -2611,6 +2746,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `role` — the target's role.
 - `startup` or `lp_profile` — exactly one will be populated based on target role. Startup roles get `startup`; LP/Potential LP get `lp_profile`; VC gets a similar `vc_profile` (shape TBD — treat as nullable object).
 - `contact` — null until the viewer has an accepted connection with the target. Never guess presence.
@@ -2620,6 +2756,7 @@ Authorization: Bearer <jwt>
 **Error 401:** see §7.0.4.
 
 **Error 403 — forbidden:**
+
 ```json
 HTTP 403
 {
@@ -2627,9 +2764,11 @@ HTTP 403
   "error": { "code": "forbidden", "message": "You do not have access to this profile" }
 }
 ```
+
 Returned when role-masking would leave nothing useful (e.g. Partner viewing admin).
 
 **Error 404 — not_found:**
+
 ```json
 HTTP 404
 {
@@ -2641,6 +2780,7 @@ HTTP 404
 **Error 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. User clicks a search result card → navigate to `/profile/{id}`.
 2. Hook calls `GET /profile/{id}`. Skeleton while loading.
 3. On mount, fire `POST /interactions/log { target_id, interaction_type: 'profile_view', target_type: '<lp|startup>' }` (§7.7.1).
@@ -2652,6 +2792,7 @@ HTTP 404
 9. On 404 → empty state "Profile not found" + back button.
 
 **Data transformation notes:**
+
 - Partner sees most fields as `null`; render "—" fallback.
 - `contact.phone` → mask as `+91 98•••••210` if `contact.verified !== true` (future-proofing; today always show fully).
 - Fire the `profile_view` interaction only ONCE per mount (cache in ref).
@@ -2670,12 +2811,14 @@ HTTP 404
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "target_id": "3c9a1e00-1d12-4b56-9ab0-4d2c8b0f3a12",
@@ -2684,10 +2827,12 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `target_id` (UUID, required) — target user's `user_id`.
 - `message` (string, optional) — max 200 chars. Written to `connection_requests.reason`.
 
 **Success 200:**
+
 ```json
 {
   "data": { "connection_id": "f0e1d2c3-b4a5-4687-9f00-1a2b3c4d5e6f", "status": "pending_admin" },
@@ -2696,9 +2841,11 @@ Content-Type: application/json
 ```
 
 **Response field rules:**
+
 - `status` at this point is always `"pending_admin"` (see §8.2 `ConnStatus` enum).
 
 **Error 400 / 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -2716,6 +2863,7 @@ HTTP 422
 **Error 401:** see §7.0.4.
 
 **Error 403 — insufficient_role:**
+
 ```json
 HTTP 403
 {
@@ -2725,6 +2873,7 @@ HTTP 403
 ```
 
 **Error 404 — not_found (target user does not exist):**
+
 ```json
 HTTP 404
 {
@@ -2734,6 +2883,7 @@ HTTP 404
 ```
 
 **Error 409 — conflict (duplicate request):**
+
 ```json
 HTTP 409
 {
@@ -2745,11 +2895,13 @@ HTTP 409
   }
 }
 ```
+
 Enforced by `UNIQUE(requester_id, target_id)` in DB.
 
 **Error 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. User on `/profile/:id` or search result clicks "Request Connect".
 2. Modal opens with optional 200-char message textarea.
 3. Submit → `POST /connections/request`.
@@ -2759,6 +2911,7 @@ Enforced by `UNIQUE(requester_id, target_id)` in DB.
 7. On 422 → inline textarea error.
 
 **Data transformation notes:**
+
 - `message` is persisted as `reason` in DB (naming drift). The frontend uses `message` everywhere (backend translates).
 - Invalidate `qk.connections.pending` AND `qk.profile.byId(target_id)` (will flip `has_requested=true`).
 
@@ -2773,24 +2926,29 @@ Enforced by `UNIQUE(requester_id, target_id)` in DB.
 **Rate limit:** 20 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Path parameters:**
+
 - `id` (UUID, required) — `connection_id`.
 
 **Request body:**
+
 ```json
 { "action": "approve", "note": "Looks good." }
 ```
 
 **Request field rules:**
+
 - `action` (string, required) — `"approve"` | `"reject"`.
 - `note` (string, optional) — free-form admin comment; logged to `admin_action_log`.
 
 **Success 200 — approved:**
+
 ```json
 {
   "data": {
@@ -2804,6 +2962,7 @@ Content-Type: application/json
 ```
 
 **Success 200 — rejected:**
+
 ```json
 {
   "data": {
@@ -2817,6 +2976,7 @@ Content-Type: application/json
 ```
 
 **Error 400 / 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -2836,6 +2996,7 @@ HTTP 422
 **Error 403 — insufficient_role:** see §7.0.4 (admin check failed).
 
 **Error 404 — not_found:**
+
 ```json
 HTTP 404
 {
@@ -2845,6 +3006,7 @@ HTTP 404
 ```
 
 **Error 409 — conflict (wrong current status):**
+
 ```json
 HTTP 409
 {
@@ -2858,12 +3020,14 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. Admin on `/admin/connections` sees row with Approve/Reject buttons.
 2. Click Approve → confirm dialog → `PATCH /connections/{id}/admin { action: 'approve' }`.
 3. On 200 → row disappears from pending queue (optimistic); invalidate `qk.admin.connections`; toast "Approved".
 4. On 409 → refetch list (stale state); show "This was already handled".
 
 **Data transformation notes:**
+
 - Optimistic update pattern: on mutation fire, remove row from cached list; rollback on error.
 - Invalidate `qk.admin.connections`, `qk.admin.summary` (badge count), `qk.connections.pending`.
 
@@ -2878,23 +3042,28 @@ HTTP 409
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Path parameters:**
+
 - `id` (UUID, required) — `connection_id`.
 
 **Request body:**
+
 ```json
 { "action": "accept" }
 ```
 
 **Request field rules:**
+
 - `action` (string, required) — `"accept"` | `"decline"`.
 
 **Success 200 — accepted:**
+
 ```json
 {
   "data": {
@@ -2908,6 +3077,7 @@ Content-Type: application/json
 ```
 
 **Success 200 — declined:**
+
 ```json
 {
   "data": {
@@ -2925,6 +3095,7 @@ Content-Type: application/json
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **Error 403 — forbidden (caller is not the target):**
+
 ```json
 HTTP 403
 {
@@ -2936,6 +3107,7 @@ HTTP 403
 **Error 404 — not_found:** as above.
 
 **Error 409 — conflict (wrong status, e.g. not yet admin-approved):**
+
 ```json
 HTTP 409
 {
@@ -2949,6 +3121,7 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. Target user opens `/connections/pending` → sees incoming request card.
 2. Click Accept → `PATCH /connections/{id}/respond { action: 'accept' }`.
 3. On 200 accept → toast "Connection accepted — you can now see contact details"; invalidate `qk.connections.list` and `qk.connections.pending`; navigate to `/connections`.
@@ -2956,6 +3129,7 @@ HTTP 409
 5. On 409 → refetch pending (probably already handled).
 
 **Data transformation notes:**
+
 - `intro_id` is the FK in `connection_intros`; used for feedback (§7.7.2).
 - After accept, also invalidate `qk.profile.byId(counterpart_id)` — `contact` will now be unmasked.
 
@@ -2970,15 +3144,18 @@ HTTP 409
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `limit` (int, optional, 1–200, default 50).
 - `cursor` (string, optional, nullable) — from previous response's `next_cursor`.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3009,6 +3186,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `counterpart` is the OTHER user — never the caller.
 - `counterpart.contact` present iff `status === 'accepted'`; `null` otherwise.
 - `counterpart.avatar_url` nullable.
@@ -3016,12 +3194,14 @@ Authorization: Bearer <jwt>
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/connections` mount → `useInfiniteQuery` with `qk.connections.list(50)`.
 2. Render rows with counterpart name, role badge, email/phone/linkedin chips.
 3. Scroll → fetch next page using `next_cursor`.
 4. Empty → `<EmptyState title="No connections yet" action={<Button>Explore search</Button>} />`.
 
 **Data transformation notes:**
+
 - `counterpart.contact` may be null even with status accepted (race window before DB commit); treat absence gracefully.
 - Display role via a coloured badge per enum; never render the raw enum key.
 
@@ -3036,6 +3216,7 @@ Authorization: Bearer <jwt>
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
@@ -3043,6 +3224,7 @@ Authorization: Bearer <jwt>
 **Query parameters:** Same as §7.6.4 (`limit`, `cursor`).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3085,6 +3267,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `direction` — `"outgoing"` (caller is requester) | `"incoming"` (caller is target).
 - `status` one of `pending_admin`, `pending_target`, `rejected_admin`, `declined`.
 - Contact details NEVER present here (not yet accepted).
@@ -3093,12 +3276,14 @@ Authorization: Bearer <jwt>
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/connections/pending` → two tabs: Incoming (`direction === 'incoming'`) / Outgoing.
 2. Incoming items with `status === 'pending_target'` get Accept/Decline buttons → §7.6.3.
 3. Outgoing items show a status pill (Awaiting admin, Awaiting target).
 4. Infinite scroll.
 
 **Data transformation notes:**
+
 - Group client-side by `direction` or use separate query calls with a `direction` filter (not yet supported server-side — filter client-side for now).
 - Stale-while-revalidate: 60s staleTime, refetch on focus.
 
@@ -3115,12 +3300,14 @@ Authorization: Bearer <jwt>
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "target_id": "3c9a1e00-1d12-4b56-9ab0-4d2c8b0f3a12",
@@ -3132,6 +3319,7 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `target_id` (UUID, required).
 - `interaction_type` (string, required) — MUST be one of: `search_view`, `search_click`, `profile_view`, `meeting_booked`. Other types (`connection_*`, `feedback_*`, `match_*`) are written by their own backend modules and REJECTED here.
 - `target_type` (string, optional, default `"lp"`) — `"lp" | "startup"`.
@@ -3139,16 +3327,19 @@ Content-Type: application/json
 - `metadata` (object, optional) — free-form JSON; used for analytics.
 
 **Success 200:**
+
 ```json
 { "data": { "logged": true, "deduped": false }, "error": null }
 ```
 
 **Success 200 — deduped (within 60s):**
+
 ```json
 { "data": { "logged": false, "deduped": true }, "error": null }
 ```
 
 **Error 400 / 422 — validation_error (invalid interaction_type):**
+
 ```json
 HTTP 422
 {
@@ -3170,6 +3361,7 @@ HTTP 422
 **Error 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. Search page renders cards → fire-and-forget `POST /interactions/log { interaction_type: 'search_view', target_id, target_type }` per visible card (batch or individual).
 2. Profile page mount → fire ONCE `POST /interactions/log { interaction_type: 'profile_view', target_id, target_type, source: 'profile_page' }`.
 3. Click-through → `interaction_type: 'search_click'`.
@@ -3177,6 +3369,7 @@ HTTP 422
 5. Never await this call in a user-facing flow — silently log failures via `console.warn`.
 
 **Data transformation notes:**
+
 - Client-side dedup cache (IndexedDB or in-memory `Set` with 60s TTL) avoids burning the rate limit on re-renders.
 - Don't block UI if this call fails.
 
@@ -3191,21 +3384,25 @@ HTTP 422
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "intro_id": "aa11bb22-cc33-dd44-ee55-ff6677889900", "response": "yes" }
 ```
 
 **Request field rules:**
+
 - `intro_id` (UUID, required) — from §7.6.3 response.
 - `response` (string, required) — `"yes"` | `"no"`.
 
 **Success 200:**
+
 ```json
 { "data": { "recorded": true, "intro_id": "aa11bb22-...", "response": "yes" }, "error": null }
 ```
@@ -3215,6 +3412,7 @@ Content-Type: application/json
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **Error 404 — not_found:**
+
 ```json
 HTTP 404
 {
@@ -3224,6 +3422,7 @@ HTTP 404
 ```
 
 **Error 409 — conflict (already submitted):**
+
 ```json
 HTTP 409
 {
@@ -3235,9 +3434,11 @@ HTTP 409
   }
 }
 ```
+
 `UNIQUE(connection_id, user_id)` in DB.
 
 **UI flow:**
+
 1. 48h after accept, the backend sends a feedback prompt via email; dashboard also surfaces pending feedback on `/connections`.
 2. User clicks Yes/No → `POST /interactions/feedback { intro_id, response }`.
 3. On 200 → toast "Thanks for the feedback"; hide prompt.
@@ -3245,6 +3446,7 @@ HTTP 409
 5. On 404 → hide prompt + log.
 
 **Data transformation notes:**
+
 - Feedback modifies matchmaking weights downstream; no user-visible effect.
 
 ---
@@ -3258,15 +3460,18 @@ HTTP 409
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `limit` (int, optional, 1–200, default 50).
 - `cursor` (string, optional, nullable).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3299,6 +3504,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `viewer.avatar_url` nullable.
 - PII: viewer email/phone are NOT exposed (see §13 G11).
 - Deduped at the DB level via UNIQUE index on `(actor_id, target_id, interaction, target_type)` for `profile_view` — one entry per viewer.
@@ -3306,12 +3512,14 @@ Authorization: Bearer <jwt>
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/profile-viewers` → `useInfiniteQuery`.
 2. Render list with viewer name + role + organisation + relative date (`5 hours ago`).
 3. Click card → navigate to `/profile/{viewer.user_id}` (if permitted).
 4. Empty → "No one has viewed your profile yet."
 
 **Data transformation notes:**
+
 - Relative time via `date-fns` `formatDistanceToNow`.
 - Do NOT surface a "last seen" presence indicator.
 
@@ -3326,17 +3534,20 @@ Authorization: Bearer <jwt>
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `user_id` (UUID, required) — whose exclusions to list.
 - `target_type` (string, optional, default `"lp"`) — `"lp" | "startup"`.
 - `limit` (int, optional, 1–200, default 50).
 - `cursor` (string, optional, nullable).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3355,6 +3566,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Error 400 — validation_error (missing user_id):**
+
 ```json
 HTTP 400
 {
@@ -3372,10 +3584,12 @@ HTTP 400
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/users/:id/exclusions` (internal debug page) → fetch with user_id.
 2. Render as a simple table.
 
 **Data transformation notes:**
+
 - Admin-only; never link this from external-user navigation.
 
 ---
@@ -3391,20 +3605,24 @@ HTTP 400
 **Rate limit:** 5 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "week_of": "2026-04-28" }
 ```
 
 **Request field rules:**
+
 - `week_of` (string, required) — ISO date `YYYY-MM-DD`. Must be a Monday by convention (not enforced server-side).
 
 **Success 202:**
+
 ```json
 HTTP 202
 {
@@ -3422,12 +3640,14 @@ HTTP 202
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. Admin on `/admin/matchmaking` → selects week via date picker → clicks Generate.
 2. `POST /matchmaking/generate { week_of }`.
 3. On 202 → render `<JobStatusCard job_id={...} />` polling §7.8.2.
 4. On SUCCESS → invalidate `qk.matchmaking.pending`; toast "Generated N suggestions".
 
 **Data transformation notes:**
+
 - Clamp `week_of` to Monday client-side via `date-fns` `startOfWeek({ weekStartsOn: 1 })`.
 
 ---
@@ -3441,14 +3661,17 @@ HTTP 202
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Path parameters:**
+
 - `job_id` (UUID, required).
 
 **Success 200:** Same shape as §7.3.4 (pitch deck job). `result` on SUCCESS:
+
 ```json
 {
   "data": {
@@ -3482,17 +3705,20 @@ Authorization: Bearer <jwt>
 **Rate limit:** 20 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "suggestion_id": "c1d2e3f4-5a6b-7c8d-9e0f-1a2b3c4d5e6f" }
 ```
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3507,6 +3733,7 @@ Content-Type: application/json
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **Error 404 — not_found:**
+
 ```json
 HTTP 404
 {
@@ -3516,6 +3743,7 @@ HTTP 404
 ```
 
 **Error 409 — conflict (already approved):**
+
 ```json
 HTTP 409
 {
@@ -3529,11 +3757,13 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. `/admin/matchmaking` pending list → Approve button per row.
 2. On 200 → optimistic remove from pending; toast.
 3. On 409 → refetch pending (stale).
 
 **Data transformation notes:**
+
 - Invalidate `qk.matchmaking.pending` and `qk.matchmaking.suggestions` (target user will now see it).
 
 ---
@@ -3547,6 +3777,7 @@ HTTP 409
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
@@ -3554,6 +3785,7 @@ Authorization: Bearer <jwt>
 **Query parameters:** none currently. (Filtering by `week_of` may arrive later; pass via query key for future-proofing.)
 
 **Success 200:**
+
 ```json
 {
   "data": [
@@ -3575,6 +3807,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `score` — float 0..1.
 - `reason` — one-sentence GPT-4o justification; ≤ 200 chars.
 - `company_name`, `sector`, `one_liner` — hydrated from startup row for display convenience.
@@ -3582,11 +3815,13 @@ Authorization: Bearer <jwt>
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/matchmaking` → pending tab.
 2. Table rows with score badge, reason, actions (Approve / Reject).
 3. Reject currently uses the same PATCH pattern (not yet exposed — use skip via admin DB access; see §13).
 
 **Data transformation notes:**
+
 - Group by `week_of` in UI for readability.
 
 ---
@@ -3600,6 +3835,7 @@ Authorization: Bearer <jwt>
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
@@ -3629,12 +3865,14 @@ Authorization: Bearer <jwt>
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/matchmaking` mount → `useQuery`.
 2. Render cards with company/LP name, reason, match score badge.
 3. Action buttons: "Interested", "Not a fit", "Skip" → §7.8.6.
 4. Empty → "No suggestions this week. Check back on Monday."
 
 **Data transformation notes:**
+
 - The caller's own side (lp_id OR startup_id corresponds to them); display the OTHER side's details.
 - Cache for 5 minutes; refetch on focus.
 
@@ -3649,23 +3887,28 @@ Authorization: Bearer <jwt>
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Path parameters:**
+
 - `id` (UUID, required) — suggestion id.
 
 **Request body:**
+
 ```json
 { "action": "accepted" }
 ```
 
 **Request field rules:**
+
 - `action` (string, required) — `"accepted" | "rejected" | "skipped"`.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3679,6 +3922,7 @@ Content-Type: application/json
 ```
 
 **Success 200 — mutual accept auto-creates connection:**
+
 ```json
 {
   "data": {
@@ -3696,6 +3940,7 @@ Content-Type: application/json
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **Error 403 — forbidden (not your suggestion):**
+
 ```json
 HTTP 403
 {
@@ -3707,6 +3952,7 @@ HTTP 403
 **Error 404 — not_found.**
 
 **Error 409 — conflict (already responded):**
+
 ```json
 HTTP 409
 {
@@ -3720,12 +3966,14 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. User clicks Interested on a card → `POST /matchmaking/suggestions/{id}/respond { action: 'accepted' }`.
 2. On 200 with `connection_created=true` → toast "Match! Connection request created — awaiting admin approval."
 3. On 200 with `connection_created=false` → toast "Noted. We'll let you know when the other side responds."
 4. Card removed from `/matchmaking` list; invalidate `qk.matchmaking.suggestions` and `qk.connections.pending`.
 
 **Data transformation notes:**
+
 - `connection_id` present only when `connection_created=true`.
 - Optimistic update: remove the card immediately; rollback on error.
 
@@ -3742,6 +3990,7 @@ HTTP 409
 **Rate limit:** 20 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
@@ -3749,6 +3998,7 @@ Authorization: Bearer <jwt>
 **Query parameters:** none (use §7.9.3 for prefill flavour).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3779,6 +4029,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `prefill.*` may all be null (first-ever MIS).
 - `already_submitted` — true if this period already has a row (frontend should warn and show existing values).
 - `fields_schema` — hints; may be minimal. Treat as optional.
@@ -3788,6 +4039,7 @@ Authorization: Bearer <jwt>
 **Error 403 — insufficient_role:** see §7.0.4.
 
 **Error 404 — not_found (no startup profile):**
+
 ```json
 HTTP 404
 {
@@ -3797,12 +4049,14 @@ HTTP 404
 ```
 
 **UI flow:**
+
 1. `/mis` mount → `useQuery(qk.mis.form)`.
 2. Render `<MISForm />` with prefill values.
 3. If `already_submitted=true` → banner "You already submitted for {period} — editing will overwrite (admin only)".
 4. On 404 → redirect `/pitch` "Create startup profile first".
 
 **Data transformation notes:**
+
 - Amounts are in INR rupees (not crore). Display as `₹ 20,00,000` with Indian numbering.
 - `highlights`/`lowlights` are free-text; render in multi-line textareas.
 
@@ -3817,12 +4071,14 @@ HTTP 404
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "period": "2026-04",
@@ -3844,6 +4100,7 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `period` (string, required) — `YYYY-MM` with month 01–12. Regex `^\d{4}-(0[1-9]|1[0-2])$`.
 - `revenue`, `burn` (number, optional) — INR rupees, ≥ 0. Nullable → treat as "not reported".
 - `runway_months` (int, optional) — ≥ 0.
@@ -3852,6 +4109,7 @@ Content-Type: application/json
 - `raw_data` (object, optional, strict) — EXTRA KEYS REJECTED. Only these six keys allowed: `revenue_inr` (Decimal string), `burn_inr` (Decimal string), `headcount` (int), `runway_months` (float), `highlights` (string ≤ 2000), `lowlights` (string ≤ 2000).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3865,6 +4123,7 @@ Content-Type: application/json
 ```
 
 **Error 400 / 422 — validation_error (bad period):**
+
 ```json
 HTTP 422
 {
@@ -3880,6 +4139,7 @@ HTTP 422
 ```
 
 **Error 400 — validation_error (forbidden raw_data key):**
+
 ```json
 HTTP 422
 {
@@ -3897,6 +4157,7 @@ HTTP 422
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **Error 409 — mis_already_submitted:**
+
 ```json
 HTTP 409
 {
@@ -3910,6 +4171,7 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. User fills `<MISForm />`, submits.
 2. React Hook Form + Zod validate — especially `period` regex and `raw_data` strict keys.
 3. `POST /portfolio/mis`.
@@ -3918,6 +4180,7 @@ HTTP 409
 6. On 422 raw_data → display "Unknown field in raw_data" + highlight.
 
 **Data transformation notes:**
+
 - Build `raw_data` from top-level fields — don't let the user type it directly. Convert numbers to Decimal strings for INR amounts (e.g. `revenue.toFixed(2)`).
 - After success, refetch `qk.mis.form` (now shows `already_submitted=true`) and `qk.admin.summary` (admin's `mis_status` list).
 
@@ -3932,14 +4195,17 @@ HTTP 409
 **Rate limit:** 20 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `company_id` (UUID, optional for non-admins; REQUIRED for admins).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -3959,6 +4225,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Success 200 — no previous submission:**
+
 ```json
 {
   "data": {
@@ -3971,6 +4238,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Error 400 — validation_error (admin missing company_id):**
+
 ```json
 HTTP 400
 {
@@ -3986,6 +4254,7 @@ HTTP 400
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **Error 404 — not_found (company does not exist or caller has no startup):**
+
 ```json
 HTTP 404
 {
@@ -3995,11 +4264,13 @@ HTTP 404
 ```
 
 **UI flow:**
+
 1. Admin opens `/admin/mis/<company_id>` → `GET /portfolio/mis/prefill?company_id=...`.
 2. Non-admin founder: hook called automatically alongside §7.9.1.
 3. Render prefill if present; else show empty form.
 
 **Data transformation notes:**
+
 - `prefill: null` is a valid success — treat as "no prior month data".
 
 ---
@@ -4015,27 +4286,43 @@ HTTP 404
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `from_date` (string, optional, default today) — `YYYY-MM-DD`.
 - `days` (int, optional, 1–30, default 7).
 
 **Success 200:**
+
 ```json
 {
   "data": [
-    { "start": "2026-04-24T10:00:00+05:30", "end": "2026-04-24T10:30:00+05:30", "date": "2026-04-24" },
-    { "start": "2026-04-24T10:30:00+05:30", "end": "2026-04-24T11:00:00+05:30", "date": "2026-04-24" },
-    { "start": "2026-04-24T11:00:00+05:30", "end": "2026-04-24T11:30:00+05:30", "date": "2026-04-24" }
+    {
+      "start": "2026-04-24T10:00:00+05:30",
+      "end": "2026-04-24T10:30:00+05:30",
+      "date": "2026-04-24"
+    },
+    {
+      "start": "2026-04-24T10:30:00+05:30",
+      "end": "2026-04-24T11:00:00+05:30",
+      "date": "2026-04-24"
+    },
+    {
+      "start": "2026-04-24T11:00:00+05:30",
+      "end": "2026-04-24T11:30:00+05:30",
+      "date": "2026-04-24"
+    }
   ],
   "error": null
 }
 ```
 
 **Response field rules:**
+
 - Returns ONLY available slots (booked slots are filtered out).
 - All timestamps are IST (Asia/Kolkata, +05:30).
 - Empty array is a valid response (no slots available).
@@ -4045,6 +4332,7 @@ Authorization: Bearer <jwt>
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/schedule` mount → `GET /schedule/slots?from_date=<today>&days=7`.
 2. Render as a calendar grid: rows = dates, columns = 30-min time slots.
 3. Green cells = available; grey = unavailable (absent from response).
@@ -4052,6 +4340,7 @@ Authorization: Bearer <jwt>
 5. Empty response → "No available slots in the next 7 days. Try 30 days."
 
 **Data transformation notes:**
+
 - Group slots by `date` client-side.
 - Render in the user's local timezone via `date-fns-tz`; backend returns IST.
 
@@ -4066,12 +4355,14 @@ Authorization: Bearer <jwt>
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "target_id": "3c9a1e00-1d12-4b56-9ab0-4d2c8b0f3a12",
@@ -4082,12 +4373,14 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `target_id` (UUID, required).
 - `scheduled_at` (ISO-8601 with timezone, required) — must be in the future.
 - `duration_minutes` (int, required, default 30) — `30` or `60` (validator enforces `ge=30`, `le=60`).
 - `purpose` (string, optional) — ≤ 500 chars.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4104,6 +4397,7 @@ Content-Type: application/json
 ```
 
 **Error 400 / 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -4121,6 +4415,7 @@ HTTP 422
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **Error 404 — not_found (target does not exist):**
+
 ```json
 HTTP 404
 {
@@ -4130,6 +4425,7 @@ HTTP 404
 ```
 
 **Error 409 — conflict (slot no longer available — GIST overlap):**
+
 ```json
 HTTP 409
 {
@@ -4143,6 +4439,7 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. User picks slot → modal with target selector + purpose.
 2. Submit → `POST /schedule/book`.
 3. On 200 → toast "Booked for {date}"; navigate to `/schedule` showing confirmation; invalidate `qk.meetings.bookings` + `qk.meetings.slots`.
@@ -4150,6 +4447,7 @@ HTTP 409
 5. On 404 → toast "User not found".
 
 **Data transformation notes:**
+
 - Submit `scheduled_at` in ISO-8601 WITH timezone (use `date-fns-tz` `zonedTimeToUtc` + `formatISO`).
 - `calendar_event_id` is the Google Calendar event ID; use for deep-linking to calendar if desired.
 
@@ -4164,15 +4462,18 @@ HTTP 409
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `limit` (int, optional, 1–200, default 50).
 - `cursor` (string, optional, nullable).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4200,17 +4501,20 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `direction` — `"outgoing" | "incoming"`.
 - `status` — `"pending" | "confirmed" | "cancelled"`.
 
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/schedule` → Upcoming tab; `useInfiniteQuery`.
 2. Render list grouped by date.
 3. Row actions: View in Calendar (deep-link by `calendar_event_id`), Cancel → §7.10.4.
 
 **Data transformation notes:**
+
 - Sort items client-side by `scheduled_at` ascending if not already sorted.
 - Filter out `status === 'cancelled'` by default, offer toggle to show all.
 
@@ -4225,14 +4529,17 @@ Authorization: Bearer <jwt>
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Path parameters:**
+
 - `booking_id` (UUID, required).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4247,6 +4554,7 @@ Authorization: Bearer <jwt>
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **Error 403 — forbidden (not owner/target/admin):**
+
 ```json
 HTTP 403
 {
@@ -4258,6 +4566,7 @@ HTTP 403
 **Error 404 — not_found.**
 
 **Error 409 — conflict (already cancelled):**
+
 ```json
 HTTP 409
 {
@@ -4271,12 +4580,14 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. User clicks Cancel on a row → confirm dialog.
 2. `DELETE /schedule/book/{id}`.
 3. On 200 → toast "Cancelled"; optimistic remove; invalidate `qk.meetings.bookings` + `qk.meetings.slots`.
 4. On 403 → toast "Only the organiser or admin can cancel".
 
 **Data transformation notes:**
+
 - GCal delete may fail silently (backend logs) — the booking is still cancelled locally. Refetch bookings to reconcile.
 
 ---
@@ -4292,12 +4603,14 @@ HTTP 409
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "destination_city": "Bengaluru",
@@ -4308,12 +4621,14 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `destination_city` (string, required) — 1–200 chars.
 - `travel_start` (string, required) — `YYYY-MM-DD`.
 - `travel_end` (string, required) — `YYYY-MM-DD`; must be ≥ `travel_start` (client + server enforced).
 - `purpose` (string, optional) — ≤ 500 chars.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4331,10 +4646,12 @@ Content-Type: application/json
 ```
 
 **Response field rules:**
+
 - `status` — `"active" | "cancelled"`.
 - `alerts_sent: boolean` — flips to `true` once matchmaking has sent the alert.
 
 **Error 400 / 422 — validation_error (travel_end before travel_start):**
+
 ```json
 HTTP 422
 {
@@ -4352,12 +4669,14 @@ HTTP 422
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/travel` → "Add trip" button → modal with city + date range + purpose.
 2. Submit → `POST /travel/plans`.
 3. On 200 → toast "Trip added"; invalidate `qk.travel.plans`.
 4. On 422 → inline field error.
 
 **Data transformation notes:**
+
 - Use `date-fns` `format(date, 'yyyy-MM-dd')` for date serialisation.
 
 ---
@@ -4371,14 +4690,17 @@ HTTP 422
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `active_only` (boolean, optional, default `true`) — when `true`, only `status='active'` AND `travel_end >= today` are returned.
 
 **Success 200:**
+
 ```json
 {
   "data": [
@@ -4400,11 +4722,13 @@ Authorization: Bearer <jwt>
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/travel` mount → `GET /travel/plans?active_only=true`.
 2. Render upcoming trips grouped by month.
 3. Toggle "Show past trips" switches `active_only=false`.
 
 **Data transformation notes:**
+
 - Sort by `travel_start` ascending.
 
 ---
@@ -4418,14 +4742,17 @@ Authorization: Bearer <jwt>
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Path parameters:**
+
 - `id` (UUID, required).
 
 **Success 200:**
+
 ```json
 {
   "data": { "id": "f6a7b8c9-...", "status": "cancelled" },
@@ -4436,6 +4763,7 @@ Authorization: Bearer <jwt>
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **Error 403 — forbidden (not owner):**
+
 ```json
 HTTP 403
 {
@@ -4447,12 +4775,14 @@ HTTP 403
 **Error 404 — not_found.**
 
 **UI flow:**
+
 1. User clicks Cancel on a trip row → confirm dialog.
 2. `DELETE /travel/plans/{id}`.
 3. On 200 → optimistic remove; toast.
 4. On 404 → already deleted; refetch.
 
 **Data transformation notes:**
+
 - Cancelled trips are hidden from `active_only=true` lists automatically.
 
 ---
@@ -4466,20 +4796,24 @@ HTTP 403
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "home_city": "Mumbai" }
 ```
 
 **Request field rules:**
+
 - `home_city` (string, required) — 1–200 chars.
 
 **Success 200:**
+
 ```json
 {
   "data": { "user_id": "0f3c0b0a-...", "home_city": "Mumbai" },
@@ -4492,11 +4826,13 @@ Content-Type: application/json
 **Error 401 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/travel` settings panel → home city input.
 2. Debounced submit → `PUT /travel/home-city`.
 3. On 200 → toast "Saved"; invalidate `qk.auth.me` (includes `home_city`).
 
 **Data transformation notes:**
+
 - Trim whitespace on submit.
 - Case-insensitive matching in backend for alerts; display as-typed.
 
@@ -4515,18 +4851,30 @@ All endpoints in this section require `admin` or `super_admin`. Non-admin caller
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Success 200:**
+
 ```json
 {
   "data": {
     "pending_connection_count": 4,
     "mis_status": [
-      { "startup_id": "3c9a1e00-...", "company_name": "Acme Technologies", "period": "2026-04", "submitted": false },
-      { "startup_id": "a7b3d500-...", "company_name": "NeoLedger", "period": "2026-04", "submitted": true }
+      {
+        "startup_id": "3c9a1e00-...",
+        "company_name": "Acme Technologies",
+        "period": "2026-04",
+        "submitted": false
+      },
+      {
+        "startup_id": "a7b3d500-...",
+        "company_name": "NeoLedger",
+        "period": "2026-04",
+        "submitted": true
+      }
     ],
     "recent_digests": [
       { "id": "e3d2c1b0-...", "digest_type": "lp_weekly", "sent_at": "2026-04-21T07:00:00Z" }
@@ -4547,6 +4895,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `pending_connection_count` drives the sidebar badge.
 - `mis_status[].submitted: boolean` — per-portfolio company for current month.
 - `recent_*` arrays capped at 10 items each.
@@ -4554,11 +4903,13 @@ Authorization: Bearer <jwt>
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin` mount → `useQuery(qk.admin.summary)`.
 2. Render KPI cards + recent actions feed.
 3. Click pending count → navigate `/admin/connections?status=pending_admin`.
 
 **Data transformation notes:**
+
 - Cache 60s, refetch on focus.
 - Invalidate after `PATCH /connections/{id}/admin` (§7.6.2).
 
@@ -4573,15 +4924,18 @@ Authorization: Bearer <jwt>
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `status` (string, optional) — one of `conn_status` ENUM (`pending_admin`, `approved`, `rejected_admin`, `pending_target`, `accepted`, `declined`).
 - `cursor` (string, optional, nullable).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4615,11 +4969,13 @@ Authorization: Bearer <jwt>
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/connections` → tabs per status.
 2. Row actions: Approve / Reject → §7.6.2.
 3. Infinite scroll with `next_cursor`.
 
 **Data transformation notes:**
+
 - Page size 20 (see CLAUDE.md GAP-011).
 - Persist active tab in URL (`?status=pending_admin`).
 
@@ -4634,11 +4990,13 @@ Authorization: Bearer <jwt>
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Success 200:**
+
 ```json
 {
   "data": [
@@ -4666,16 +5024,19 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `status`: `"active" | "paused"`.
 - `last_send` may be null (never sent).
 
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/digest` → list each workflow card with Send Now button.
 2. Click Send Now → confirm → §7.12.4.
 
 **Data transformation notes:**
+
 - Treat the response as additive; new fields may appear.
 
 ---
@@ -4689,20 +5050,24 @@ Authorization: Bearer <jwt>
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "workflow_name": "lp_weekly" }
 ```
 
 **Request field rules:**
+
 - `workflow_name` (string, required, min length 1).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4720,6 +5085,7 @@ Content-Type: application/json
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **Error 404 — not_found (workflow not registered):**
+
 ```json
 HTTP 404
 {
@@ -4729,6 +5095,7 @@ HTTP 404
 ```
 
 **Error 409 — conflict (already in flight):**
+
 ```json
 HTTP 409
 {
@@ -4738,12 +5105,14 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. Admin clicks "Send Now".
 2. Modal: "Trigger {workflow_name}?" → confirm.
 3. `POST /admin/digest/send`.
 4. On 200 → toast "Triggered — {message_count} messages queued"; invalidate `qk.admin.digest`.
 
 **Data transformation notes:**
+
 - Invalidate `qk.admin.summary.recent_digests` and `qk.digest.history`.
 
 ---
@@ -4757,24 +5126,29 @@ HTTP 409
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Path parameters:**
+
 - `user_id` (UUID, required) — the LP user.
 
 **Request body:**
+
 ```json
 { "status": "3_in_conversation", "override": false }
 ```
 
 **Request field rules:**
+
 - `status` (string, required) — one of `1_new_lead`, `2_first_reach_out`, `3_in_conversation`, `4_soft_commit`, `5_invested` (DB CHECK).
 - `override` (boolean, optional, default `false`) — skip step-order validation (normally can't skip forward).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4794,6 +5168,7 @@ Content-Type: application/json
 **Error 404 — not_found (user missing or not LP).**
 
 **Error 409 — conflict (status skip without override):**
+
 ```json
 HTTP 409
 {
@@ -4807,11 +5182,13 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. `/admin/lp-funnel/:user_id` → show current status + buttons for each stage.
 2. Click "Move to: In Conversation" → confirm → `PUT /admin/lp/.../funnel-status`.
 3. On 409 → show "Enable override?" dialog.
 
 **Data transformation notes:**
+
 - Display labels: `1_new_lead` → "New Lead", etc. Use a map.
 
 ---
@@ -4825,12 +5202,14 @@ HTTP 409
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "sector": "fintech",
@@ -4840,11 +5219,13 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `sector` (string, required, min length 1).
 - `message` (string, optional).
 - `startup_name` (string, optional).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4861,11 +5242,13 @@ Content-Type: application/json
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/partner-referral` form: sector picker + message textarea + startup name.
 2. Submit → `POST /admin/partner-referral`.
 3. On 200 → toast "Notified {partners_notified} partners".
 
 **Data transformation notes:**
+
 - `partner_ids` is informational; don't display user IDs in UI.
 
 ---
@@ -4879,14 +5262,17 @@ Content-Type: application/json
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `quarter` (string, optional) — e.g. `"Q1-2026"`.
 
 **Success 200:**
+
 ```json
 {
   "data": [
@@ -4907,12 +5293,14 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `status`: `"pending" | "approved" | "sent"`.
 - Nullable: `approved_by`, `approved_at`, `distributed_at`.
 
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/quarterly-reports` table with Approve button on pending rows.
 
 **Data transformation notes:** Drive link opens in new tab with `rel="noopener noreferrer"`.
@@ -4928,17 +5316,20 @@ Authorization: Bearer <jwt>
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "report_id": "r1-..." }
 ```
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -4959,6 +5350,7 @@ Content-Type: application/json
 **Error 404 — not_found.**
 
 **Error 409 — conflict (already approved/sent):**
+
 ```json
 HTTP 409
 {
@@ -4972,6 +5364,7 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. Admin clicks Approve → confirm dialog (warns about distribution).
 2. `POST /admin/quarterly-reports/approve`.
 3. On 200 → row flips to "Approved, distributing…"; invalidate list.
@@ -4989,16 +5382,19 @@ HTTP 409
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `retry_status` (string, optional) — one of `pending`, `retried`, `succeeded`, `abandoned`.
 - `limit` (int, optional, 1–200, default 50).
 - `offset` (int, optional, ≥ 0, default 0).
 
 **Success 200 (note offset pagination shape — different from §7.0.3):**
+
 ```json
 {
   "data": [
@@ -5022,6 +5418,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `args`, `kwargs` are the original Celery task payload.
 - `traceback` is a multi-line string; render inside `<pre>` with overflow.
 - `retry_status`: `"pending" | "retried" | "succeeded" | "abandoned"`.
@@ -5029,12 +5426,14 @@ Authorization: Bearer <jwt>
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/dead-letter-jobs` → tabs per `retry_status` (URL param).
 2. Table with task_name, exception_class, failed_at, actions.
 3. Click row → drawer with full traceback + args.
 4. Retry button → §7.12.10.
 
 **Data transformation notes:**
+
 - OFFSET pagination — use standard page counter UI (not infinite scroll).
 - Display `failed_at` as relative time + absolute on hover.
 
@@ -5049,16 +5448,19 @@ Authorization: Bearer <jwt>
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Path parameters:**
+
 - `id` (UUID, required) — DLQ row id.
 
 **Request body:** none.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5073,6 +5475,7 @@ Authorization: Bearer <jwt>
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **Error 404 — not_found:**
+
 ```json
 HTTP 404
 {
@@ -5082,6 +5485,7 @@ HTTP 404
 ```
 
 **Error 409 — conflict (already retried OR race):**
+
 ```json
 HTTP 409
 {
@@ -5091,6 +5495,7 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. Admin clicks Retry on a pending DLQ row.
 2. Optimistic disable of Retry button.
 3. `POST /admin/dead-letter-jobs/{id}/retry`.
@@ -5098,6 +5503,7 @@ HTTP 409
 5. On 409 → refetch (stale row).
 
 **Data transformation notes:**
+
 - `new_task_id` can be shown in a toast but not linked (no task-status endpoint for arbitrary tasks).
 
 ---
@@ -5115,20 +5521,24 @@ All endpoints below require `admin` or `super_admin`. Rate limit 30/min unless s
 **Rate limit:** 5 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "segment": "lp" }
 ```
 
 **Request field rules:**
+
 - `segment` (string, required, min length 1) — e.g. `"lp"`, `"potential_lp"`, `"vc"`. Maps to target roles.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5145,11 +5555,13 @@ Content-Type: application/json
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/digest` → "Generate for {segment}" button.
 2. `POST /digest/generate`.
 3. On 200 → toast "Generated {count} drafts"; invalidate `qk.digest.pending`.
 
 **Data transformation notes:**
+
 - `digest_ids` is informational; caller should re-fetch the pending list.
 
 ---
@@ -5163,20 +5575,24 @@ Content-Type: application/json
 **Rate limit:** 20 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 { "digest_id": "e3d2c1b0-1234-5678-90ab-cdef01234567" }
 ```
 
 **Request field rules:**
+
 - `digest_id` (string UUID, required, min length 1).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5195,6 +5611,7 @@ Content-Type: application/json
 **Error 404 — not_found.**
 
 **Error 409 — conflict (already approved/sent):**
+
 ```json
 HTTP 409
 {
@@ -5208,11 +5625,13 @@ HTTP 409
 ```
 
 **UI flow:**
+
 1. `/admin/digest` pending list → Approve & Send → confirm dialog.
 2. `POST /digest/approve`.
 3. On 200 → optimistic remove from pending; toast "Approved — delivery queued"; invalidate history.
 
 **Data transformation notes:**
+
 - After success, poll `qk.digest.history` briefly (30s staleTime).
 
 ---
@@ -5226,11 +5645,13 @@ HTTP 409
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Success 200:**
+
 ```json
 {
   "data": [
@@ -5254,6 +5675,7 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `content.status`: `"pending" | "approved" | "sent"`.
 - `content.html` / `content.plain`: the rendered digest body; may be large.
 - `content.interest_tags` (nullable) — personalisation tags.
@@ -5261,11 +5683,13 @@ Authorization: Bearer <jwt>
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/digest` → Pending tab → `GET /digest/pending`.
 2. Row shows subject, segment, generated time. Click → preview modal with `content.html` sandboxed (iframe sandbox).
 3. Approve → §7.13.2.
 
 **Data transformation notes:**
+
 - Render `content.html` inside `<iframe sandbox="allow-same-origin">` to prevent script injection.
 - Prefer `content.plain` in the list summary.
 
@@ -5280,14 +5704,17 @@ Authorization: Bearer <jwt>
 **Rate limit:** 30 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Query parameters:**
+
 - `limit` (int, optional, 1–200, default 50).
 
 **Success 200:**
+
 ```json
 {
   "data": [
@@ -5310,11 +5737,13 @@ Authorization: Bearer <jwt>
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
+
 1. `/admin/digest` → History tab.
 2. Table with sent_at, segment, recipient count.
 3. Click row → read-only preview.
 
 **Data transformation notes:**
+
 - Large `content.html` — lazy-load on row expand.
 
 ---
@@ -5326,11 +5755,13 @@ All under `/analytics/*`. Admin-only. Rate limit 30/min each.
 > ⚠️ **Analytics shapes are dashboard-specific and additive.** New KPI keys may appear without notice. Frontend MUST tolerate unknown keys (render known ones, ignore rest). Never break a chart because an expected field is absent — use `?? 0`.
 
 **Common headers (all endpoints):**
+
 ```
 Authorization: Bearer <jwt>
 ```
 
 **Common error envelopes (all endpoints):**
+
 - 401 / 403 / 429 / 500 — see §7.0.4.
 
 ---
@@ -5342,6 +5773,7 @@ Authorization: Bearer <jwt>
 **Required roles:** `admin`, `super_admin`.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5362,10 +5794,12 @@ Authorization: Bearer <jwt>
 ```
 
 **UI flow:**
+
 1. `/admin/analytics` → Overview tab → `useQuery(qk.analytics.overview)`.
 2. Render 4–6 KPI cards.
 
 **Data transformation notes:**
+
 - All values are integers; render with Indian-number formatting.
 - Show trend arrows if you can fetch previous-period values (not yet supported — skip).
 
@@ -5378,6 +5812,7 @@ Authorization: Bearer <jwt>
 **Required roles:** `admin`, `super_admin`.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5394,10 +5829,12 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `status` is always one of the 5 LP funnel values (see §8.2 `LPFunnelStatus`).
 - Missing statuses → treat as `count: 0`.
 
 **UI flow:**
+
 1. `/admin/analytics` → Funnel tab → render `<FunnelChart />` with 5 bars.
 
 ---
@@ -5409,6 +5846,7 @@ Authorization: Bearer <jwt>
 **Required roles:** `admin`, `super_admin`.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5426,12 +5864,15 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `status` is any of the 23 `startup_status` ENUM values (§8.2).
 
 **UI flow:**
+
 1. Stacked bar chart with top 6 statuses; "Other" bucket for the rest.
 
 **Data transformation notes:**
+
 - Map raw status keys → display labels via a constant.
 
 ---
@@ -5443,6 +5884,7 @@ Authorization: Bearer <jwt>
 **Required roles:** `admin`, `super_admin`.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5459,6 +5901,7 @@ Authorization: Bearer <jwt>
 ```
 
 **UI flow:**
+
 1. Render funnel chart with 5 stages left-to-right.
 
 ---
@@ -5470,9 +5913,11 @@ Authorization: Bearer <jwt>
 **Required roles:** `admin`, `super_admin`.
 
 **Query parameters:**
+
 - `months` (int, optional, 1–60, default 12).
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5500,13 +5945,16 @@ Authorization: Bearer <jwt>
 ```
 
 **Response field rules:**
+
 - `cohort` — `YYYY-MM`.
 - `retained_Nm` null when not enough time has elapsed.
 
 **UI flow:**
+
 1. Render as a heatmap: rows = cohorts, columns = retention windows.
 
 **Data transformation notes:**
+
 - Compute percentages as `retained_Nm / cohort_size` client-side.
 
 ---
@@ -5518,6 +5966,7 @@ Authorization: Bearer <jwt>
 **Required roles:** `admin`, `super_admin`.
 
 **Success 200:**
+
 ```json
 {
   "data": {
@@ -5530,7 +5979,7 @@ Authorization: Bearer <jwt>
         "skipped_count": 60,
         "accepted_pct": 0.42,
         "rejected_pct": 0.18,
-        "skipped_pct": 0.40
+        "skipped_pct": 0.4
       }
     ]
   },
@@ -5539,9 +5988,11 @@ Authorization: Bearer <jwt>
 ```
 
 **UI flow:**
+
 1. Stacked area chart over time — accepted / rejected / skipped percentages.
 
 **Data transformation notes:**
+
 - Sort items client-side by `week_of` ascending.
 - Display percentages as `(value * 100).toFixed(0) + '%'`.
 
@@ -5558,12 +6009,14 @@ Authorization: Bearer <jwt>
 **Rate limit:** 10 per minute.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
 **Request body:**
+
 ```json
 {
   "company_name": "Acme Technologies",
@@ -5577,6 +6030,7 @@ Content-Type: application/json
 ```
 
 **Request field rules:**
+
 - `company_name` (string, required).
 - `website_url` (string URL, optional).
 - `sector`, `stage`, `description` (string, optional).
@@ -5584,6 +6038,7 @@ Content-Type: application/json
 - `founders` (string, optional) — free-form.
 
 **Success 200 — created:**
+
 ```json
 {
   "data": {
@@ -5595,6 +6050,7 @@ Content-Type: application/json
 ```
 
 **Success 200 — merged (existing row updated):**
+
 ```json
 {
   "data": {
@@ -5607,6 +6063,7 @@ Content-Type: application/json
 ```
 
 **Success 200 — duplicate skipped:**
+
 ```json
 {
   "data": {
@@ -5618,11 +6075,13 @@ Content-Type: application/json
 ```
 
 **Response field rules:**
+
 - `action` ∈ `"created" | "merged" | "duplicate_skipped"`.
 - `startup_id` always present (for lookup).
 - `updated_fields` present only on `merged`.
 
 **Error 400 / 422 — validation_error:**
+
 ```json
 HTTP 422
 {
@@ -5640,6 +6099,7 @@ HTTP 422
 **Error 401 / 403 / 429 / 500:** see §7.0.4.
 
 **UI flow (web console at `/admin/tracxn`):**
+
 1. Admin pastes Tracxn data manually or via the Chrome Extension.
 2. Submit → `POST /enrichment/tracxn`.
 3. On 200 `created` → toast "Added {company_name}"; link to new startup profile.
@@ -5647,6 +6107,7 @@ HTTP 422
 5. On 200 `duplicate_skipped` → toast "Already exists — no changes".
 
 **Data transformation notes:**
+
 - Chrome Extension sends this directly; the admin console mirrors the same endpoint for manual entry.
 - Extension paired via `Authorization` header — admin copies their JWT into extension config (Phase-4 enhancement will use a separate API key).
 
@@ -5669,6 +6130,7 @@ HTTP 422
 **Full URL:** `GET {BACKEND_ORIGIN}/health` (NOT `{API_BASE_URL}/health`).
 
 **Success 200:**
+
 ```json
 {
   "status": "ok",
@@ -5678,6 +6140,7 @@ HTTP 422
 ```
 
 **Response field rules:**
+
 - NOT wrapped in the standard envelope (this is the one exception).
 - `status`: `"ok"`.
 - `env`: `"development" | "staging" | "production"`.
@@ -5686,10 +6149,12 @@ HTTP 422
 **Error 500:** Backend is unhealthy; response body may be empty or non-JSON.
 
 **UI flow:**
+
 1. Optionally displayed in admin top bar via `/admin/system-status` widget.
 2. Use to gate the dev-OTP hint banner — only show when `env !== 'production'`.
 
 **Data transformation notes:**
+
 - Because response is NOT enveloped, call via a SEPARATE axios instance (no interceptor unwrapping) OR a raw `fetch`.
 - Keep this endpoint out of the main `apiClient.endpoints.ts` module.
 
@@ -5697,27 +6162,27 @@ HTTP 422
 
 ## 7.17 Standard error responses (full list)
 
-| HTTP | `error.code` | Frontend behaviour |
-|---|---|---|
-| 400 | `validation_error` | Field-level red highlight, show `detail[]` messages |
-| 400 | `not_registered` | "This number is not registered. Contact Warmup Ventures." |
-| 401 | `missing_token` | Redirect to `/signin` |
-| 401 | `invalid_token` | Redirect to `/signin`, toast "Session invalid" |
-| 401 | `link_expired` / `token_expired` | Redirect to `/expired` |
-| 401 | `otp_invalid` | Inline error under OTP input |
-| 401 | `otp_expired` | Inline "OTP expired — request a new one" + enable resend |
-| 403 | `insufficient_role` | Redirect to `/unauthorized` |
-| 403 | `forbidden` | Show toast "You don't have access to this resource" |
-| 403 | `token_action_mismatch` | "This link is for a different action. Contact the sender." |
-| 403 | `unknown_action` | Same as above |
-| 404 | `not_found` | Page-level empty state with back button |
-| 409 | `conflict` | Context-specific message (e.g. "Already connected") |
-| 409 | `duplicate_contact` | "This contact already exists in the community." |
-| 409 | `mis_already_submitted` | "MIS for this period was already submitted." |
-| 422 | `validation_error` | Same as 400 validation |
-| 429 | `rate_limit_exceeded` | Toast, disable submit for `Retry-After` seconds |
-| 500 | `internal_error` | Full-page error + "Contact support" button |
-| 500 | `notion_sync_error` / `ai_provider_error` / `wa_provider_error` / `drive_error` | Non-fatal to user — usually silent; backend retries. If surfaced, show a soft banner. |
+| HTTP | `error.code`                                                                    | Frontend behaviour                                                                    |
+| ---- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 400  | `validation_error`                                                              | Field-level red highlight, show `detail[]` messages                                   |
+| 400  | `not_registered`                                                                | "This number is not registered. Contact Warmup Ventures."                             |
+| 401  | `missing_token`                                                                 | Redirect to `/signin`                                                                 |
+| 401  | `invalid_token`                                                                 | Redirect to `/signin`, toast "Session invalid"                                        |
+| 401  | `link_expired` / `token_expired`                                                | Redirect to `/expired`                                                                |
+| 401  | `otp_invalid`                                                                   | Inline error under OTP input                                                          |
+| 401  | `otp_expired`                                                                   | Inline "OTP expired — request a new one" + enable resend                              |
+| 403  | `insufficient_role`                                                             | Redirect to `/unauthorized`                                                           |
+| 403  | `forbidden`                                                                     | Show toast "You don't have access to this resource"                                   |
+| 403  | `token_action_mismatch`                                                         | "This link is for a different action. Contact the sender."                            |
+| 403  | `unknown_action`                                                                | Same as above                                                                         |
+| 404  | `not_found`                                                                     | Page-level empty state with back button                                               |
+| 409  | `conflict`                                                                      | Context-specific message (e.g. "Already connected")                                   |
+| 409  | `duplicate_contact`                                                             | "This contact already exists in the community."                                       |
+| 409  | `mis_already_submitted`                                                         | "MIS for this period was already submitted."                                          |
+| 422  | `validation_error`                                                              | Same as 400 validation                                                                |
+| 429  | `rate_limit_exceeded`                                                           | Toast, disable submit for `Retry-After` seconds                                       |
+| 500  | `internal_error`                                                                | Full-page error + "Contact support" button                                            |
+| 500  | `notion_sync_error` / `ai_provider_error` / `wa_provider_error` / `drive_error` | Non-fatal to user — usually silent; backend retries. If surfaced, show a soft banner. |
 
 ---
 
@@ -5799,21 +6264,37 @@ export type StartupStage =
   | 'late_growth';
 
 export type StartupStatus =
-  | 'longlist' | 'straight_pass' | 'team_reach_out' | 'schedule_partner_intro_call'
-  | 'raghav_calls' | 'sinchana_call' | 'partner_intro_scheduled'
-  | 'rajendra_sir_feedback' | 'sharad_feedback' | 'request_data'
-  | 'data_received' | 'deep_dive_scheduled' | 'termsheet_discussion'
-  | 'pass_for_now' | 'not_shortlisted' | 'not_responsive' | 'ib_mandate'
-  | 'portfolio' | 'on_hold' | 'nikhil_calls' | 'stay_connected'
-  | 'partner_ref_reachouts' | 'praveens_feedback';
+  | 'longlist'
+  | 'straight_pass'
+  | 'team_reach_out'
+  | 'schedule_partner_intro_call'
+  | 'raghav_calls'
+  | 'sinchana_call'
+  | 'partner_intro_scheduled'
+  | 'rajendra_sir_feedback'
+  | 'sharad_feedback'
+  | 'request_data'
+  | 'data_received'
+  | 'deep_dive_scheduled'
+  | 'termsheet_discussion'
+  | 'pass_for_now'
+  | 'not_shortlisted'
+  | 'not_responsive'
+  | 'ib_mandate'
+  | 'portfolio'
+  | 'on_hold'
+  | 'nikhil_calls'
+  | 'stay_connected'
+  | 'partner_ref_reachouts'
+  | 'praveens_feedback';
 ```
 
 ## 8.3 User
 
 ```ts
 export interface UserProfile {
-  user_id: string;               // UUID
-  phone: string;                 // E.164, +91XXXXXXXXXX
+  user_id: string; // UUID
+  phone: string; // E.164, +91XXXXXXXXXX
   name: string | null;
   email: string | null;
   role: UserRole;
@@ -5826,10 +6307,10 @@ export interface UserProfile {
 export interface AuthSession {
   access_token: string;
   token_type: 'bearer';
-  expires_in: number;            // seconds
+  expires_in: number; // seconds
   user_id: string;
   role: UserRole;
-  expires_at: number;            // client-computed: Date.now() + expires_in*1000
+  expires_at: number; // client-computed: Date.now() + expires_in*1000
 }
 ```
 
@@ -5910,7 +6391,7 @@ export interface ConnectionRow {
 export interface SearchRequest {
   query: string;
   filters?: Record<string, unknown>;
-  limit?: number;                // default 20
+  limit?: number; // default 20
   cursor?: string | null;
 }
 
@@ -5954,7 +6435,7 @@ export interface SearchResponse {
   total: number;
   target_type: 'lp' | 'startup';
   stage3_applied: boolean;
-  rerank_cap: number;            // 20
+  rerank_cap: number; // 20
   next_cursor: string | null;
 }
 ```
@@ -5963,7 +6444,7 @@ export interface SearchResponse {
 
 ```ts
 export interface MISPrefill {
-  period: string;                // 'YYYY-MM'
+  period: string; // 'YYYY-MM'
   company_name: string;
   prefill: {
     revenue: number | null;
@@ -5976,7 +6457,7 @@ export interface MISPrefill {
 }
 
 export interface MISSubmitRequest {
-  period: string;                // regex: ^\d{4}-(0[1-9]|1[0-2])$
+  period: string; // regex: ^\d{4}-(0[1-9]|1[0-2])$
   revenue?: number;
   burn?: number;
   runway_months?: number;
@@ -5984,7 +6465,7 @@ export interface MISSubmitRequest {
   highlights?: string;
   lowlights?: string;
   raw_data?: {
-    revenue_inr?: string;        // Decimal encoded as string
+    revenue_inr?: string; // Decimal encoded as string
     burn_inr?: string;
     headcount?: number;
     runway_months?: number;
@@ -6014,7 +6495,11 @@ export interface MatchSuggestion {
 ## 8.9 Meeting / Travel
 
 ```ts
-export interface Slot { start: string; end: string; date: string; }
+export interface Slot {
+  start: string;
+  end: string;
+  date: string;
+}
 
 export interface Booking {
   booking_id: string;
@@ -6031,7 +6516,7 @@ export interface TravelPlan {
   id: string;
   user_id: string;
   destination_city: string;
-  travel_start: string;          // YYYY-MM-DD
+  travel_start: string; // YYYY-MM-DD
   travel_end: string;
   purpose: string | null;
   status: 'active' | 'cancelled';
@@ -6058,7 +6543,7 @@ export interface DeadLetterJob {
 
 export interface QuarterlyReport {
   report_id: string;
-  quarter: string;               // e.g. 'Q1-2026'
+  quarter: string; // e.g. 'Q1-2026'
   status: 'pending' | 'approved' | 'sent';
   drive_url: string | null;
   generated_at: string;
@@ -6079,104 +6564,107 @@ This table is the authoritative list of transformations required before renderin
 
 ### 8.12.1 Pre-submit transforms (frontend → backend)
 
-| Field | Source type | Transform | Target format | Where it applies |
-|---|---|---|---|---|
-| `phone` | user input | trim + strip `-` `( )` spaces; prepend `+91` if missing; validate regex `^\+\d{10,15}$` | `+919876543210` | §7.1.1, §7.1.2 |
-| `otp` | user input | strip non-digits | `"000000"` | §7.1.2 |
-| `email` | user input | trim + lowercase | RFC 5322 | §7.2.3 |
-| `linkedin_url`, `website_url`, `avatar_url`, `deck_url` | user input | trim; validate URL; ensure `https://` prefix | `"https://..."` | §7.2.3, §7.2.4, §7.3.1, §7.3.3 |
-| PATCH bodies | form state | strip keys with `undefined`/`""` (backend has no clear-field allowlist) | partial object | §7.2.3 |
-| `sector`, `geography` | multi-select chips | lowercase each value | `["fintech", "saas"]` | §7.2.4 |
-| `preferred_stages` / `stage` / `filters.stage` | select | validate against `startup_stage` ENUM (see §8.2) | `"seed"` etc. | §7.2.4, §7.3.1, §7.4.1 |
-| `period` (MIS) | month picker | format as `YYYY-MM` matching `^\d{4}-(0[1-9]|1[0-2])$` | `"2026-04"` | §7.9.2 |
-| `raw_data.revenue_inr` / `burn_inr` | number input (rupees) | `value.toFixed(2)` as string | `"2100000.00"` | §7.9.2 |
-| `raw_data` object | form | reject ANY key not in the allowlist before submit (strict match §7.9.2) | validated subset | §7.9.2 |
-| `scheduled_at` | date + time pickers | convert to ISO-8601 WITH timezone via `date-fns-tz` `zonedTimeToUtc` + `formatISO({ representation: 'complete' })` | `"2026-04-24T10:00:00+05:30"` | §7.10.2 |
-| `duration_minutes` | radio | coerce to int, `30` or `60` only | `30` | §7.10.2 |
-| `travel_start`, `travel_end` | date pickers | `date-fns` `format(date, 'yyyy-MM-dd')`; validate `travel_end >= travel_start` client-side | `"2026-05-10"` | §7.11.1 |
-| `home_city`, `destination_city` | input | trim | as typed | §7.11.1, §7.11.4 |
-| `week_of` | date picker | `date-fns` `format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd')` | `"2026-04-28"` (Monday) | §7.8.1 |
-| `interaction_type` | code path | must be one of `search_view`, `search_click`, `profile_view`, `meeting_booked` — assert at call site | `"profile_view"` | §7.7.1 |
-| `target_type` | context | `"lp"` or `"startup"` based on search direction | `"startup"` | §7.7.1 |
-| `funnel_status` | status picker | must be one of 5 LP funnel keys | `"3_in_conversation"` | §7.12.5 |
-| `message` / `reason` / `note` | textarea | trim + enforce max length (200 / 500 / 2000 chars per endpoint) | trimmed | §7.6.1, §7.11.1, §7.12.6, §7.6.2 |
+| Field                                                   | Source type           | Transform                                                                                                          | Target format                 | Where it applies                 |
+| ------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------- | -------------------------------- | ------ |
+| `phone`                                                 | user input            | trim + strip `-` `( )` spaces; prepend `+91` if missing; validate regex `^\+\d{10,15}$`                            | `+919876543210`               | §7.1.1, §7.1.2                   |
+| `otp`                                                   | user input            | strip non-digits                                                                                                   | `"000000"`                    | §7.1.2                           |
+| `email`                                                 | user input            | trim + lowercase                                                                                                   | RFC 5322                      | §7.2.3                           |
+| `linkedin_url`, `website_url`, `avatar_url`, `deck_url` | user input            | trim; validate URL; ensure `https://` prefix                                                                       | `"https://..."`               | §7.2.3, §7.2.4, §7.3.1, §7.3.3   |
+| PATCH bodies                                            | form state            | strip keys with `undefined`/`""` (backend has no clear-field allowlist)                                            | partial object                | §7.2.3                           |
+| `sector`, `geography`                                   | multi-select chips    | lowercase each value                                                                                               | `["fintech", "saas"]`         | §7.2.4                           |
+| `preferred_stages` / `stage` / `filters.stage`          | select                | validate against `startup_stage` ENUM (see §8.2)                                                                   | `"seed"` etc.                 | §7.2.4, §7.3.1, §7.4.1           |
+| `period` (MIS)                                          | month picker          | format as `YYYY-MM` matching `^\d{4}-(0[1-9]                                                                       | 1[0-2])$`                     | `"2026-04"`                      | §7.9.2 |
+| `raw_data.revenue_inr` / `burn_inr`                     | number input (rupees) | `value.toFixed(2)` as string                                                                                       | `"2100000.00"`                | §7.9.2                           |
+| `raw_data` object                                       | form                  | reject ANY key not in the allowlist before submit (strict match §7.9.2)                                            | validated subset              | §7.9.2                           |
+| `scheduled_at`                                          | date + time pickers   | convert to ISO-8601 WITH timezone via `date-fns-tz` `zonedTimeToUtc` + `formatISO({ representation: 'complete' })` | `"2026-04-24T10:00:00+05:30"` | §7.10.2                          |
+| `duration_minutes`                                      | radio                 | coerce to int, `30` or `60` only                                                                                   | `30`                          | §7.10.2                          |
+| `travel_start`, `travel_end`                            | date pickers          | `date-fns` `format(date, 'yyyy-MM-dd')`; validate `travel_end >= travel_start` client-side                         | `"2026-05-10"`                | §7.11.1                          |
+| `home_city`, `destination_city`                         | input                 | trim                                                                                                               | as typed                      | §7.11.1, §7.11.4                 |
+| `week_of`                                               | date picker           | `date-fns` `format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd')`                                          | `"2026-04-28"` (Monday)       | §7.8.1                           |
+| `interaction_type`                                      | code path             | must be one of `search_view`, `search_click`, `profile_view`, `meeting_booked` — assert at call site               | `"profile_view"`              | §7.7.1                           |
+| `target_type`                                           | context               | `"lp"` or `"startup"` based on search direction                                                                    | `"startup"`                   | §7.7.1                           |
+| `funnel_status`                                         | status picker         | must be one of 5 LP funnel keys                                                                                    | `"3_in_conversation"`         | §7.12.5                          |
+| `message` / `reason` / `note`                           | textarea              | trim + enforce max length (200 / 500 / 2000 chars per endpoint)                                                    | trimmed                       | §7.6.1, §7.11.1, §7.12.6, §7.6.2 |
 
 ### 8.12.2 Post-response transforms (backend → UI)
 
-| Field | Response type | Transform | UI output | Where it applies |
-|---|---|---|---|---|
-| `access_token` | string (JWT) | store verbatim; NEVER decode client-side | — | §7.1.2 |
-| `expires_in` | integer seconds | `expiresAt = Date.now() + expires_in * 1000` | epoch ms in store | §7.1.2 |
-| `role` | ENUM key | label via `{ lp: 'LP', potential_lp: 'Potential LP', vc: 'VC', ... }` | "Potential LP" | everywhere |
-| `stage`, `status`, `funnel_status` | ENUM keys | label-map per enum | "Pre-Seed", "In Conversation" | everywhere |
-| `similarity_score` | float 0..1 | skip rendering raw; use a 3-dot indicator or hide | badge | §7.4.1 |
-| `ai_rank` | int or null | conditional render — hide if null | "#1" | §7.4.1 |
-| `ai_reason` | string or null | conditional render; truncate to 160 chars | tooltip or line | §7.4.1 |
-| `funding_target_cr`, `ask_amount_cr`, `aum_cr` | number (INR crore) | `` `₹ ${value.toLocaleString('en-IN')} Cr` `` | "₹ 10 Cr" | §7.3, §7.4 |
-| `revenue`, `burn` | number (INR rupees) | Indian numbering `value.toLocaleString('en-IN')` with ₹ prefix | "₹ 21,00,000" | §7.9 |
-| `created_at`, `sent_at`, `failed_at`, etc. | ISO-8601 | `formatDistanceToNow` for relative + full on hover (`format(date, 'PPpp')`) | "5 hours ago" | everywhere |
-| `scheduled_at` | ISO-8601 with TZ | display in user's local TZ via `date-fns-tz` `utcToZonedTime` + `format` | "24 Apr 10:00 AM" | §7.10 |
-| `travel_start`, `travel_end` | `YYYY-MM-DD` | `format(parseISO(x), 'PP')` | "May 10, 2026" | §7.11 |
-| `period` | `YYYY-MM` | `format(parse(x, 'yyyy-MM', new Date()), 'LLLL yyyy')` | "April 2026" | §7.9 |
-| `phone` on `contact` | E.164 | group for readability: `+91 98765-43210` | formatted | §7.6.4 |
-| `avatar_url` | nullable URL | if null → initials fallback `<Avatar fallback={initials(name)} />` | avatar | everywhere |
-| `parsed.name` / `parsed.phone` / `parsed.email` etc. | nullable | highlight missing required fields (name/phone) in red; low-confidence in amber | form | §7.2.1 |
-| `contact` on connection/profile | nullable object | render iff non-null; never render `null`/`undefined` | conditional card | §7.5.1, §7.6.4 |
-| `total` (search) | int | "Showing {items.length} of {total}" | caption | §7.4.1 |
-| `content.html` (digest) | HTML string | render inside `<iframe sandbox="allow-same-origin">` — NEVER `dangerouslySetInnerHTML` | sandbox | §7.13 |
-| `traceback` (DLQ) | multi-line string | render inside `<pre className="overflow-x-auto">` | code block | §7.12.9 |
-| `result.signal` (pitch eval) | `"strong"`/`"moderate"`/`"weak"` | colour badge: green/yellow/red | badge | §7.3.4 |
-| `result.strengths`, `concerns` | string[] | render as bullet lists; empty array → hide block | list | §7.3.4 |
-| `next_cursor` | string or null | null → hide "Load more"; string → enable infinite scroll | pagination | everywhere |
-| `stage3_applied` | boolean | if `false` → subtle banner "AI ranking temporarily unavailable" | banner | §7.4.1 |
-| analytics counters | int | Indian number format; null → `0` fallback | KPI cards | §7.14 |
-| `retained_Nm` (cohort) | int or null | null → render "—" (not enough history) | heatmap cell | §7.14.5 |
-| `accepted_pct`, etc. | float 0..1 | `(v * 100).toFixed(0) + '%'` | "42%" | §7.14.6 |
+| Field                                                | Response type                    | Transform                                                                              | UI output                     | Where it applies |
+| ---------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------- | ---------------- |
+| `access_token`                                       | string (JWT)                     | store verbatim; NEVER decode client-side                                               | —                             | §7.1.2           |
+| `expires_in`                                         | integer seconds                  | `expiresAt = Date.now() + expires_in * 1000`                                           | epoch ms in store             | §7.1.2           |
+| `role`                                               | ENUM key                         | label via `{ lp: 'LP', potential_lp: 'Potential LP', vc: 'VC', ... }`                  | "Potential LP"                | everywhere       |
+| `stage`, `status`, `funnel_status`                   | ENUM keys                        | label-map per enum                                                                     | "Pre-Seed", "In Conversation" | everywhere       |
+| `similarity_score`                                   | float 0..1                       | skip rendering raw; use a 3-dot indicator or hide                                      | badge                         | §7.4.1           |
+| `ai_rank`                                            | int or null                      | conditional render — hide if null                                                      | "#1"                          | §7.4.1           |
+| `ai_reason`                                          | string or null                   | conditional render; truncate to 160 chars                                              | tooltip or line               | §7.4.1           |
+| `funding_target_cr`, `ask_amount_cr`, `aum_cr`       | number (INR crore)               | `` `₹ ${value.toLocaleString('en-IN')} Cr` ``                                          | "₹ 10 Cr"                     | §7.3, §7.4       |
+| `revenue`, `burn`                                    | number (INR rupees)              | Indian numbering `value.toLocaleString('en-IN')` with ₹ prefix                         | "₹ 21,00,000"                 | §7.9             |
+| `created_at`, `sent_at`, `failed_at`, etc.           | ISO-8601                         | `formatDistanceToNow` for relative + full on hover (`format(date, 'PPpp')`)            | "5 hours ago"                 | everywhere       |
+| `scheduled_at`                                       | ISO-8601 with TZ                 | display in user's local TZ via `date-fns-tz` `utcToZonedTime` + `format`               | "24 Apr 10:00 AM"             | §7.10            |
+| `travel_start`, `travel_end`                         | `YYYY-MM-DD`                     | `format(parseISO(x), 'PP')`                                                            | "May 10, 2026"                | §7.11            |
+| `period`                                             | `YYYY-MM`                        | `format(parse(x, 'yyyy-MM', new Date()), 'LLLL yyyy')`                                 | "April 2026"                  | §7.9             |
+| `phone` on `contact`                                 | E.164                            | group for readability: `+91 98765-43210`                                               | formatted                     | §7.6.4           |
+| `avatar_url`                                         | nullable URL                     | if null → initials fallback `<Avatar fallback={initials(name)} />`                     | avatar                        | everywhere       |
+| `parsed.name` / `parsed.phone` / `parsed.email` etc. | nullable                         | highlight missing required fields (name/phone) in red; low-confidence in amber         | form                          | §7.2.1           |
+| `contact` on connection/profile                      | nullable object                  | render iff non-null; never render `null`/`undefined`                                   | conditional card              | §7.5.1, §7.6.4   |
+| `total` (search)                                     | int                              | "Showing {items.length} of {total}"                                                    | caption                       | §7.4.1           |
+| `content.html` (digest)                              | HTML string                      | render inside `<iframe sandbox="allow-same-origin">` — NEVER `dangerouslySetInnerHTML` | sandbox                       | §7.13            |
+| `traceback` (DLQ)                                    | multi-line string                | render inside `<pre className="overflow-x-auto">`                                      | code block                    | §7.12.9          |
+| `result.signal` (pitch eval)                         | `"strong"`/`"moderate"`/`"weak"` | colour badge: green/yellow/red                                                         | badge                         | §7.3.4           |
+| `result.strengths`, `concerns`                       | string[]                         | render as bullet lists; empty array → hide block                                       | list                          | §7.3.4           |
+| `next_cursor`                                        | string or null                   | null → hide "Load more"; string → enable infinite scroll                               | pagination                    | everywhere       |
+| `stage3_applied`                                     | boolean                          | if `false` → subtle banner "AI ranking temporarily unavailable"                        | banner                        | §7.4.1           |
+| analytics counters                                   | int                              | Indian number format; null → `0` fallback                                              | KPI cards                     | §7.14            |
+| `retained_Nm` (cohort)                               | int or null                      | null → render "—" (not enough history)                                                 | heatmap cell                  | §7.14.5          |
+| `accepted_pct`, etc.                                 | float 0..1                       | `(v * 100).toFixed(0) + '%'`                                                           | "42%"                         | §7.14.6          |
 
 ### 8.12.3 Role-masked field handling
 
 Some endpoints strip fields based on viewer role. The frontend MUST handle "absent" (key missing or null) gracefully. Never throw on missing fields.
 
-| Endpoint | Role | Fields usually absent |
-|---|---|---|
-| `POST /search` | `partner` | `description`, `traction`, `funding_target_cr`, `similarity_score`, `ai_rank`, `ai_reason`, `avatar_url` |
-| `GET /profile/{id}` | viewer without accepted connection | `contact`, `contact.email`, `contact.phone`, `contact.linkedin_url` |
-| `GET /profile/{id}` | `partner` | `description`, `founding_year`, `team_size`, `traction`, `ask_amount_cr`, `website_url`, `designation` |
-| `GET /interactions/profile-viewers` | any | viewer email/phone (PII — NEVER exposed) |
+| Endpoint                            | Role                               | Fields usually absent                                                                                    |
+| ----------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `POST /search`                      | `partner`                          | `description`, `traction`, `funding_target_cr`, `similarity_score`, `ai_rank`, `ai_reason`, `avatar_url` |
+| `GET /profile/{id}`                 | viewer without accepted connection | `contact`, `contact.email`, `contact.phone`, `contact.linkedin_url`                                      |
+| `GET /profile/{id}`                 | `partner`                          | `description`, `founding_year`, `team_size`, `traction`, `ask_amount_cr`, `website_url`, `designation`   |
+| `GET /interactions/profile-viewers` | any                                | viewer email/phone (PII — NEVER exposed)                                                                 |
 
 Rule: wrap every role-sensitive read in `optional chaining` + nullable render:
+
 ```tsx
-{profile.contact?.email && <ContactRow label="Email" value={profile.contact.email} />}
+{
+  profile.contact?.email && <ContactRow label="Email" value={profile.contact.email} />;
+}
 ```
 
 ### 8.12.4 Invalidation matrix (which mutations bust which caches)
 
-| Mutation | Invalidate these query keys |
-|---|---|
-| `POST /auth/otp/verify` | `qk.auth.me` |
-| `PATCH /onboarding/profile` | `qk.auth.me`, `qk.connections.*` (name/avatar may appear there) |
-| `POST /onboarding/lp-profile` | `qk.auth.me`, `qk.matchmaking.suggestions` |
-| `POST /pitch/profile` | `qk.pitch.profile` |
-| `POST /pitch/deck` | `qk.pitch.profile`, `qk.pitch.deckJob.*` |
-| `POST /connections/request` | `qk.connections.pending`, `qk.profile.byId(target_id)` |
-| `PATCH /connections/{id}/admin` | `qk.admin.connections`, `qk.admin.summary`, `qk.connections.pending` |
-| `PATCH /connections/{id}/respond` | `qk.connections.list`, `qk.connections.pending`, `qk.profile.byId(counterpart)` |
-| `POST /portfolio/mis` | `qk.mis.form`, `qk.admin.summary` |
-| `POST /schedule/book` | `qk.meetings.slots`, `qk.meetings.bookings` |
-| `DELETE /schedule/book/{id}` | `qk.meetings.slots`, `qk.meetings.bookings` |
-| `POST /travel/plans` | `qk.travel.plans` |
-| `DELETE /travel/plans/{id}` | `qk.travel.plans` |
-| `PUT /travel/home-city` | `qk.auth.me` |
-| `POST /matchmaking/generate` | `qk.matchmaking.pending` (after job SUCCESS) |
-| `POST /matchmaking/approve` | `qk.matchmaking.pending`, `qk.matchmaking.suggestions` |
-| `POST /matchmaking/suggestions/{id}/respond` | `qk.matchmaking.suggestions`, `qk.connections.pending` (if connection_created) |
-| `POST /digest/generate` | `qk.digest.pending` |
-| `POST /digest/approve` | `qk.digest.pending`, `qk.digest.history`, `qk.admin.summary` |
-| `POST /admin/digest/send` | `qk.admin.digest`, `qk.digest.history`, `qk.admin.summary` |
-| `PUT /admin/lp/{user_id}/funnel-status` | `qk.admin.lpFunnel(user_id)` |
-| `POST /admin/quarterly-reports/approve` | `qk.admin.quarterlyReports` |
-| `POST /admin/dead-letter-jobs/{id}/retry` | `qk.admin.dlq.*` |
-| `POST /enrichment/tracxn` | `qk.search.*` (new/updated startup) |
+| Mutation                                     | Invalidate these query keys                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------- |
+| `POST /auth/otp/verify`                      | `qk.auth.me`                                                                    |
+| `PATCH /onboarding/profile`                  | `qk.auth.me`, `qk.connections.*` (name/avatar may appear there)                 |
+| `POST /onboarding/lp-profile`                | `qk.auth.me`, `qk.matchmaking.suggestions`                                      |
+| `POST /pitch/profile`                        | `qk.pitch.profile`                                                              |
+| `POST /pitch/deck`                           | `qk.pitch.profile`, `qk.pitch.deckJob.*`                                        |
+| `POST /connections/request`                  | `qk.connections.pending`, `qk.profile.byId(target_id)`                          |
+| `PATCH /connections/{id}/admin`              | `qk.admin.connections`, `qk.admin.summary`, `qk.connections.pending`            |
+| `PATCH /connections/{id}/respond`            | `qk.connections.list`, `qk.connections.pending`, `qk.profile.byId(counterpart)` |
+| `POST /portfolio/mis`                        | `qk.mis.form`, `qk.admin.summary`                                               |
+| `POST /schedule/book`                        | `qk.meetings.slots`, `qk.meetings.bookings`                                     |
+| `DELETE /schedule/book/{id}`                 | `qk.meetings.slots`, `qk.meetings.bookings`                                     |
+| `POST /travel/plans`                         | `qk.travel.plans`                                                               |
+| `DELETE /travel/plans/{id}`                  | `qk.travel.plans`                                                               |
+| `PUT /travel/home-city`                      | `qk.auth.me`                                                                    |
+| `POST /matchmaking/generate`                 | `qk.matchmaking.pending` (after job SUCCESS)                                    |
+| `POST /matchmaking/approve`                  | `qk.matchmaking.pending`, `qk.matchmaking.suggestions`                          |
+| `POST /matchmaking/suggestions/{id}/respond` | `qk.matchmaking.suggestions`, `qk.connections.pending` (if connection_created)  |
+| `POST /digest/generate`                      | `qk.digest.pending`                                                             |
+| `POST /digest/approve`                       | `qk.digest.pending`, `qk.digest.history`, `qk.admin.summary`                    |
+| `POST /admin/digest/send`                    | `qk.admin.digest`, `qk.digest.history`, `qk.admin.summary`                      |
+| `PUT /admin/lp/{user_id}/funnel-status`      | `qk.admin.lpFunnel(user_id)`                                                    |
+| `POST /admin/quarterly-reports/approve`      | `qk.admin.quarterlyReports`                                                     |
+| `POST /admin/dead-letter-jobs/{id}/retry`    | `qk.admin.dlq.*`                                                                |
+| `POST /enrichment/tracxn`                    | `qk.search.*` (new/updated startup)                                             |
 
 ### 8.12.5 Optimistic update pattern
 
@@ -6229,7 +6717,12 @@ interface AuthState {
   user: UserProfile | null;
   role: UserRole | null;
   expiresAt: number | null;
-  setSession(data: { access_token: string; user_id: string; role: UserRole; expires_in: number }): void;
+  setSession(data: {
+    access_token: string;
+    user_id: string;
+    role: UserRole;
+    expires_in: number;
+  }): void;
   setUser(user: UserProfile): void;
   clear(): void;
   isAuthenticated(): boolean;
@@ -6238,10 +6731,17 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      token: null, user: null, role: null, expiresAt: null,
+      token: null,
+      user: null,
+      role: null,
+      expiresAt: null,
       setSession: ({ access_token, user_id, role, expires_in }) =>
-        set({ token: access_token, role, expiresAt: Date.now() + expires_in * 1000,
-              user: (get().user?.user_id === user_id) ? get().user : null }),
+        set({
+          token: access_token,
+          role,
+          expiresAt: Date.now() + expires_in * 1000,
+          user: get().user?.user_id === user_id ? get().user : null,
+        }),
       setUser: (user) => set({ user }),
       clear: () => set({ token: null, user: null, role: null, expiresAt: null }),
       isAuthenticated: () => {
@@ -6249,7 +6749,10 @@ export const useAuthStore = create<AuthState>()(
         return !!token && !!expiresAt && Date.now() < expiresAt;
       },
     }),
-    { name: 'oc.auth', partialize: (s) => ({ token: s.token, role: s.role, expiresAt: s.expiresAt, user: s.user }) },
+    {
+      name: 'oc.auth',
+      partialize: (s) => ({ token: s.token, role: s.role, expiresAt: s.expiresAt, user: s.user }),
+    },
   ),
 );
 ```
@@ -6269,7 +6772,7 @@ No backend logout endpoint. Logout is a pure client-side action:
 
 ```ts
 function logout() {
-  queryClient.clear();          // purge TanStack Query cache
+  queryClient.clear(); // purge TanStack Query cache
   useAuthStore.getState().clear();
   navigate('/signin');
 }
@@ -6291,14 +6794,14 @@ Routes like `/pitch/:token`, `/add-user/:token`, `/mis/:token` can exist as plac
 
 ## 9.7 401 semantics cheat sheet
 
-| Situation | Backend code | Frontend action |
-|---|---|---|
-| No Authorization header | `missing_token` | `/signin` (record referrer) |
-| Token signature invalid | `invalid_token` | `/signin`, toast "Session invalid" |
-| Token expired | `link_expired` / `token_expired` | `/expired` (friendly copy) |
-| Wrong audience / issuer | `invalid_token` | `/signin` |
-| Action mismatch | `token_action_mismatch` | friendly screen "Wrong link" |
-| Missing required claim | `invalid_token` | `/signin` |
+| Situation               | Backend code                     | Frontend action                    |
+| ----------------------- | -------------------------------- | ---------------------------------- |
+| No Authorization header | `missing_token`                  | `/signin` (record referrer)        |
+| Token signature invalid | `invalid_token`                  | `/signin`, toast "Session invalid" |
+| Token expired           | `link_expired` / `token_expired` | `/expired` (friendly copy)         |
+| Wrong audience / issuer | `invalid_token`                  | `/signin`                          |
+| Action mismatch         | `token_action_mismatch`          | friendly screen "Wrong link"       |
+| Missing required claim  | `invalid_token`                  | `/signin`                          |
 
 ---
 
@@ -6324,15 +6827,15 @@ Routes like `/pitch/:token`, `/add-user/:token`, `/mis/:token` can exist as plac
 
 ## 10.2 Role → default dashboard route
 
-| Role | Default after login |
-|---|---|
-| `admin`, `super_admin` | `/admin` |
-| `lp`, `potential_lp` | `/search` |
-| `vc` | `/search` |
-| `startup_funded` | `/search` (LP search) |
-| `startup_inprogress`, `startup_onboarded` | `/pitch` |
-| `partner` | `/search` (limited) |
-| `advisor` | `/connections/pending` |
+| Role                                      | Default after login    |
+| ----------------------------------------- | ---------------------- |
+| `admin`, `super_admin`                    | `/admin`               |
+| `lp`, `potential_lp`                      | `/search`              |
+| `vc`                                      | `/search`              |
+| `startup_funded`                          | `/search` (LP search)  |
+| `startup_inprogress`, `startup_onboarded` | `/pitch`               |
+| `partner`                                 | `/search` (limited)    |
+| `advisor`                                 | `/connections/pending` |
 
 ## 10.3 Role-aware sidebar (authoritative)
 
@@ -6341,27 +6844,111 @@ The sidebar is **dynamically constructed** from a single capability map. Each en
 ```ts
 // src/lib/role-capabilities.ts — the single source of truth
 export const NAV_ITEMS = [
-  { key: 'dashboard',    label: 'Dashboard',            path: '/dashboard',             icon: 'Home',        roles: ['*'] },
-  { key: 'search',       label: 'Search',               path: '/search',                icon: 'Search',      roles: ['lp','potential_lp','vc','startup_funded','partner','admin','super_admin'] },
-  { key: 'matchmaking',  label: 'Suggestions',          path: '/matchmaking',           icon: 'Sparkles',    roles: ['lp','potential_lp','vc','startup_funded','admin','super_admin'] },
-  { key: 'connections',  label: 'Connections',          path: '/connections',           icon: 'Users',       roles: ['*'] },
-  { key: 'pending',      label: 'Pending',              path: '/connections/pending',   icon: 'Clock',       roles: ['*'] },
-  { key: 'add-user',     label: 'Add contact',          path: '/add-user',              icon: 'UserPlus',    roles: ['lp','potential_lp','vc','admin','super_admin'] },
-  { key: 'pitch',        label: 'My pitch',             path: '/pitch',                 icon: 'FileText',    roles: ['startup_inprogress','startup_onboarded','startup_funded','admin','super_admin'] },
-  { key: 'mis',          label: 'MIS',                  path: '/mis',                   icon: 'BarChart3',   roles: ['startup_funded','admin','super_admin'] },
-  { key: 'schedule',     label: 'Schedule',             path: '/schedule',              icon: 'Calendar',    roles: ['*'] },
-  { key: 'travel',       label: 'Travel',               path: '/travel',                icon: 'Plane',       roles: ['*'] },
-  { key: 'viewers',      label: 'Who viewed me',        path: '/profile-viewers',       icon: 'Eye',         roles: ['*'] },
+  { key: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: 'Home', roles: ['*'] },
+  {
+    key: 'search',
+    label: 'Search',
+    path: '/search',
+    icon: 'Search',
+    roles: ['lp', 'potential_lp', 'vc', 'startup_funded', 'partner', 'admin', 'super_admin'],
+  },
+  {
+    key: 'matchmaking',
+    label: 'Suggestions',
+    path: '/matchmaking',
+    icon: 'Sparkles',
+    roles: ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin'],
+  },
+  { key: 'connections', label: 'Connections', path: '/connections', icon: 'Users', roles: ['*'] },
+  { key: 'pending', label: 'Pending', path: '/connections/pending', icon: 'Clock', roles: ['*'] },
+  {
+    key: 'add-user',
+    label: 'Add contact',
+    path: '/add-user',
+    icon: 'UserPlus',
+    roles: ['lp', 'potential_lp', 'vc', 'admin', 'super_admin'],
+  },
+  {
+    key: 'pitch',
+    label: 'My pitch',
+    path: '/pitch',
+    icon: 'FileText',
+    roles: ['startup_inprogress', 'startup_onboarded', 'startup_funded', 'admin', 'super_admin'],
+  },
+  {
+    key: 'mis',
+    label: 'MIS',
+    path: '/mis',
+    icon: 'BarChart3',
+    roles: ['startup_funded', 'admin', 'super_admin'],
+  },
+  { key: 'schedule', label: 'Schedule', path: '/schedule', icon: 'Calendar', roles: ['*'] },
+  { key: 'travel', label: 'Travel', path: '/travel', icon: 'Plane', roles: ['*'] },
+  { key: 'viewers', label: 'Who viewed me', path: '/profile-viewers', icon: 'Eye', roles: ['*'] },
   // Admin-only
-  { key: 'admin-home',       label: 'Admin home',        path: '/admin',                   icon: 'LayoutDashboard', roles: ['admin','super_admin'] },
-  { key: 'admin-connections',label: 'Connection queue', path: '/admin/connections',       icon: 'Inbox',       roles: ['admin','super_admin'] },
-  { key: 'admin-digest',     label: 'Digests',          path: '/admin/digest',            icon: 'Mail',        roles: ['admin','super_admin'] },
-  { key: 'admin-match',      label: 'Matchmaking ops',  path: '/admin/matchmaking',       icon: 'Zap',         roles: ['admin','super_admin'] },
-  { key: 'admin-reports',    label: 'Quarterly reports',path: '/admin/quarterly-reports', icon: 'FileCheck',   roles: ['admin','super_admin'] },
-  { key: 'admin-dlq',        label: 'Dead-letter jobs', path: '/admin/dead-letter-jobs',  icon: 'AlertTriangle', roles: ['admin','super_admin'] },
-  { key: 'admin-analytics',  label: 'Analytics',        path: '/admin/analytics',         icon: 'PieChart',    roles: ['admin','super_admin'] },
-  { key: 'admin-lp-funnel',  label: 'LP funnel',        path: '/admin/lp-funnel',         icon: 'Route',       roles: ['admin','super_admin'] },
-  { key: 'admin-tracxn',     label: 'Tracxn ingest',    path: '/admin/tracxn',            icon: 'Globe',       roles: ['admin','super_admin'] },
+  {
+    key: 'admin-home',
+    label: 'Admin home',
+    path: '/admin',
+    icon: 'LayoutDashboard',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-connections',
+    label: 'Connection queue',
+    path: '/admin/connections',
+    icon: 'Inbox',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-digest',
+    label: 'Digests',
+    path: '/admin/digest',
+    icon: 'Mail',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-match',
+    label: 'Matchmaking ops',
+    path: '/admin/matchmaking',
+    icon: 'Zap',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-reports',
+    label: 'Quarterly reports',
+    path: '/admin/quarterly-reports',
+    icon: 'FileCheck',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-dlq',
+    label: 'Dead-letter jobs',
+    path: '/admin/dead-letter-jobs',
+    icon: 'AlertTriangle',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-analytics',
+    label: 'Analytics',
+    path: '/admin/analytics',
+    icon: 'PieChart',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-lp-funnel',
+    label: 'LP funnel',
+    path: '/admin/lp-funnel',
+    icon: 'Route',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-tracxn',
+    label: 'Tracxn ingest',
+    path: '/admin/tracxn',
+    icon: 'Globe',
+    roles: ['admin', 'super_admin'],
+  },
 ];
 
 export function navForRole(role: UserRole) {
@@ -6432,29 +7019,29 @@ Until Phase 4:
 
 ## 10.6 Reusable components (`src/components/`)
 
-| Component | Purpose |
-|---|---|
-| `ui/button.tsx` | shadcn button variants |
-| `ui/input.tsx`, `textarea.tsx`, `select.tsx`, `checkbox.tsx` | form primitives |
-| `ui/dialog.tsx`, `sheet.tsx`, `popover.tsx`, `dropdown-menu.tsx` | overlays |
-| `ui/badge.tsx`, `ui/card.tsx`, `ui/tabs.tsx`, `ui/separator.tsx` | layout primitives |
-| `ui/skeleton.tsx`, `ui/avatar.tsx`, `ui/tooltip.tsx`, `ui/toast.tsx` | visual feedback |
-| `layout/AppShell.tsx` | sidebar + top bar + outlet |
-| `layout/Sidebar.tsx` | role-filtered nav |
-| `layout/TopBar.tsx` | user menu + logout |
-| `data-table/DataTable.tsx` | TanStack Table wrapper (sort / paginate) |
-| `pagination/CursorPaginator.tsx` | infinite scroll with `next_cursor` |
-| `forms/FormField.tsx` | label + input + error |
-| `forms/PhoneInput.tsx` | E.164-only input, auto-prefix +91 option |
-| `forms/OTPInput.tsx` | 6-digit cell input |
-| `forms/FileDropzone.tsx` | react-dropzone wrapper |
-| `forms/AudioRecorder.tsx` | MediaRecorder wrapper; returns Blob |
-| `empty-state/EmptyState.tsx` | icon + title + body + CTA |
-| `error-state/ErrorState.tsx` | reads ApiError, renders friendly message + retry |
-| `loading/Skeleton*.tsx` | per-layout skeletons |
-| `role-guard.tsx` | gates children by role |
-| `role-badge.tsx` | colour-coded role chip |
-| `charts/FunnelChart.tsx`, `CohortChart.tsx` | Recharts wrappers |
+| Component                                                            | Purpose                                          |
+| -------------------------------------------------------------------- | ------------------------------------------------ |
+| `ui/button.tsx`                                                      | shadcn button variants                           |
+| `ui/input.tsx`, `textarea.tsx`, `select.tsx`, `checkbox.tsx`         | form primitives                                  |
+| `ui/dialog.tsx`, `sheet.tsx`, `popover.tsx`, `dropdown-menu.tsx`     | overlays                                         |
+| `ui/badge.tsx`, `ui/card.tsx`, `ui/tabs.tsx`, `ui/separator.tsx`     | layout primitives                                |
+| `ui/skeleton.tsx`, `ui/avatar.tsx`, `ui/tooltip.tsx`, `ui/toast.tsx` | visual feedback                                  |
+| `layout/AppShell.tsx`                                                | sidebar + top bar + outlet                       |
+| `layout/Sidebar.tsx`                                                 | role-filtered nav                                |
+| `layout/TopBar.tsx`                                                  | user menu + logout                               |
+| `data-table/DataTable.tsx`                                           | TanStack Table wrapper (sort / paginate)         |
+| `pagination/CursorPaginator.tsx`                                     | infinite scroll with `next_cursor`               |
+| `forms/FormField.tsx`                                                | label + input + error                            |
+| `forms/PhoneInput.tsx`                                               | E.164-only input, auto-prefix +91 option         |
+| `forms/OTPInput.tsx`                                                 | 6-digit cell input                               |
+| `forms/FileDropzone.tsx`                                             | react-dropzone wrapper                           |
+| `forms/AudioRecorder.tsx`                                            | MediaRecorder wrapper; returns Blob              |
+| `empty-state/EmptyState.tsx`                                         | icon + title + body + CTA                        |
+| `error-state/ErrorState.tsx`                                         | reads ApiError, renders friendly message + retry |
+| `loading/Skeleton*.tsx`                                              | per-layout skeletons                             |
+| `role-guard.tsx`                                                     | gates children by role                           |
+| `role-badge.tsx`                                                     | colour-coded role chip                           |
+| `charts/FunnelChart.tsx`, `CohortChart.tsx`                          | Recharts wrappers                                |
 
 ## 10.7 Screen-level breakdown
 
@@ -6483,7 +7070,7 @@ See §5.2 — every list has a dedicated empty message.
 
 ## 11.4 Unauthorised access
 
-- **Wrong role for a route:** `<RoleGuard />` redirects to `/unauthorized` *before* the page renders. Never rely on the backend 403 as the primary guard — it should be a last line of defence.
+- **Wrong role for a route:** `<RoleGuard />` redirects to `/unauthorized` _before_ the page renders. Never rely on the backend 403 as the primary guard — it should be a last line of defence.
 - **Token action mismatch** (Phase 4): show a dedicated `/wrong-link` page explaining the user needs a fresh link.
 
 ## 11.5 Stale data
@@ -6531,6 +7118,7 @@ Five phases, each with dependencies and output artefacts.
 ## 12.1 Phase A — Project setup (2 days)
 
 **Tasks**
+
 - Bootstrap with `pnpm create vite one-community-web -- --template react-ts`.
 - Install all dependencies from §6.1.
 - Configure Tailwind, shadcn/ui init.
@@ -6547,6 +7135,7 @@ Five phases, each with dependencies and output artefacts.
 ## 12.2 Phase B — Auth + App shell (3 days)
 
 **Tasks**
+
 - Implement `/signin` (phone entry + OTP flow).
 - `auth-store` with persisted session.
 - `GET /auth/me` hook; profile gate → `/onboarding/profile`.
@@ -6657,7 +7246,7 @@ export async function getProfileById(id: string): Promise<ProfileView> {
     const resp = await apiClient.get<ApiEnvelope<ProfileView>>(`/profile/${id}`);
     return zProfileView.parse(resp.data.data);
   }
-  return ProfileServiceInterim.getById(id);   // see §13.2 G1
+  return ProfileServiceInterim.getById(id); // see §13.2 G1
 }
 ```
 
@@ -6826,6 +7415,7 @@ Prioritised by frontend impact. Frontend is unblocked on all of these via §13.2
 ## 13.4 Backend-gap acceptance criteria (do NOT merge unflagged work)
 
 A frontend PR that touches a gap endpoint MUST:
+
 - [ ] Reference the G-number in the PR description.
 - [ ] Use the corresponding `VITE_*_ENABLED` flag.
 - [ ] Ship (or reuse) the MSW handler in `src/test/msw-handlers.ts`.
@@ -6923,14 +7513,35 @@ POST   /api/v1/enrichment/tracxn                       admin,super_admin
 ```ts
 // src/types/enums.ts
 export const zRole = z.enum([
-  'lp','potential_lp','vc','startup_inprogress','startup_onboarded','startup_funded',
-  'partner','advisor','admin','super_admin',
+  'lp',
+  'potential_lp',
+  'vc',
+  'startup_inprogress',
+  'startup_onboarded',
+  'startup_funded',
+  'partner',
+  'advisor',
+  'admin',
+  'super_admin',
 ]);
 export const zStage = z.enum([
-  'ideation','pre_seed','seed','early_growth','pre_a','series_a','pre_b','series_b','late_growth',
+  'ideation',
+  'pre_seed',
+  'seed',
+  'early_growth',
+  'pre_a',
+  'series_a',
+  'pre_b',
+  'series_b',
+  'late_growth',
 ]);
 export const zConnStatus = z.enum([
-  'pending_admin','approved','rejected_admin','pending_target','accepted','declined',
+  'pending_admin',
+  'approved',
+  'rejected_admin',
+  'pending_target',
+  'accepted',
+  'declined',
 ]);
 
 // src/features/auth/schemas.ts
@@ -6955,4 +7566,4 @@ export const zSearchRequest = z.object({
 
 ---
 
-*End of frontend PRD. Version 1.0 — 2026-04-23.*
+_End of frontend PRD. Version 1.0 — 2026-04-23._
