@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type { UserProfile } from '@/types/domain';
 import type { UserRole } from '@/types/enums';
 
@@ -15,6 +15,24 @@ export interface AuthState {
 }
 
 const SCHEMA_VERSION = 1;
+
+// Resilient storage factory — if localStorage isn't available (tests, SSR), fall back to
+// an in-memory map so `persist` doesn't crash on setItem.
+function resolveStorage(): StateStorage {
+  if (typeof window !== 'undefined' && typeof window.localStorage?.setItem === 'function') {
+    return window.localStorage;
+  }
+  const mem = new Map<string, string>();
+  return {
+    getItem: (k) => mem.get(k) ?? null,
+    setItem: (k, v) => {
+      mem.set(k, v);
+    },
+    removeItem: (k) => {
+      mem.delete(k);
+    },
+  };
+}
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -35,7 +53,7 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'oc.auth',
       version: SCHEMA_VERSION,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(resolveStorage),
     },
   ),
 );

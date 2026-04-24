@@ -5,6 +5,10 @@ export const qk = {
   auth: {
     me: ['auth', 'me'] as const,
   },
+  onboarding: {
+    profile: ['onboarding', 'profile'] as const,
+    lpProfile: ['onboarding', 'lp-profile'] as const,
+  },
   connections: {
     list: (limit: number, cursor?: string) => ['connections', 'list', { limit, cursor }] as const,
     pending: (limit: number, cursor?: string) =>

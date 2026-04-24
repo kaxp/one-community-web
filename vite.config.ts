@@ -20,8 +20,20 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'happy-dom',
+    environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    env: {
+      VITE_API_BASE_URL: 'http://localhost:8000/api/v1',
+      VITE_APP_ENV: 'development',
+      VITE_OTP_BYPASS_HINT: 'true',
+      VITE_MSW_ENABLED: 'false',
+      VITE_DEBUG_PANEL: 'false',
+      VITE_PROFILE_V1_ENABLED: 'false',
+      VITE_OCR_SERVER_ENABLED: 'false',
+      VITE_WHISPER_SERVER_ENABLED: 'false',
+      VITE_DOCUMENTS_UPLOAD_ENABLED: 'false',
+      VITE_SENTRY_DSN: '',
+    },
   },
 });
