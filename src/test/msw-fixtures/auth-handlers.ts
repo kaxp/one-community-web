@@ -2,22 +2,71 @@ import { http, HttpResponse, type HttpHandler } from 'msw';
 import { seedProfileFor } from './seed-users';
 import { DEV_OTP_BYPASS_CODE } from '@/lib/dev-seed-users';
 
-// Module-scoped state for MSW-only session hydration. Tests call `resetMswAuthState()`
-// between cases via the afterEach hook in setup.ts.
-let currentPhone: string | null = null;
+// The MSW JWT format embeds the phone so the mock is stateless across page loads:
+//   msw-jwt.<base64url(phone)>
+// Authenticated handlers decode the token to recover the signed-in phone, which keeps
+// the dev experience consistent after a browser refresh (see decisions.md [P-17]).
+//
+// Module-scoped overrides remain for tests that bypass the sign-in flow.
+
+const TOKEN_PREFIX = 'msw-jwt.';
+
+function base64UrlEncode(s: string): string {
+  if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
+    return window.btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  // node fallback
+  return Buffer.from(s, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function base64UrlDecode(s: string): string | null {
+  try {
+    const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+    const normal = s.replace(/-/g, '+').replace(/_/g, '/') + pad;
+    if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+      return window.atob(normal);
+    }
+    return Buffer.from(normal, 'base64').toString('utf8');
+  } catch {
+    return null;
+  }
+}
+
+export function mintMswToken(phone: string): string {
+  return TOKEN_PREFIX + base64UrlEncode(phone);
+}
+
+function phoneFromAuth(header: string | null): string | null {
+  if (!header?.startsWith('Bearer ')) return null;
+  const token = header.slice('Bearer '.length).trim();
+  if (!token.startsWith(TOKEN_PREFIX)) return null;
+  const decoded = base64UrlDecode(token.slice(TOKEN_PREFIX.length));
+  if (!decoded) return null;
+  if (!/^\+[1-9]\d{6,14}$/.test(decoded)) return null;
+  return decoded;
+}
+
+// Module-scoped test overrides (opt-in).
+let overridePhone: string | null = null;
 let profileCompleteOverride: Record<string, boolean> = {};
 let nextPhoneError: { status: number; code: string; message: string } | null = null;
 let nextVerifyError: { status: number; code: string; message: string } | null = null;
 
 export function resetMswAuthState() {
-  currentPhone = null;
+  overridePhone = null;
   profileCompleteOverride = {};
   nextPhoneError = null;
   nextVerifyError = null;
 }
 
+// Explicitly pin the "signed-in phone" for tests that bypass the sign-in flow.
+// Normal flow: the Bearer token itself carries the phone.
 export function setMswSignedInPhone(phone: string | null) {
-  currentPhone = phone;
+  overridePhone = phone;
 }
 
 export function setMswProfileComplete(phone: string, complete: boolean) {
@@ -30,6 +79,10 @@ export function queueOtpSendError(err: { status: number; code: string; message: 
 
 export function queueOtpVerifyError(err: { status: number; code: string; message: string }) {
   nextVerifyError = err;
+}
+
+function resolvePhone(request: Request): string | null {
+  return phoneFromAuth(request.headers.get('Authorization')) ?? overridePhone;
 }
 
 export const authHandlers: HttpHandler[] = [
@@ -91,10 +144,9 @@ export const authHandlers: HttpHandler[] = [
         { status: 401 },
       );
     }
-    currentPhone = body.phone;
     return HttpResponse.json({
       data: {
-        access_token: 'msw-jwt.' + profile.user_id,
+        access_token: mintMswToken(body.phone),
         token_type: 'bearer',
         expires_in: 14400,
         user_id: profile.user_id,
@@ -105,27 +157,27 @@ export const authHandlers: HttpHandler[] = [
   }),
 
   http.get('*/api/v1/auth/me', ({ request }) => {
-    const auth = request.headers.get('Authorization');
-    if (!auth?.startsWith('Bearer ')) {
+    if (!request.headers.get('Authorization')?.startsWith('Bearer ')) {
       return HttpResponse.json(
         { data: null, error: { code: 'missing_token', message: 'Missing token' } },
         { status: 401 },
       );
     }
-    if (!currentPhone) {
+    const phone = resolvePhone(request);
+    if (!phone) {
       return HttpResponse.json(
         { data: null, error: { code: 'invalid_token', message: 'Unknown session' } },
         { status: 401 },
       );
     }
-    const profile = seedProfileFor(currentPhone);
+    const profile = seedProfileFor(phone);
     if (!profile) {
       return HttpResponse.json(
         { data: null, error: { code: 'not_found', message: 'User not found' } },
         { status: 404 },
       );
     }
-    const override = profileCompleteOverride[currentPhone];
+    const override = profileCompleteOverride[phone];
     const data =
       override === undefined
         ? profile
@@ -134,8 +186,7 @@ export const authHandlers: HttpHandler[] = [
   }),
 
   http.patch('*/api/v1/onboarding/profile', async ({ request }) => {
-    const auth = request.headers.get('Authorization');
-    if (!auth?.startsWith('Bearer ')) {
+    if (!request.headers.get('Authorization')?.startsWith('Bearer ')) {
       return HttpResponse.json(
         { data: null, error: { code: 'missing_token', message: 'Missing token' } },
         { status: 401 },
@@ -168,20 +219,21 @@ export const authHandlers: HttpHandler[] = [
         { status: 409 },
       );
     }
-    if (!currentPhone) {
+    const phone = resolvePhone(request);
+    if (!phone) {
       return HttpResponse.json(
         { data: null, error: { code: 'invalid_token', message: 'Unknown session' } },
         { status: 401 },
       );
     }
-    const profile = seedProfileFor(currentPhone);
+    const profile = seedProfileFor(phone);
     if (!profile) {
       return HttpResponse.json(
         { data: null, error: { code: 'not_found', message: 'User not found' } },
         { status: 404 },
       );
     }
-    profileCompleteOverride[currentPhone] = true;
+    profileCompleteOverride[phone] = true;
     return HttpResponse.json({
       data: {
         user_id: profile.user_id,
@@ -194,21 +246,21 @@ export const authHandlers: HttpHandler[] = [
   }),
 
   http.post('*/api/v1/onboarding/lp-profile', async ({ request }) => {
-    const auth = request.headers.get('Authorization');
-    if (!auth?.startsWith('Bearer ')) {
+    if (!request.headers.get('Authorization')?.startsWith('Bearer ')) {
       return HttpResponse.json(
         { data: null, error: { code: 'missing_token', message: 'Missing token' } },
         { status: 401 },
       );
     }
     const body = (await request.json()) as { fund_name?: string };
-    if (!currentPhone) {
+    const phone = resolvePhone(request);
+    if (!phone) {
       return HttpResponse.json(
         { data: null, error: { code: 'invalid_token', message: 'Unknown session' } },
         { status: 401 },
       );
     }
-    const profile = seedProfileFor(currentPhone);
+    const profile = seedProfileFor(phone);
     if (!profile) {
       return HttpResponse.json(
         { data: null, error: { code: 'not_found', message: 'User not found' } },

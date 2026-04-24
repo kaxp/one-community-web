@@ -34,21 +34,27 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 2a auth feature complete, awaiting human review before feature-search)_
+_(none — Stage 2a auth feature complete, session-termination policy refactored per user direction, awaiting human review before feature-search)_
 
 ### Last completed action
 
-Completed **Stage 2a — Auth + onboarding** (queue.md Stage 2 first row ticked). Endpoints live for `POST /auth/otp/send` (§7.1.1), `POST /auth/otp/verify` (§7.1.2), `GET /auth/me` (§7.1.3), `PATCH /onboarding/profile` (§7.2.3), `POST /onboarding/lp-profile` (§7.2.4) — typed in `src/api/endpoints.ts`, Zod-validated at the boundary, with query keys in `src/api/query-keys.ts`. `/signin` is a full phone → OTP flow (`src/features/auth/routes/SignInPage.tsx`): phone submit validates and E.164-normalises via `lib/phone.ts`, OTP auto-submits on the 6th digit, resend has a 30s cooldown, wrong OTP clears the field and inline-errors, and on success we call `/auth/me`, hydrate the auth store, and route per PRD §10.2 through `lib/post-signin-navigate.ts`. `/onboarding/profile` and `/onboarding/lp-profile` are built on `<ExecutionPanel>` (PRD §6.7); LP profile has a sector / stage / geography chip multi-select with a Skip-for-now affordance. Router adds a new `<ProfileGate>` wrapper (`src/auth/profile-gate.tsx`) that forces `profile_complete=false` to `/onboarding/profile` on every app-route visit and refreshes `/auth/me` on cold start. `DevPhoneHelper` renders a seeded-phone switcher on `/signin` in dev (tree-shaken in prod).
+Amended the Stage 2a auth feature to enforce the new **session-termination policy** (decisions.md [P-17], CLAUDE.md §15 updated):
 
-Tests: 5 hook tests (useOtpSend, useOtpVerify, useMe, useCompleteProfile, useCreateLPProfile — 13 cases total) covering happy path + 401/409/422/429/403 errors; 1 integration test (SignInPage — 3 cases: phone→OTP→role-home, incomplete-profile detour, wrong-OTP inline error). MSW handlers for all 5 endpoints live in `src/test/msw-fixtures/auth-handlers.ts` (seeded from DEV_SEED_USERS) with reset helpers called from `src/test/setup.ts`.
+- `src/api/client.ts` no longer clears `authStore` on 401 / `token_expired` / `link_expired`. It still rethrows the `ApiError` so individual callers can react.
+- `src/auth/require-auth.tsx` no longer listens to `auth:expire` events. Token validity check is now: `token && expiresAt > Date.now()` on every render — nothing else.
+- `src/auth/profile-gate.tsx` no longer clears the session or redirects to `/signin` when `/auth/me` returns 401 (or anything else). It falls back to the persisted user snapshot from `zustand/persist`; a `profile_complete=false` snapshot still redirects to `/onboarding/profile`. A browser refresh while signed in now keeps the session intact, which was the reported bug.
+- `src/test/msw-fixtures/auth-handlers.ts` — MSW tokens now encode the phone (`msw-jwt.<base64url(phone)>`) and authenticated handlers decode it on every request. This keeps the dev-mode mock stateless across page loads, so refresh + MSW works end-to-end. `setMswSignedInPhone()` remains for tests that bypass the sign-in flow.
+- New regression tests: `src/api/client.test.ts` (3 cases asserting 401 / `token_expired` / `link_expired` do NOT clear the store); `src/auth/profile-gate.test.tsx` (2 cases asserting refresh-after-401 stays on `/dashboard` and a stale `profile_complete=false` snapshot still redirects to onboarding).
 
-Four gates clean: `pnpm lint` (0 errors, 4 cosmetic react-refresh warnings), `pnpm typecheck` (0), `pnpm test` (29/29 across 10 files), `pnpm build` (exits 0; main chunk 284.50 KB gzip — still under 300 KB target, +45 KB vs Stage 1 from auth feature weight).
+Previously-completed auth chassis is unchanged: 5 typed endpoints, 5 React Query hooks with tests, `/signin` phone→OTP flow, `/onboarding/profile` + `/onboarding/lp-profile` on `<ExecutionPanel>`, role-based post-signin routing (`lib/post-signin-navigate.ts`), `DevPhoneHelper` dev affordance, MSW handlers seeded from `DEV_SEED_USERS`.
 
-Notes: MSW 2.13 × happy-dom 14 incompatibility on `TypedEvent` forced a test-env switch to `jsdom` (jsdom 24 added as devDep). `vite.config.ts` now pins `test.env.VITE_*` values so the Zod env guard doesn't trip in tests. `auth-store.ts` gained a `resolveStorage()` fallback to an in-memory map when `localStorage.setItem` is absent (happy-dom quirk).
+Four gates clean on this commit: `pnpm lint` (0 errors, 4 cosmetic react-refresh warnings), `pnpm typecheck` (0), `pnpm test` (34/34 across 12 files — +5 cases vs prior snapshot), `pnpm build` (exits 0; main chunk 284.16 KB gzip).
+
+Infra carryover (unchanged this turn): test runner is jsdom 24 (MSW 2.13 × happy-dom 14 TypedEvent incompat), `vite.config.ts` pins `test.env.VITE_*`, `auth-store.ts` has an in-memory storage fallback for tests.
 
 ### Next concrete step
 
-Wait for the human's Stage 2a review (plan.md gate: log in as LP → `/search`, startup_inprogress → `/pitch`, wrong OTP inline-errors + counter, `/expired` page, mobile 375px layout, tap targets ≥ 44px). If approved, proceed to **Stage 2b — feature-search** (queue.md Stage 2 second row) using the prompt in `docs/plan.md § Stage 2b`. Next unchecked queue row: `feature-search` (POST /search §7.4.1 + POST /interactions/log §7.7.1).
+Wait for the human's Stage 2a + P-17 review (plan.md gate plus the refresh smoke: sign in as LP → `pnpm dev` refresh → should stay on `/search`, TopBar user chip intact). If approved, proceed to **Stage 2b — feature-search** (queue.md Stage 2 second row) using the prompt in `docs/plan.md § Stage 2b`. Next unchecked queue row: `feature-search` (POST /search §7.4.1 + POST /interactions/log §7.7.1).
 
 ### Open blockers
 
@@ -56,20 +62,16 @@ _(none)_
 
 ### Files touched this session
 
-- New: `src/features/auth/schemas.ts`, `src/features/auth/index.ts` (barrel), `src/features/auth/hooks/{use-otp-send,use-otp-verify,use-me}.ts` + tests, `src/features/auth/lib/{post-signin-navigate,hydrate-session}.ts`, `src/features/auth/components/DevPhoneHelper.tsx`, `src/features/auth/routes/{SignInPage.tsx,SignInPage.test.tsx}`
-- New: `src/features/onboarding/schemas.ts`, `src/features/onboarding/index.ts`, `src/features/onboarding/hooks/{use-complete-profile,use-create-lp-profile}.ts` + tests, `src/features/onboarding/routes/{CompleteProfilePage.tsx,LPProfilePage.tsx}`
-- New: `src/auth/profile-gate.tsx`, `src/test/hook-utils.tsx`, `src/test/msw-fixtures/{seed-users.ts,auth-handlers.ts}`
-- Modified: `src/api/endpoints.ts` (5 typed functions), `src/api/query-keys.ts` (+ onboarding keys), `src/auth/auth-store.ts` (resilient storage), `src/app/router.tsx` (ProfileGate + onboarding routes), `src/test/msw-handlers.ts`, `src/test/setup.ts`, `vite.config.ts` (jsdom + test env), `package.json` (+ jsdom)
-- Removed: `src/app/routes/SignInPage.tsx` (Stage-1 stub superseded by `src/features/auth/routes/SignInPage.tsx`)
-- `.claude/queue.md` (`auth` row ticked), `.claude/session.md` (this file)
+- **Policy change (decisions.md P-17):** modified `src/api/client.ts`, `src/auth/require-auth.tsx`, `src/auth/profile-gate.tsx`, `src/test/msw-fixtures/auth-handlers.ts`; added `src/api/client.test.ts`, `src/auth/profile-gate.test.tsx`; updated `CLAUDE.md §15` and `.claude/decisions.md § Resolved` with P-17.
+- **From prior turn (still in HEAD):** `src/features/auth/{schemas.ts, index.ts, hooks/*, lib/*, components/*, routes/*}`, `src/features/onboarding/{schemas.ts, index.ts, hooks/*, routes/*}`, `src/auth/profile-gate.tsx`, `src/test/{hook-utils.tsx, msw-fixtures/*}`, `src/api/{endpoints.ts, query-keys.ts}`, `src/auth/auth-store.ts`, `src/app/router.tsx`, `src/test/{msw-handlers.ts, setup.ts}`, `vite.config.ts`, `package.json`.
 
 ### Tests green?
 
-Yes. All four gates exit 0. 29/29 tests.
+Yes. All four gates exit 0. 34/34 tests across 12 files.
 
 ### Last updated
 
-2026-04-25T00:05:00+05:30
+2026-04-25T00:55:00+05:30
 
 ---
 

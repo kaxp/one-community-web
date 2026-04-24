@@ -570,6 +570,26 @@ maxWidth: {
 - **Rationale:** Backend already surfaces all the funnel/cohort/KPI analytics this product needs. Skipping a third-party tag avoids PII-logging regressions (card-scan flow, §7.2.1). Trivial to add later behind a flag if a specific product question demands it.
 - **Touches:** None today. Future: if a provider is added, gate via a `VITE_ANALYTICS_*` flag and a thin `track(event, props)` wrapper co-located with the error reporter (§P-12 seam).
 
+### [P-17] Session-termination policy — JWT is the single source of truth  ✅ resolved 2026-04-25
+
+- **Decision:** The JWT's `expiresAt` is the **only** gate for session validity. The three sanctioned triggers for clearing `authStore` are:
+  1. **Explicit user action** — the "Sign out" button in `<TopBar>`.
+  2. **Natural expiry** — `expiresAt <= Date.now()` checked by `<RequireAuth>` on every render.
+  3. **Fresh-signin failure** — when `/auth/me` fails during the initial post-verify hydration on `/signin` (so the user isn't left with a dangling session they never actually established).
+
+  Anything else — an `/auth/me` 401 on cold start, a transient network error, a `token_expired` / `link_expired` code on any endpoint other than the signin flow — MUST NOT clear the session. This explicitly **overrides PRD §6.5 and §7.1.3's "clear on 401" prescription**. We take this override because a browser refresh should never log the user out while the JWT is still valid: a flaky backend, a cold service worker, a dev-mode MSW state reset, or any other transient issue is not a reason to destroy the session.
+
+  **What changed to enforce this:**
+  - `src/api/client.ts` — the axios response interceptor no longer calls `authStore.clear()` or dispatches `auth:expire` on 401 / `token_expired` / `link_expired`. It still rethrows the `ApiError` so individual callers (like the signin verify handler) can react if they need to.
+  - `src/auth/require-auth.tsx` — removed the `auth:expire` event listener. The only check remaining is `token && expiresAt > Date.now()`, evaluated on every render.
+  - `src/auth/profile-gate.tsx` — removed the "if /auth/me returns 401, clear + redirect to /signin" branch. On any `/auth/me` failure, ProfileGate falls back to the persisted `user` snapshot from `zustand/persist`. Navigation to `/onboarding/profile` still fires when `user.profile_complete === false` (driven by the snapshot, not the failed response).
+  - `src/test/msw-fixtures/auth-handlers.ts` — MSW now encodes the phone into the mock token (`msw-jwt.<base64url(phone)>`) and decodes it on every authenticated handler. This makes the dev-mode mock stateless, so a browser refresh in dev + MSW recovers the session correctly (the token itself carries the identity claim).
+  - Regression tests: `src/api/client.test.ts` asserts that 401 / `token_expired` / `link_expired` DO NOT clear the auth store; `src/auth/profile-gate.test.tsx` asserts that a 401 from `/auth/me` leaves the user on `/dashboard` (not `/signin`).
+
+- **Rationale:** Human direction (2026-04-25): "on refresh, I don't want to terminate the user session and log out the user. Logout should be handled by the JWT token." A JWT already carries its own expiry; clearing the store on every 401 means a backend hiccup behaves worse than the JWT's design intent. Making the JWT `expiresAt` authoritative simplifies the mental model and removes two silent side-effects from the interceptor + router code paths.
+
+- **Touches:** `src/api/client.ts`, `src/auth/require-auth.tsx`, `src/auth/profile-gate.tsx`, `src/test/msw-fixtures/auth-handlers.ts`, new tests `src/api/client.test.ts` + `src/auth/profile-gate.test.tsx`. Also implicitly changes the backend's expectations: when the backend wants to force a client-side logout (e.g. a hard token revocation), it must either (a) let the JWT naturally expire, or (b) expose a distinct server-side signal that we plumb through explicitly. No such signal exists today — when it does, open a fresh P-N item.
+
 _(Further P-N items added below as mid-build decisions are made. Keep sequential order.)_
 
 <!--

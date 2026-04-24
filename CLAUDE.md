@@ -1070,6 +1070,7 @@ These decisions are final. Do not propose alternatives in-session — open an AD
 
 - **JWT** lives in **Zustand + `localStorage['oc.auth']`**, NEVER in cookies.
 - **OTP session = 4 hours, no refresh.** Logout is pure client-side (§13 G15).
+- **Session-termination policy — JWT is the single source of truth** (decisions.md [P-17], overrides PRD §6.5 / §7.1.3). The ONLY three clearers of `authStore` are: (1) the explicit "Sign out" button in `<TopBar>`; (2) `<RequireAuth>` observing `expiresAt <= Date.now()`; (3) a fresh-signin catch block when `/auth/me` fails during initial hydration on `/signin`. A 401 / `token_expired` / `link_expired` from ANY other request MUST NOT clear the store — the interceptor just rethrows the `ApiError`. A browser refresh must never log a user out while their JWT is still valid.
 - **Envelope** `{ data, error, pagination? }` is uniform for every endpoint. Cursor pagination everywhere except DLQ (legacy offset).
 - **10 role ENUM values** are exact: `lp`, `potential_lp`, `vc`, `startup_inprogress`, `startup_onboarded`, `startup_funded`, `partner`, `advisor`, `admin`, `super_admin`. Do not invent new roles.
 - **Partner role is EXCLUDED from search** — deliberate (PRD §7.4.1). Do not add Partner back without a product decision.

@@ -26,6 +26,11 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Session-termination policy (see decisions.md [P-17]): the JWT's `expiresAt` is the
+// single gate for session validity. The HTTP interceptor does NOT clear the auth store
+// on 401 / token_expired / link_expired — it only surfaces the ApiError. The only
+// clearers are: (a) explicit sign-out (TopBar), (b) RequireAuth seeing `expiresAt` in
+// the past, (c) callers who explicitly catch an error during a new sign-in attempt.
 apiClient.interceptors.response.use(
   (resp) => {
     const body = resp.data as ApiEnvelope<unknown> | undefined;
@@ -40,13 +45,6 @@ apiClient.interceptors.response.use(
     const apiErr = envelope
       ? ApiError.fromEnvelope(envelope, status)
       : new ApiError('network_error', 'Network error — please retry.', status);
-
-    if (apiErr.code === 'link_expired' || apiErr.code === 'token_expired' || status === 401) {
-      useAuthStore.getState().clear();
-      if (typeof window !== 'undefined' && window.location.pathname !== '/signin') {
-        window.dispatchEvent(new CustomEvent('auth:expire'));
-      }
-    }
 
     if (status >= 500 || apiErr.code === 'network_error') {
       getReporter().captureException(apiErr, { url: err.config?.url, status });
