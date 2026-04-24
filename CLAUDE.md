@@ -63,7 +63,7 @@ Run these steps in order BEFORE writing any code:
 
 Before ending a session, execute these steps in order:
 
-1. Run all four gates: `pnpm lint && pnpm typecheck && pnpm test --run && pnpm build`. All must exit 0. If any fail, fix BEFORE ending the session.
+1. Run all four gates: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`. All must exit 0. If any fail, fix BEFORE ending the session.
 2. If the feature is complete, tick its box in `.claude/queue.md`.
 3. **Overwrite** `.claude/session.md` with fresh state (not append — this file is a single snapshot). Update every field per the template in that file.
 4. If new blockers arose, confirm they are in `.claude/decisions.md § Pending` with the full template.
@@ -143,6 +143,7 @@ When the human has answered a pending item:
 
 1. Read the filled-in `**Answer:**` line for each resolved P-N.
 2. **Move the item** from `§ Pending` to `§ Resolved` in `decisions.md`, rewriting it into the resolved template:
+
    ```markdown
    ### [P-N] <short title> ✅ resolved <YYYY-MM-DD>
 
@@ -150,6 +151,7 @@ When the human has answered a pending item:
    - **Rationale:** <human's reason if provided, else "per human direction">
    - **Touches:** <files / features that rely on this>
    ```
+
 3. Clear the item from `session.md § Open blockers`.
 4. Resume from `session.md § Next concrete step`.
 
@@ -176,7 +178,7 @@ If unsure, ask: "will a session 3 weeks from now need to know this?" → yes = `
 `.claude/settings.json` wires two automated gates:
 
 - **PostToolUse (on every Edit / Write)** — runs `pnpm lint --quiet`. Lint failures appear in Claude's own output so Claude corrects them without human intervention.
-- **Stop** — runs `pnpm typecheck` + `pnpm test --run`. Claude sees any regressions immediately and can fix before actually stopping.
+- **Stop** — runs `pnpm typecheck` + `pnpm test`. Claude sees any regressions immediately and can fix before actually stopping.
 
 Never override these hooks. Never run `--no-verify` on commits. If a hook fails, the fix is the real problem; the hook is not in the way.
 
