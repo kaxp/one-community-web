@@ -78,7 +78,113 @@ _(No pending items yet. Claude appends here when human input is needed.)_
 
 ## § Resolved
 
-_(Empty. Populated as Stage 0 interview answers + mid-build decisions are settled.)_
+### [P-1] Brand / design tokens  ✅ resolved 2026-04-24
+
+- **Decision:** Dashboard follows the visual language of https://www.warmupventures.com/ — a clean, light-themed, professional SaaS aesthetic. Tokens:
+  - **Primary color:** `#1F73B7` (Warmup blue) — used for CTAs, links, focus rings, selected states. Hover/active: `#1A5F98`.
+  - **Neutral scale:**
+    - Background: `#FFFFFF`
+    - Surface / card: `#FFFFFF` with `#E8E8E8` border
+    - Muted surface: `#F5F5F5` (alternating section backgrounds, subtle panels)
+    - Border / divider: `#E8E8E8`
+    - Input border: `#E8E8E8` (focus → `#1F73B7`)
+  - **Text:**
+    - Heading: `#1A1A1A`
+    - Body: `#4A4A4A`
+    - Muted / caption: `#666666`
+    - On-primary (white on blue): `#FFFFFF`
+  - **Semantic colors:**
+    - Success: `#16A34A` (green-600)
+    - Warning: `#D97706` (amber-600)
+    - Error / destructive: `#DC2626` (red-600)
+    - Info: `#1F73B7` (reuse primary)
+  - **Font family:** `Inter` (Google Fonts) as primary display + body, falling back to `system-ui, -apple-system, sans-serif`. Weights to load: 400, 500, 600, 700.
+  - **Font sizes:** Tailwind default scale. Heading hierarchy: `text-3xl` (h1 page title) · `text-2xl` (section h2) · `text-xl` (card h3) · `text-base` (body) · `text-sm` (caption).
+  - **Border radius:** `0.5rem` (shadcn default `--radius`). Buttons, cards, inputs all use this.
+  - **Shadow:** very subtle. shadcn `shadow-sm` for cards (`box-shadow: 0 1px 2px rgba(0,0,0,0.05)`). No heavy shadows, no glassmorphism, no gradients.
+  - **Max content width:** `max-w-screen-xl` (1280px) for main content container.
+  - **Section padding:** `py-12 md:py-16` between major sections; card padding `p-6`.
+  - **Dark mode:** NOT in v1. Tailwind configured with `darkMode: 'class'` for future use, but no dark tokens are supplied.
+- **Rationale:** Mirrors the existing Warmup Ventures marketing site so the dashboard feels like an extension of the brand. `Inter` chosen as the canonical modern SaaS typeface (the landing page uses system defaults which look unrefined on dashboards). Palette is dense enough for shadcn/ui components without further questions.
+- **Touches:**
+  - `tailwind.config.ts` → `theme.extend.colors`, `theme.extend.fontFamily`, `theme.extend.borderRadius`.
+  - `src/styles/globals.css` → shadcn CSS variables (`--primary`, `--background`, `--foreground`, etc.) keyed to these tokens.
+  - `index.html` → Google Fonts `<link>` for Inter.
+  - Every shadcn/ui component default inherits this palette.
+
+**Tailwind theme extension — ready to drop into `tailwind.config.ts`:**
+
+```ts
+// tailwind.config.ts — theme.extend
+colors: {
+  brand: {
+    DEFAULT: '#1F73B7',
+    hover:   '#1A5F98',
+    foreground: '#FFFFFF',
+  },
+  surface: {
+    DEFAULT: '#FFFFFF',
+    muted:   '#F5F5F5',
+  },
+  border:  '#E8E8E8',
+  ink: {
+    heading: '#1A1A1A',
+    body:    '#4A4A4A',
+    muted:   '#666666',
+  },
+  success: '#16A34A',
+  warning: '#D97706',
+  error:   '#DC2626',
+},
+fontFamily: {
+  sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+},
+borderRadius: {
+  lg: '0.5rem',
+  md: '0.375rem',
+  sm: '0.25rem',
+},
+maxWidth: {
+  content: '80rem',  // 1280px
+},
+```
+
+**shadcn CSS variables — drop into `src/styles/globals.css`:**
+
+```css
+@layer base {
+  :root {
+    --background:       0 0% 100%;           /* #FFFFFF */
+    --foreground:       0 0% 10%;            /* #1A1A1A */
+    --card:             0 0% 100%;
+    --card-foreground:  0 0% 10%;
+    --popover:          0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary:          207 71% 42%;         /* #1F73B7 */
+    --primary-foreground: 0 0% 100%;
+    --secondary:        0 0% 96%;            /* #F5F5F5 */
+    --secondary-foreground: 0 0% 10%;
+    --muted:            0 0% 96%;
+    --muted-foreground: 0 0% 40%;            /* #666666 */
+    --accent:           207 71% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive:      0 84% 60%;           /* #DC2626 */
+    --destructive-foreground: 0 0% 100%;
+    --border:           0 0% 91%;            /* #E8E8E8 */
+    --input:            0 0% 91%;
+    --ring:             207 71% 42%;
+    --radius:           0.5rem;
+  }
+}
+```
+
+### [P-2] Application name displayed in UI  ✅ resolved 2026-04-24
+
+- **Decision:** Top bar wordmark reads `Warmup Ventures · One Community`. Email sender name: `Warmup Ventures`. Page `<title>` pattern: `<Feature> · One Community`.
+- **Rationale:** Keeps parent-brand recognition while labelling the product.
+- **Touches:** `src/components/layout/TopBar.tsx`, `index.html`, every route's page title.
+
+_(Further P-N items populated as Stage 0 interview answers + mid-build decisions are settled. Keep adding below in sequential order.)_
 
 <!--
 Example of what this section will look like after Stage 0:

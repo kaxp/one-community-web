@@ -661,6 +661,120 @@ Any variable exposed to the client **must** be prefixed `VITE_`. The backend `SE
 
 ---
 
+## 6.6b Brand / design tokens (Warmup Ventures palette)
+
+Mirrors the visual language of https://www.warmupventures.com/. Locked in `.claude/decisions.md [P-1]`. **Do not re-derive in components** — always reference the Tailwind theme tokens or shadcn CSS variables configured here.
+
+### Palette
+
+| Token | Hex | Usage |
+|---|---|---|
+| `brand` / primary | `#1F73B7` | CTAs, links, focus rings, selected tabs, active-state borders |
+| `brand.hover` | `#1A5F98` | button hover / active |
+| `brand.foreground` | `#FFFFFF` | text on primary surfaces |
+| `surface.DEFAULT` | `#FFFFFF` | page + card background |
+| `surface.muted` | `#F5F5F5` | alternating sections, panels, disabled backgrounds |
+| `border` | `#E8E8E8` | card borders, divider lines, input borders |
+| `ink.heading` | `#1A1A1A` | h1–h3, prominent labels |
+| `ink.body` | `#4A4A4A` | paragraphs, descriptions |
+| `ink.muted` | `#666666` | captions, secondary metadata, placeholders |
+| `success` | `#16A34A` | success toasts, positive badges, accepted status |
+| `warning` | `#D97706` | warnings, pending-target status |
+| `error` | `#DC2626` | destructive actions, failed states, form errors |
+
+### Typography
+
+- **Family:** `Inter` (Google Fonts) with fallback `system-ui, -apple-system, sans-serif`. Weights `400 / 500 / 600 / 700`.
+- **Load in `index.html`:** `<link rel="preconnect" href="https://fonts.googleapis.com">` + `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">`.
+- **Scale** (Tailwind default): `text-3xl` page h1 · `text-2xl` section h2 · `text-xl` card h3 · `text-base` body · `text-sm` caption · `text-xs` meta.
+- **Weights:** `font-semibold` (600) for headings, `font-medium` (500) for buttons/labels, `font-normal` (400) for body.
+
+### Layout primitives
+
+- **Border radius:** `--radius: 0.5rem` (shadcn). Buttons, cards, inputs, dialogs all inherit. Pills (`rounded-full`) only for tag chips.
+- **Max content width:** `max-w-screen-xl` (`1280px`). Apply on `<AppShell>` outlet container, not per-page.
+- **Section spacing:** `py-12 md:py-16` between major sections on content pages; card padding `p-6`.
+- **Shadows:** only shadcn `shadow-sm` for cards (`0 1px 2px rgb(0 0 0 / 0.05)`). No heavy shadows, no glassmorphism, no gradients.
+- **Dark mode:** NOT in v1. Tailwind configured `darkMode: 'class'` for future — do not ship dark tokens.
+
+### Tailwind `theme.extend` (authoritative)
+
+```ts
+// tailwind.config.ts
+theme: {
+  extend: {
+    colors: {
+      brand:  { DEFAULT: '#1F73B7', hover: '#1A5F98', foreground: '#FFFFFF' },
+      surface:{ DEFAULT: '#FFFFFF', muted: '#F5F5F5' },
+      border: '#E8E8E8',
+      ink:    { heading: '#1A1A1A', body: '#4A4A4A', muted: '#666666' },
+      success:'#16A34A',
+      warning:'#D97706',
+      error:  '#DC2626',
+    },
+    fontFamily: {
+      sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+    },
+    borderRadius: { lg: '0.5rem', md: '0.375rem', sm: '0.25rem' },
+    maxWidth: { content: '80rem' },
+  },
+},
+```
+
+### shadcn CSS variables (`src/styles/globals.css`)
+
+```css
+@layer base {
+  :root {
+    --background:       0 0% 100%;
+    --foreground:       0 0% 10%;
+    --card:             0 0% 100%;
+    --card-foreground:  0 0% 10%;
+    --popover:          0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary:          207 71% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary:        0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+    --muted:            0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+    --accent:           207 71% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive:      0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border:           0 0% 91%;
+    --input:            0 0% 91%;
+    --ring:             207 71% 42%;
+    --radius:           0.5rem;
+  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+}
+```
+
+### Logo + wordmark
+
+Top bar wordmark reads **`Warmup Ventures · One Community`** (Inter 600 weight, `text-lg`, `ink.heading`). If a logo asset (SVG) is supplied in `.claude/decisions.md [P-logo]`, render it left of the wordmark at `h-8`. Otherwise render a solid-brand circular "W" glyph as a fallback.
+
+### Application of these tokens
+
+| UI element | Token |
+|---|---|
+| Primary button | `bg-brand text-brand-foreground hover:bg-brand-hover` |
+| Secondary / outline button | `bg-surface border border-border text-ink-heading hover:bg-surface-muted` |
+| Destructive button | `bg-error text-white hover:bg-red-700` |
+| Card | `bg-surface border border-border rounded-lg shadow-sm` |
+| Input (idle / focus) | `border-border focus:border-brand focus:ring-brand/20` |
+| Status badges | success → `bg-success/10 text-success`; warning → `bg-warning/10 text-warning`; error → `bg-error/10 text-error` |
+| Role badge | colour per role via `src/lib/role-colours.ts` helper (see §13 G12 tag pattern) |
+| Link | `text-brand hover:underline` |
+| Selected sidebar item | `bg-brand/10 text-brand border-l-2 border-brand` |
+| Focus ring (keyboard) | `ring-2 ring-brand ring-offset-2` |
+
+These mappings are the default for every shadcn component. Do not override per-component unless a specific design spec requires it.
+
+---
+
 ## 6.7 The Execution Panel Pattern (mandatory for action screens)
 
 Every screen that combines **a form + a mutation + a response + an error state** MUST be built on top of the `<ExecutionPanel>` abstraction. This prevents each screen from reinventing spinner/toast/error/retry behaviour differently and guarantees visual + behavioural consistency across admin ops, founder flows, and user actions.

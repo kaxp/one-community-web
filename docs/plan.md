@@ -93,16 +93,21 @@ You are about to build the entire One Community web frontend solo. Before writin
 - .claude/decisions.md
 - .claude/queue.md
 
-Then, compile every unknown you will need resolved to build the entire system end-to-end without interruption. Add every pending item to .claude/decisions.md § Pending using the P-N format (see CLAUDE.md § 0.1). Include:
+The human has already pre-answered two decisions (see .claude/decisions.md § Resolved):
+- [P-1] Brand / design tokens — Warmup Ventures palette locked (primary #1F73B7, light theme, Inter font, 0.5rem radius, shadcn CSS variables provided). Do NOT re-ask.
+- [P-2] Application name in UI — "Warmup Ventures · One Community". Do NOT re-ask.
 
-1. Brand / design tokens (colours, spacing, fonts, logo URL, dark-mode?)
-2. Backend URLs (dev, staging, prod)
-3. Seed user phone numbers I can use to test each of the 10 roles in dev
-4. Deployment target (Vercel / Netlify / self-hosted?)
-5. Feature flag defaults (profile V1 on/off? OCR client-side on/off?)
-6. Sentry DSN (optional)
-7. Brand name for emails / toasts (Warmup Ventures vs One Community vs both?)
-8. Anything else you foresee needing.
+Now compile every REMAINING unknown you will need resolved to build the entire system end-to-end without interruption. Add every pending item to .claude/decisions.md § Pending using the P-N format (see CLAUDE.md § 0.1). Start numbering from P-3. Include at minimum:
+
+1. Backend URLs (dev / staging / prod values for VITE_API_BASE_URL).
+2. Seed user phone numbers I can use to test each of the 10 roles in dev.
+3. Deployment target (Vercel / Netlify / self-hosted?).
+4. CI/CD provider confirmation (is GitHub Actions OK? — a ci.yml template already exists at .github/workflows/ci.yml).
+5. Feature flag defaults — confirm the values already in .env.example are correct (all gap flags false until backend ships).
+6. Sentry DSN (optional — leave blank if none).
+7. Logo asset — does Warmup Ventures have an SVG/PNG logo you want in the top bar, or should I use a wordmark-only design with Inter semibold?
+8. Favicon — provide a URL or should I render a solid-primary "W" glyph?
+9. Any other spec ambiguity you foresee blocking the build.
 
 Print the 🟡 HUMAN INPUT NEEDED banner referencing ALL pending items. Then stop. Do NOT scaffold, do NOT write code, do NOT ask anything outside the decisions.md mechanism.
 ```
