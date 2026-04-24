@@ -1,0 +1,122 @@
+# ──────────────────────────────────────────────────────────────
+# Dependencies
+# ──────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.pnpm-store/
+
+# Forbidden lockfiles — this repo uses pnpm only (CLAUDE.md §1.2)
+package-lock.json
+yarn.lock
+
+# ──────────────────────────────────────────────────────────────
+# Build output
+# ──────────────────────────────────────────────────────────────
+dist/
+dist-ssr/
+build/
+*.local
+
+# ──────────────────────────────────────────────────────────────
+# Vite / Turbo / caches
+# ──────────────────────────────────────────────────────────────
+.vite/
+.turbo/
+.cache/
+.parcel-cache/
+
+# ──────────────────────────────────────────────────────────────
+# TypeScript
+# ──────────────────────────────────────────────────────────────
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# ──────────────────────────────────────────────────────────────
+# Testing
+# ──────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+playwright-report/
+playwright/.cache/
+test-results/
+.vitest-temp/
+
+# ──────────────────────────────────────────────────────────────
+# Environment — commit only the .example siblings
+# ──────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.staging
+.env.production
+
+# Keep these tracked:
+!.env.example
+!.env.*.example
+
+# ──────────────────────────────────────────────────────────────
+# Logs
+# ──────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ──────────────────────────────────────────────────────────────
+# Editors / IDEs
+# ──────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/settings.json.example
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.c9/
+.history/
+
+# ──────────────────────────────────────────────────────────────
+# OS
+# ──────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ──────────────────────────────────────────────────────────────
+# Claude Code
+# ──────────────────────────────────────────────────────────────
+# .claude/ coordination files (decisions.md, queue.md, session.md, issues.md, settings.json)
+# ARE committed — they are the institutional memory across sessions.
+# Only local Claude Code preferences are ignored:
+.claude/settings.local.json
+.claude/.cache/
+.claude/logs/
+
+# ──────────────────────────────────────────────────────────────
+# Monitoring / analytics artefacts
+# ──────────────────────────────────────────────────────────────
+.sentryclirc
+stats.html
+bundle-stats.json
+
+# ──────────────────────────────────────────────────────────────
+# Misc
+# ──────────────────────────────────────────────────────────────
+*.pem
+*.key
+*.csr
+.secrets/
