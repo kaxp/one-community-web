@@ -63,12 +63,12 @@ interface SearchBody {
   cursor?: string | null;
 }
 
-function deriveTargetType(request: Request): 'startup' | 'lp' {
+function deriveSeedProfile(request: Request) {
   const auth = request.headers.get('Authorization');
-  if (!auth?.startsWith('Bearer ')) return 'startup';
+  if (!auth?.startsWith('Bearer ')) return null;
   const token = auth.slice('Bearer '.length).trim();
   // The MSW JWT is `msw-jwt.<base64url(phone)>`.
-  if (!token.startsWith('msw-jwt.')) return 'startup';
+  if (!token.startsWith('msw-jwt.')) return null;
   try {
     const encoded = token.slice('msw-jwt.'.length);
     const padded = encoded.replace(/-/g, '+').replace(/_/g, '/');
@@ -76,20 +76,57 @@ function deriveTargetType(request: Request): 'startup' | 'lp' {
       typeof window !== 'undefined' && typeof window.atob === 'function'
         ? window.atob(padded + '='.repeat((4 - (padded.length % 4)) % 4))
         : Buffer.from(padded, 'base64').toString('utf8');
-    const profile = seedProfileFor(phone);
-    if (!profile) return 'startup';
-    // Startups search for LPs; everyone else searches for startups.
-    if (
-      profile.role === 'startup_funded' ||
-      profile.role === 'startup_inprogress' ||
-      profile.role === 'startup_onboarded'
-    ) {
-      return 'lp';
-    }
-    return 'startup';
+    return seedProfileFor(phone);
   } catch {
-    return 'startup';
+    return null;
   }
+}
+
+function deriveTargetType(request: Request): 'startup' | 'lp' {
+  const profile = deriveSeedProfile(request);
+  if (!profile) return 'startup';
+  // Startups search for LPs; everyone else searches for startups.
+  if (
+    profile.role === 'startup_funded' ||
+    profile.role === 'startup_inprogress' ||
+    profile.role === 'startup_onboarded'
+  ) {
+    return 'lp';
+  }
+  return 'startup';
+}
+
+// Partner-masked allowlists per decisions.md [P-20]. Backend strips fields via
+// `_STARTUP_VISIBLE_FIELDS["partner"]` / `_LP_VISIBLE_FIELDS["partner"]`. The
+// MSW mock replicates that contract so dev/test behaviour matches prod.
+const PARTNER_STARTUP_ALLOWED = new Set<keyof StartupResultItem>([
+  'user_id',
+  'name',
+  'company_name',
+  'sector',
+  'stage',
+  'one_liner',
+]);
+const PARTNER_LP_ALLOWED = new Set<keyof LPResultItem>(['user_id', 'name', 'fund_name', 'sectors']);
+
+function maskStartupForPartner(item: StartupResultItem): StartupResultItem {
+  const out: Partial<StartupResultItem> = {};
+  for (const key of Object.keys(item) as (keyof StartupResultItem)[]) {
+    if (PARTNER_STARTUP_ALLOWED.has(key)) {
+      (out as Record<string, unknown>)[key] = item[key];
+    }
+  }
+  return out as StartupResultItem;
+}
+
+function maskLPForPartner(item: LPResultItem): LPResultItem {
+  const out: Partial<LPResultItem> = {};
+  for (const key of Object.keys(item) as (keyof LPResultItem)[]) {
+    if (PARTNER_LP_ALLOWED.has(key)) {
+      (out as Record<string, unknown>)[key] = item[key];
+    }
+  }
+  return out as LPResultItem;
 }
 
 function startupHaystack(item: StartupResultItem): string {
@@ -171,6 +208,8 @@ function matchesLPFilters(
 }
 
 function autoSearch(request: Request, body: SearchBody): SearchResponse {
+  const profile = deriveSeedProfile(request);
+  const isPartner = profile?.role === 'partner';
   const target = deriveTargetType(request);
   const q = body.query?.trim() ?? '';
   if (target === 'lp') {
@@ -178,7 +217,7 @@ function autoSearch(request: Request, body: SearchBody): SearchResponse {
       (item) => matchesQuery(lpHaystack(item), q) && matchesLPFilters(item, body.filters),
     );
     return {
-      results: matches,
+      results: isPartner ? matches.map(maskLPForPartner) : matches,
       total: matches.length,
       target_type: 'lp',
       stage3_applied: true,
@@ -190,7 +229,7 @@ function autoSearch(request: Request, body: SearchBody): SearchResponse {
     (item) => matchesQuery(startupHaystack(item), q) && matchesStartupFilters(item, body.filters),
   );
   return {
-    results: matches,
+    results: isPartner ? matches.map(maskStartupForPartner) : matches,
     total: matches.length,
     target_type: 'startup',
     stage3_applied: true,

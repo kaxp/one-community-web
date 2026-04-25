@@ -402,7 +402,10 @@ The sidebar is built from `NAV_ITEMS` in `role-capabilities.ts` (see `frontend_p
 Backend returns role-masked objects. The frontend must not assume fields present:
 
 - `contact` on a connection is only present when `status === 'accepted'`.
-- Partner sees only `name`, `organisation`, `sector`, `stage`, `one_liner` — render "—" for absent fields, do not error.
+- **Partner search results** (decisions.md [P-20]):
+  - **Startup target — partner sees:** `user_id`, `name`, `company_name`, `sector`, `stage`, `one_liner`.
+  - **LP target — partner sees:** `user_id`, `name`, `fund_name`, `sectors`.
+  - **Withheld for partners:** `organisation`, `designation`, `avatar_url`, `description`, `traction`, `funding_target_cr`, `aum_cr`, `cheque_range_min/max`, `stages`, `geography`, `co_invest_interest`, `similarity_score`, `ai_rank`, `ai_reason`. These fields are **missing**, not `null`. The Zod schemas mark them `.optional()`; `<ResultCard>` hides any row whose source field is `undefined`/`null`. Never render "null" / empty bars.
 
 ---
 
@@ -1081,7 +1084,7 @@ These decisions are final. Do not propose alternatives in-session — open an AD
 - **Post-signin landing → /dashboard for every role** (decisions.md [P-18], overrides PRD §10.2). After a successful OTP verify (with `profile_complete=true`) and on every visit to `/` while signed in, every role routes to `/dashboard`. Role-specific workflow homes (`/search`, `/pitch`, `/admin`, `/connections/pending`) are reachable from the sidebar at any time but are NEVER used as the signin landing. The role-based map remains in `post-signin-navigate.ts` as `POST_ONBOARDING_BY_ROLE` solely for `nextRouteAfterProfile()` (post-onboarding continuation) and `defaultHomeFor()` (LP-profile Skip).
 - **Envelope** `{ data, error, pagination? }` is uniform for every endpoint. Cursor pagination everywhere except DLQ (legacy offset).
 - **10 role ENUM values** are exact: `lp`, `potential_lp`, `vc`, `startup_inprogress`, `startup_onboarded`, `startup_funded`, `partner`, `advisor`, `admin`, `super_admin`. Do not invent new roles.
-- **Partner role is EXCLUDED from search** — deliberate (PRD §7.4.1). Do not add Partner back without a product decision.
+- **Partner role can search with backend-side field masking** (decisions.md [P-20]). Partners ARE in `CAPABILITIES.search.use` and `NAV_ITEMS.search.roles`. Backend `_STARTUP_VISIBLE_FIELDS["partner"]` = `{ user_id, name, company_name, sector, stage, one_liner }`; `_LP_VISIBLE_FIELDS["partner"]` = `{ user_id, name, fund_name, sectors }`. Withheld fields are MISSING from the response (not null) — the frontend Zod schemas mark every non-identity field as `.optional()` and `<ResultCard>` hides any row whose source field is `undefined`/`null`. The MSW `auto` scenario applies the same allowlist when the signed-in user is partner so dev/test behaviour matches prod. The only escalation path for partners is `POST /connections/request`; on accept, contact details unlock through the standard accepted-connection flow. **Future endpoints that return startup or LP profile data for partners must be reviewed against the off-platform-outreach test: do any returned fields enable email / LinkedIn / phone / website lookup outside the platform? If yes, withhold them.**
 
 ### Patterns
 

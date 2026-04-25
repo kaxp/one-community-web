@@ -4,6 +4,8 @@ import { renderHookWithProviders } from '@/test/hook-utils';
 import { useSearch } from './use-search';
 import { useAuthStore } from '@/auth/auth-store';
 import { setMswSearchScenario } from '@/test/msw-fixtures/search-handlers';
+import { mintMswToken } from '@/test/msw-fixtures/auth-handlers';
+import type { UserRole } from '@/types/enums';
 
 function signInAsLP() {
   useAuthStore.getState().setSession({
@@ -13,6 +15,22 @@ function signInAsLP() {
       phone: '+911234567892',
       role: 'lp',
       name: 'LP',
+      email: null,
+      organisation: null,
+      profile_complete: true,
+    },
+    expiresAt: Date.now() + 60 * 60_000,
+  });
+}
+
+function signInWithPhone(phone: string, role: UserRole, id: string) {
+  useAuthStore.getState().setSession({
+    token: mintMswToken(phone),
+    user: {
+      id,
+      phone,
+      role,
+      name: role,
       email: null,
       organisation: null,
       profile_complete: true,
@@ -135,5 +153,45 @@ describe('useSearch', () => {
     );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.pages[0]?.results).toEqual([]);
+  });
+
+  it('auto: partner sees masked startup results — only allow-listed fields are present (P-20)', async () => {
+    signInWithPhone('+911234567897', 'partner' as UserRole, '22222222-2222-4000-8000-000000000007');
+    setMswSearchScenario('auto');
+    const { result } = renderHookWithProviders(() =>
+      useSearch({ query: 'fintech', filters: {}, enabled: true }),
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const items = result.current.data?.pages[0]?.results ?? [];
+    expect(items.length).toBeGreaterThan(0);
+    const allowed = new Set(['user_id', 'name', 'company_name', 'sector', 'stage', 'one_liner']);
+    for (const item of items) {
+      const keys = Object.keys(item);
+      // Every key on the masked item must be in the allowlist.
+      for (const k of keys) expect(allowed.has(k)).toBe(true);
+      // The off-platform-leak fields MUST NOT be present.
+      expect('description' in item).toBe(false);
+      expect('traction' in item).toBe(false);
+      expect('funding_target_cr' in item).toBe(false);
+      expect('avatar_url' in item).toBe(false);
+      expect('ai_rank' in item).toBe(false);
+      expect('ai_reason' in item).toBe(false);
+      expect('organisation' in item).toBe(false);
+    }
+  });
+
+  it('auto: non-partner roles continue to receive the full unmasked payload', async () => {
+    signInWithPhone('+911234567892', 'lp' as UserRole, '22222222-2222-4000-8000-000000000004');
+    setMswSearchScenario('auto');
+    const { result } = renderHookWithProviders(() =>
+      useSearch({ query: 'fintech', filters: {}, enabled: true }),
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const items = result.current.data?.pages[0]?.results ?? [];
+    expect(items.length).toBeGreaterThan(0);
+    const someHasFullPayload = items.some(
+      (i) => 'description' in i || 'traction' in i || 'funding_target_cr' in i || 'ai_reason' in i,
+    );
+    expect(someHasFullPayload).toBe(true);
   });
 });
