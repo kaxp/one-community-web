@@ -94,4 +94,46 @@ describe('useSearch', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.code).toBe('rate_limit_exceeded');
   });
+
+  it('auto: query "kapil" returns only the matching record', async () => {
+    signInAsLP();
+    setMswSearchScenario('auto');
+    const { result } = renderHookWithProviders(() =>
+      useSearch({ query: 'kapil', filters: {}, enabled: true }),
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const first = result.current.data?.pages[0];
+    expect(first?.results).toHaveLength(1);
+    expect(first?.results[0]?.name).toBe('Kapil Sahu');
+  });
+
+  it('auto: sector filter narrows the result set', async () => {
+    signInAsLP();
+    setMswSearchScenario('auto');
+    const { result } = renderHookWithProviders(() =>
+      useSearch({
+        query: 'carbon',
+        filters: { sector: ['climate'] },
+        enabled: true,
+      }),
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const first = result.current.data?.pages[0];
+    expect(first?.results.length).toBeGreaterThan(0);
+    for (const r of first?.results ?? []) {
+      if ('sector' in r && r.sector) {
+        expect(r.sector).toBe('climate');
+      }
+    }
+  });
+
+  it('auto: returns empty when nothing matches', async () => {
+    signInAsLP();
+    setMswSearchScenario('auto');
+    const { result } = renderHookWithProviders(() =>
+      useSearch({ query: 'zzznoresult', filters: {}, enabled: true }),
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.pages[0]?.results).toEqual([]);
+  });
 });
