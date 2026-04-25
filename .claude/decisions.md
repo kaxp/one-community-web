@@ -621,6 +621,35 @@ maxWidth: {
 
 - **Touches:** `src/app/router.tsx`, `src/test/test-utils.tsx`, `src/test/hook-utils.tsx`. Future feature sessions add one more `lazy()` line per feature route.
 
+### [P-20] Partner role can search startups (with strict field masking)  ✅ resolved 2026-04-25
+
+- **Decision:** `partner` role IS admitted to `POST /search` and to the frontend `/search` route. Backend strips response fields per `_STARTUP_VISIBLE_FIELDS["partner"]` and `_LP_VISIBLE_FIELDS["partner"]` so partners see ONLY enough information to identify a startup and decide whether to send an in-platform connection request — never enough to reach out off-platform.
+
+  **Allowed fields (startup target):** `user_id`, `name`, `company_name`, `sector`, `stage`, `one_liner`.
+
+  **Withheld for partners (startup target):** `organisation`, `designation`, `avatar_url`, `description`, `traction`, `funding_target_cr`, `similarity_score`, `ai_rank`, `ai_reason`. Reasoning: descriptions and traction frequently embed founder bios + contact hints; avatar_url enables reverse-image search → LinkedIn → DM; AI signals leak matchmaking internals.
+
+  **Allowed fields (LP target):** `user_id`, `name`, `fund_name`, `sectors`. (Partner LP search is unusual — partner workflow is startup discovery — but if GPT-4o classifies a query as LP-targeted the response must still parse.)
+
+  **Withheld for partners (LP target):** `organisation`, `designation`, `avatar_url`, `aum_cr`, `cheque_range_min`, `cheque_range_max`, `stages`, `geography`, `co_invest_interest`, `similarity_score`, `ai_rank`, `ai_reason`.
+
+  **The only escalation path:** partner sends `POST /connections/request` (admin-gated). On accept, contact details are unlocked through the standard accepted-connection flow.
+
+- **Rationale:** Originally I flagged a Stage 2 inconsistency: backend rejected partner with 403, but the frontend `NAV_ITEMS.search` + `CAPABILITIES.search.use` listed partner, leading to a broken UX where the sidebar showed "Search" → click → /unauthorized. PRD §4 + §10.2 had always intended partner to access search "with limited fields". Two options to reconcile: (A) align frontend with backend by removing partner from search entirely, or (B) align backend with PRD intent by relaxing `_SEARCH_ROLES` and adding masked allowlists. Human chose (B) — partners can search but never see anything that enables off-platform outreach.
+
+- **Touches (backend, `one-community-1`):**
+  - `modules/search/router.py` — `_SEARCH_ROLES` includes `"partner"`.
+  - `modules/search/service.py` — `_STARTUP_VISIBLE_FIELDS["partner"]` and `_LP_VISIBLE_FIELDS["partner"]` allowlists added.
+  - `tests/search/test_role_masking_default.py` — `test_partner_startup_view_is_minimal` + `test_partner_lp_view_is_minimal` added.
+  - `tests/search/test_router.py` — `test_search_partner_role_admitted_and_masked` added.
+  - All 42/42 search tests pass.
+- **Touches (frontend, this repo):**
+  - `src/app/router.tsx` — `<RoleGuard>` for `/search` includes `'partner'`.
+  - `src/lib/role-capabilities.ts` — already correct (`'partner'` in both `CAPABILITIES.search.use` and `NAV_ITEMS.search.roles`); no change needed.
+  - `docs/frontend_prd.md` — §7.4.1 "Required roles" and "Partner role role-masking" updated; §8.12.3 split into startup-target and LP-target rows for partner.
+- **Verification:** Sign in as the partner seed user (`+911234567897`), navigate to `/search`, submit any query, and observe the result cards rendering only `name`, `company_name`, `sector`, `stage`, `one_liner`. The "Request to Connect" button remains visible — that is the intended escalation path.
+- **Future-session rule:** Any new endpoint that returns startup or LP profile data for partners MUST be reviewed against the same off-platform-outreach test: do any returned fields enable email / LinkedIn / phone / website lookup outside the platform? If yes, withhold them.
+
 _(Further P-N items added below as mid-build decisions are made. Keep sequential order.)_
 
 <!--

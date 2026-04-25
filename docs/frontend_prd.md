@@ -2404,7 +2404,7 @@ HTTP 404
 
 **Purpose:** Unified semantic search. Backend classifies query direction (LP→startup or startup→LP) via GPT-4o, then runs the 3-stage pipeline: SQL hard filter (sector/stage/geography from `filters`) → pgvector cosine similarity on the embeddings column → GPT-4o re-rank top 20 with reason strings. Role-masks fields on return. Logs per-result `search_view` interactions and one `search_audit_log` row per query.
 
-**Required roles:** `startup_funded`, `lp`, `potential_lp`, `vc`, `admin`, `super_admin`. (Partner NOT allowed in this module.)
+**Required roles:** `startup_funded`, `lp`, `potential_lp`, `vc`, `partner`, `admin`, `super_admin`. Partner is admitted but receives a strictly minimal masked response (see "Partner role role-masking" below).
 
 **Rate limit:** 20 per minute.
 
@@ -2567,7 +2567,11 @@ When GPT-4o is unavailable, backend returns Stage-2 (pgvector) ordering and `sta
 - `similarity_score` — 0.0–1.0 cosine similarity.
 - `ai_rank` — integer 1..20 when Stage 3 applied, else null.
 - `ai_reason` — one sentence ≤ 160 chars, else null.
-- **Partner role role-masking:** backend returns only `{ user_id, name, organisation, sector, stage, one_liner }` per result. All other fields are absent (not null — missing). Frontend must handle missing-field case.
+- **Partner role role-masking:** backend admits the partner request but strips every field that could enable off-platform outreach. Source of truth: `modules/search/service.py _STARTUP_VISIBLE_FIELDS["partner"]`.
+  - **Startup results** — partner sees only `{ user_id, name, company_name, sector, stage, one_liner }`. Specifically WITHHELD: `organisation`, `designation`, `avatar_url`, `description`, `traction`, `funding_target_cr`, `similarity_score`, `ai_rank`, `ai_reason`. Rationale: descriptions and traction frequently embed founder bios / contact hints; avatar_url enables reverse-image search; AI signals leak matchmaking internals.
+  - **LP results** — if a partner query classifies as LP-targeted, backend returns only `{ user_id, name, fund_name, sectors }`. WITHHELD: `organisation`, `designation`, `avatar_url`, `aum_cr`, `cheque_range_min`, `cheque_range_max`, `stages`, `geography`, `co_invest_interest`, `similarity_score`, `ai_rank`, `ai_reason`.
+  - All other fields are **absent** (key missing — not `null`). Frontend MUST use optional chaining and conditional rendering (`{card.description && <p>...</p>}`) — never assume a field is present. Zod schemas already mark all non-essential fields optional/nullable to permit partner parses.
+  - Partner cannot escalate to richer information except by sending an in-platform `POST /connections/request` (admin-gated).
 
 **Error 400 / 422 — validation_error:**
 
@@ -6622,12 +6626,13 @@ This table is the authoritative list of transformations required before renderin
 
 Some endpoints strip fields based on viewer role. The frontend MUST handle "absent" (key missing or null) gracefully. Never throw on missing fields.
 
-| Endpoint                            | Role                               | Fields usually absent                                                                                    |
-| ----------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `POST /search`                      | `partner`                          | `description`, `traction`, `funding_target_cr`, `similarity_score`, `ai_rank`, `ai_reason`, `avatar_url` |
-| `GET /profile/{id}`                 | viewer without accepted connection | `contact`, `contact.email`, `contact.phone`, `contact.linkedin_url`                                      |
-| `GET /profile/{id}`                 | `partner`                          | `description`, `founding_year`, `team_size`, `traction`, `ask_amount_cr`, `website_url`, `designation`   |
-| `GET /interactions/profile-viewers` | any                                | viewer email/phone (PII — NEVER exposed)                                                                 |
+| Endpoint                            | Role                               | Fields usually absent                                                                                                                                                                  |
+| ----------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /search` (startup target)     | `partner`                          | `organisation`, `designation`, `avatar_url`, `description`, `traction`, `funding_target_cr`, `similarity_score`, `ai_rank`, `ai_reason`                                                |
+| `POST /search` (LP target)          | `partner`                          | `organisation`, `designation`, `avatar_url`, `aum_cr`, `cheque_range_min`, `cheque_range_max`, `stages`, `geography`, `co_invest_interest`, `similarity_score`, `ai_rank`, `ai_reason` |
+| `GET /profile/{id}`                 | viewer without accepted connection | `contact`, `contact.email`, `contact.phone`, `contact.linkedin_url`                                                                                                                    |
+| `GET /profile/{id}`                 | `partner`                          | `description`, `founding_year`, `team_size`, `traction`, `ask_amount_cr`, `website_url`, `designation`                                                                                 |
+| `GET /interactions/profile-viewers` | any                                | viewer email/phone (PII — NEVER exposed)                                                                                                                                               |
 
 Rule: wrap every role-sensitive read in `optional chaining` + nullable render:
 
