@@ -101,6 +101,10 @@ import {
   type RespondRequest,
   type RespondResult,
 } from '@/features/matchmaking/schemas';
+import {
+  zProfileViewersResponse,
+  type ProfileViewersResponse,
+} from '@/features/profile-viewers/schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
 
@@ -418,4 +422,20 @@ export async function respondToSuggestion(
   const url = `/matchmaking/suggestions/${id}/respond`;
   const resp = await apiClient.post<ApiEnvelope<RespondResult>>(url, body);
   return zRespondResult.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.7.3 + §13 G11 — `GET /interactions/profile-viewers`. The Zod schema
+// is the parse-time firewall against PII (email / phone) leaking even if the
+// backend response expands; extra keys are stripped silently.
+export async function getProfileViewers(args: {
+  limit?: number;
+  cursor?: string | null;
+}): Promise<ProfileViewersResponse> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.cursor) params.set('cursor', args.cursor);
+  const qs = params.toString();
+  const url = `/interactions/profile-viewers${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<ProfileViewersResponse>>(url);
+  return zProfileViewersResponse.parse(unwrap(resp.data, url));
 }

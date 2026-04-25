@@ -63,6 +63,11 @@ const MatchmakingPage = lazy(() =>
     default: m.MatchmakingPage,
   })),
 );
+const ProfileViewersPage = lazy(() =>
+  import('@/features/profile-viewers/routes/ProfileViewersPage').then((m) => ({
+    default: m.ProfileViewersPage,
+  })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -219,6 +224,17 @@ export const router = createBrowserRouter(
                       ),
                     },
                   ],
+                },
+                {
+                  // PRD §7.7.3 — "Who viewed me". Open to all authenticated
+                  // users (matches NAV_ITEMS.viewers.roles = ['*']). PII rule
+                  // §13 G11 enforced inside <ViewerCard>.
+                  path: '/profile-viewers',
+                  element: (
+                    <Susp>
+                      <ProfileViewersPage />
+                    </Susp>
+                  ),
                 },
                 {
                   path: '/connections',

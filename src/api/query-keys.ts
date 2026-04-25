@@ -28,6 +28,8 @@ export const qk = {
   },
   interactions: {
     log: ['interactions', 'log'] as const,
+    profileViewersAll: ['interactions', 'profile-viewers'] as const,
+    profileViewers: (limit: number) => ['interactions', 'profile-viewers', { limit }] as const,
   },
   pitch: {
     profile: ['pitch', 'profile'] as const,

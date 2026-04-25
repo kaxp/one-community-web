@@ -11,6 +11,7 @@ import { resetMswMisState } from './msw-fixtures/mis-handlers';
 import { resetMswScheduleState } from './msw-fixtures/schedule-handlers';
 import { resetMswTravelState } from './msw-fixtures/travel-handlers';
 import { resetMswMatchmakingState } from './msw-fixtures/matchmaking-handlers';
+import { resetMswProfileViewersState } from './msw-fixtures/profile-viewers-handlers';
 import { useAuthStore } from '@/auth/auth-store';
 import { resetInteractionDedup } from '@/lib/interaction-dedup';
 
@@ -26,6 +27,7 @@ afterEach(() => {
   resetMswScheduleState();
   resetMswTravelState();
   resetMswMatchmakingState();
+  resetMswProfileViewersState();
   resetMswProfileState();
   resetInteractionDedup();
   useAuthStore.getState().clear();
