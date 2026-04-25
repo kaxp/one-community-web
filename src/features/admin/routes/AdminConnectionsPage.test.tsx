@@ -1,10 +1,23 @@
-import { describe, expect, it } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { toast } from 'sonner';
 import { renderWithProviders } from '@/test/test-utils';
 import { AdminConnectionsPage } from './AdminConnectionsPage';
 import { useAuthStore } from '@/auth/auth-store';
 import { setMswAdminRows, queueAdminListError } from '@/test/msw-fixtures/admin-handlers';
+
+vi.mock('sonner', async () => {
+  const actual = await vi.importActual<typeof import('sonner')>('sonner');
+  return {
+    ...actual,
+    toast: {
+      ...actual.toast,
+      success: vi.fn(),
+      error: vi.fn(),
+    },
+  };
+});
 
 function signInAsAdmin() {
   useAuthStore.getState().setSession({
@@ -84,7 +97,23 @@ describe('AdminConnectionsPage', () => {
       expect(after.length).toBeLessThan(initial);
     });
   });
-});
 
-// Suppress unused-imports lint
-void within;
+  it('emits exactly ONE success toast per Approve click — even with N rows × 2 buttons sharing the mutation hook surface', async () => {
+    signInAsAdmin();
+    (toast.success as ReturnType<typeof vi.fn>).mockClear();
+    (toast.error as ReturnType<typeof vi.fn>).mockClear();
+    const user = userEvent.setup();
+    renderWithProviders(<AdminConnectionsPage />);
+
+    const approveButtons = await screen.findAllByRole('button', { name: /^approve$/i });
+    expect(approveButtons.length).toBeGreaterThanOrEqual(2);
+
+    await user.click(approveButtons[0]!);
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledTimes(1);
+    });
+    expect(toast.success).toHaveBeenCalledWith('Approved');
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+});

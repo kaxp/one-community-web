@@ -23,12 +23,54 @@ import {
 import { STATUS_LABEL, TAB_LABEL, statusBadgeVariant } from '@/features/admin/lib/status-labels';
 import { fmtDateTime } from '@/lib/date';
 import { qk } from '@/api/query-keys';
+import type { ApiError } from '@/api/errors';
 import { cn } from '@/lib/cn';
 
 const DEFAULT_TAB: AdminTabStatus = 'pending_admin';
 
 function isAdminTabStatus(value: string | null): value is AdminTabStatus {
   return (ADMIN_TAB_STATUSES as readonly string[]).includes(value ?? '');
+}
+
+// One <RowActions> instance per row, so each row has its own mutation state.
+// Concurrent clicks across rows don't share isPending / isError — each row
+// resolves independently. Toasts fire via per-call callbacks (only the clicked
+// button shows a toast; sibling buttons in the same row don't observe it).
+function RowActions({ connectionId }: { connectionId: string }) {
+  const action = useAdminConnectionAction();
+  const errorToast = (err: ApiError) =>
+    err.code === 'conflict' ? 'Already handled — refreshing' : err.userMessage;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <InlineExecutionButton
+        size="sm"
+        mutation={action}
+        input={{
+          connection_id: connectionId,
+          current_status: 'pending_admin' as AdminConnectionStatus,
+          action: 'approve' as const,
+        }}
+        onSuccessToast={() => 'Approved'}
+        onErrorToast={errorToast}
+      >
+        Approve
+      </InlineExecutionButton>
+      <InlineExecutionButton
+        variant="outline"
+        size="sm"
+        mutation={action}
+        input={{
+          connection_id: connectionId,
+          current_status: 'pending_admin' as AdminConnectionStatus,
+          action: 'reject' as const,
+        }}
+        onSuccessToast={() => 'Rejected'}
+        onErrorToast={errorToast}
+      >
+        Reject
+      </InlineExecutionButton>
+    </div>
+  );
 }
 
 export function AdminConnectionsPage() {
@@ -43,7 +85,6 @@ export function AdminConnectionsPage() {
   };
 
   const list = useAdminConnections({ status: tab });
-  const action = useAdminConnectionAction();
   const qc = useQueryClient();
 
   const items = useMemo(
@@ -111,46 +152,11 @@ export function AdminConnectionsPage() {
           if (row.original.status !== 'pending_admin') {
             return <span className="text-xs text-ink-muted">—</span>;
           }
-          const conn_id = row.original.connection_id;
-          return (
-            <div className="flex flex-wrap items-center gap-2">
-              <InlineExecutionButton
-                size="sm"
-                mutation={action}
-                input={{
-                  connection_id: conn_id,
-                  current_status: 'pending_admin' as AdminConnectionStatus,
-                  action: 'approve' as const,
-                }}
-                onSuccessToast={() => 'Approved'}
-                onErrorToast={(err) =>
-                  err.code === 'conflict' ? 'Already handled — refreshing' : err.userMessage
-                }
-              >
-                Approve
-              </InlineExecutionButton>
-              <InlineExecutionButton
-                variant="outline"
-                size="sm"
-                mutation={action}
-                input={{
-                  connection_id: conn_id,
-                  current_status: 'pending_admin' as AdminConnectionStatus,
-                  action: 'reject' as const,
-                }}
-                onSuccessToast={() => 'Rejected'}
-                onErrorToast={(err) =>
-                  err.code === 'conflict' ? 'Already handled — refreshing' : err.userMessage
-                }
-              >
-                Reject
-              </InlineExecutionButton>
-            </div>
-          );
+          return <RowActions connectionId={row.original.connection_id} />;
         },
       },
     ],
-    [action],
+    [],
   );
 
   return (
