@@ -39,6 +39,13 @@ export const qk = {
     form: ['mis', 'form'] as const,
     prefill: ['mis', 'prefill'] as const,
   },
+  meetings: {
+    all: ['meetings'] as const,
+    slots: (fromDate: string, days: number) => ['meetings', 'slots', { fromDate, days }] as const,
+    slotsAll: ['meetings', 'slots'] as const,
+    bookings: (limit: number) => ['meetings', 'bookings', { limit }] as const,
+    bookingsAll: ['meetings', 'bookings'] as const,
+  },
   matchmaking: {
     suggestions: ['matchmaking', 'suggestions'] as const,
     pending: ['matchmaking', 'pending'] as const,

@@ -52,6 +52,9 @@ const PitchPage = lazy(() =>
 const MISPage = lazy(() =>
   import('@/features/mis/routes/MISPage').then((m) => ({ default: m.MISPage })),
 );
+const SchedulePage = lazy(() =>
+  import('@/features/schedule/routes/SchedulePage').then((m) => ({ default: m.SchedulePage })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -166,6 +169,17 @@ export const router = createBrowserRouter(
                       ),
                     },
                   ],
+                },
+                {
+                  // PRD §7.10 — schedule is open to all authenticated users.
+                  // ProfileGate already guards the parent subtree, so no extra
+                  // RoleGuard is required here.
+                  path: '/schedule',
+                  element: (
+                    <Susp>
+                      <SchedulePage />
+                    </Susp>
+                  ),
                 },
                 {
                   path: '/connections',

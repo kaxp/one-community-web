@@ -71,6 +71,17 @@ import {
   type MISSubmitRequest,
   type MISSubmitResponse,
 } from '@/features/mis/schemas';
+import {
+  zBookResponse,
+  zBookingsResponse,
+  zCancelResponse,
+  zSlotsResponse,
+  type BookRequest,
+  type BookResponse,
+  type BookingsResponse,
+  type CancelResponse,
+  type SlotsResponse,
+} from '@/features/schedule/schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
 
@@ -286,4 +297,50 @@ export async function getMisPrefill(args?: {
 export async function postMisSubmit(body: MISSubmitRequest): Promise<MISSubmitResponse> {
   const resp = await apiClient.post<ApiEnvelope<MISSubmitResponse>>('/portfolio/mis', body);
   return zMISSubmitResponse.parse(unwrap(resp.data, '/portfolio/mis'));
+}
+
+// PRD §7.10.1 — `GET /schedule/slots`. Returns `data: Slot[]` (array IS the
+// payload). All times are IST (+05:30) per backend convention.
+export async function getScheduleSlots(args: {
+  fromDate?: string;
+  days?: number;
+}): Promise<SlotsResponse> {
+  const params = new URLSearchParams();
+  if (args.fromDate) params.set('from_date', args.fromDate);
+  if (args.days !== undefined) params.set('days', String(args.days));
+  const qs = params.toString();
+  const url = `/schedule/slots${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<SlotsResponse>>(url);
+  return zSlotsResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.10.2 — `POST /schedule/book`. 409 conflict when the slot is no
+// longer available (GIST EXCLUSION on the target). Caller should refetch
+// slots on 409.
+export async function postScheduleBook(body: BookRequest): Promise<BookResponse> {
+  const payload = stripUndefined(body as unknown as Record<string, unknown>);
+  const resp = await apiClient.post<ApiEnvelope<BookResponse>>('/schedule/book', payload);
+  return zBookResponse.parse(unwrap(resp.data, '/schedule/book'));
+}
+
+// PRD §7.10.3 — `GET /schedule/bookings`. Cursor-paginated.
+export async function getScheduleBookings(args: {
+  limit?: number;
+  cursor?: string | null;
+}): Promise<BookingsResponse> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.cursor) params.set('cursor', args.cursor);
+  const qs = params.toString();
+  const url = `/schedule/bookings${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<BookingsResponse>>(url);
+  return zBookingsResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.10.4 — `DELETE /schedule/book/{booking_id}`. Ownership: requester /
+// target / admin. GCal delete is best-effort (§13 G9) — caller refetches.
+export async function deleteScheduleBooking(bookingId: string): Promise<CancelResponse> {
+  const url = `/schedule/book/${bookingId}`;
+  const resp = await apiClient.delete<ApiEnvelope<CancelResponse>>(url);
+  return zCancelResponse.parse(unwrap(resp.data, url));
 }

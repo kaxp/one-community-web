@@ -6,6 +6,7 @@ import { profileHandlers } from './msw-fixtures/profile-handlers';
 import { connectionsHandlers } from './msw-fixtures/connections-handlers';
 import { pitchHandlers } from './msw-fixtures/pitch-handlers';
 import { misHandlers } from './msw-fixtures/mis-handlers';
+import { scheduleHandlers } from './msw-fixtures/schedule-handlers';
 
 // Order matters: admin-handlers register `PATCH /connections/:id/admin` and
 // connections-handlers register `PATCH /connections/:id/respond`. Both paths
@@ -18,5 +19,6 @@ export const handlers: HttpHandler[] = [
   ...connectionsHandlers,
   ...pitchHandlers,
   ...misHandlers,
+  ...scheduleHandlers,
   ...profileHandlers,
 ];

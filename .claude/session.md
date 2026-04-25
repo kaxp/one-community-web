@@ -34,51 +34,56 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 3 fourth feature `mis` complete. The four-features spot-check gate is now due before continuing to `schedule`.)_
+_(none — Stage 3 fifth feature `schedule` complete. Next unchecked queue.md row is `travel`.)_
 
 ### Last completed action
 
-Completed Stage 3 fourth feature **mis** end-to-end. All three PRD endpoints (§7.9.1 GET form / §7.9.3 GET prefill / §7.9.2 POST submit) ship behind a single `/mis` route gated to `startup_funded` + admin / super_admin.
+Completed Stage 3 fifth feature **schedule** end-to-end. All four PRD endpoints (§7.10.1 GET slots / §7.10.2 POST book / §7.10.3 GET bookings / §7.10.4 DELETE cancel) ship behind a single `/schedule` route open to all 10 authenticated roles.
 
-- **MIS schemas** (`src/features/mis/schemas.ts`):
-  - `zMISFormResponse` (§7.9.1), `zMISPrefillResponse` (§7.9.3), `zMISSubmitResponse` (§7.9.2 ack), `zMISPrefill` (nullable prefill payload shared by both GETs).
-  - `zMISRawData` — **strict** 6-key allowlist (`revenue_inr` + `burn_inr` Decimal-string, `headcount` int, `runway_months` float, `highlights` + `lowlights` ≤ 2000-char string). `.partial().strict()` so each key is individually optional but extras throw `ZodError`. Tested explicitly.
-  - `zMISFormInput` — RHF input shape (revenue/burn/runway/headcount as numbers, highlights/lowlights as strings) with the same NaN-tolerant `.optional() + .transform(NaN→undefined)` pattern used in pitch.
-  - `zMISSubmitRequest` — wire body (period regex + top-level + raw_data).
-  - `buildMISRequest(period, form)` — pure helper that converts form input to wire body. INR amounts go into `raw_data.revenue_inr` / `burn_inr` as `value.toFixed(2)` Decimal strings (PRD §8.12.1). Validates `raw_data` via `.strict()` before composing the body — any developer typo throws here, before the network call.
-- **Endpoint functions** (`src/api/endpoints.ts`): `getMisForm`, `getMisPrefill({ companyId? })`, `postMisSubmit(body)` — all Zod-parsed via `unwrap()`.
-- **Query keys** (`src/api/query-keys.ts`): `qk.mis.{all, form, prefill}`. `prefill` accepts an optional `{ companyId }` suffix when admin mode is needed (passed through tuple-style for cache identity).
-- **Hooks** (`src/features/mis/hooks/`):
-  - `useMisForm()` — useQuery against `qk.mis.form`. ApiError flows through (no domain-signal carve-out — 404 here means "no startup profile", which is genuinely an error state for this page).
-  - `useMisPrefill({ companyId?, enabled? })` — parallel useQuery against `qk.mis.prefill`.
-  - `useSubmitMis(period)` — useMutation accepting `MISFormInput`; internally calls `buildMISRequest(period, form)` then `postMisSubmit`. Invalidates `qk.mis.form` (so `already_submitted` flips true) AND `qk.admin.summary` (admin's mis_status badge) per §8.12.4.
-- **Route** (`src/app/router.tsx`): `/mis` mounted under `<RoleGuard roles={['startup_funded', 'admin', 'super_admin']}>` (matches `CAPABILITIES['mis.submit']`). Lazy-imported per [P-19].
-- **Page** (`src/features/mis/routes/MISPage.tsx`): two parallel queries via independent hooks (`useMisForm` + `useMisPrefill`), full four states (loading skeleton / ErrorState / already-submitted banner / success form). Banner reads "MIS for {period} was already submitted on {date}. Submitting again will be rejected with a 409. Contact your admin if you need to override." Submit button label flips to "Already submitted" and the form is `disabled` when `already_submitted=true`.
-- **Components** (`src/features/mis/components/`):
-  - `MISForm.tsx` — `<ExecutionPanel<MISFormInput, MISSubmitResponse>>` consumer. Numeric inputs for revenue/burn/runway/headcount + textareas for highlights/lowlights (max 2000 chars enforced both via `maxLength` HTML attr and Zod). Last-month prefill values surface as field hints (`Last month: ₹ 20,00,000`) using `formatINR`.
-- **Period label** — `formatPeriodLabel('2026-04')` → `April 2026` via `date-fns` `format(parse('yyyy-MM'), 'LLLL yyyy')` (PRD §8.12.2).
-- **MSW** (`src/test/msw-fixtures/mis-handlers.ts`): canonical owner of `GET /portfolio/mis`, `GET /portfolio/mis/prefill`, `POST /portfolio/mis`. Stateful — first POST flips the in-memory fixture's `already_submitted` flag to `true`, so a second POST in the same test produces real 409 `mis_already_submitted` (mirrors backend UNIQUE(startup_id, period) behaviour). Helpers: `setMswMisFormFixture`, `setMswMisAlreadySubmitted`, `setMswMisPrefillFixture`, `queueMisFormError`, `queueMisPrefillError`, `queueMisSubmitError`. Reset hook registered in `src/test/setup.ts` afterEach.
-- **Tests (+23 cases vs prior commit, total 141 across 39 files):**
-  - `schemas.test.ts` (10): zMISRawData accepts 6 allowlisted keys / rejects extra key / rejects misspelled key / accepts empty {}; PERIOD_REGEX positive + negative cases; buildMISRequest INR-as-Decimal-string + omits raw_data when empty + omits undefined top-level fields.
-  - `use-mis-form.test.ts` (3): success / already_submitted with timestamp / 500 ApiError.
-  - `use-mis-prefill.test.ts` (3): success / prefill=null / 404 ApiError.
-  - `use-submit-mis.test.ts` (3): happy path / 409 mis_already_submitted / 422 validation_error.
-  - `MISPage.test.tsx` (4): renders prefilled form (no banner) / shows already-submitted banner + disabled submit button / 500 surfaces ErrorState / submit succeeds → page refetches → banner appears + form values retained.
+- **date-fns-tz installed** (3.2.0). v3 renamed `utcToZonedTime → toZonedTime` and `zonedTimeToUtc → fromZonedTime`; the PRD references the v2 names but the v3 names are equivalent.
+- **Schedule schemas** (`src/features/schedule/schemas.ts`):
+  - `zSlot` (§7.10.1) — IST `start`/`end` ISO-8601 with TZ offset + `date` `YYYY-MM-DD`. Empty array is a valid response.
+  - `zBooking` + `zBookingsResponse` (§7.10.3) — cursor-paginated, `direction: outgoing|incoming`, `status: pending|confirmed|cancelled`, counterpart with role/org.
+  - `zBookRequest` (§7.10.2) — `target_id`, `scheduled_at`, `duration_minutes` strict 30 or 60 via `.refine`, `purpose ≤ 500`.
+  - `zBookForm` — RHF input shape; empty-string `purpose` collapses to `undefined` so the wire body simply omits it (no clear-field semantics).
+  - `zCancelResponse` (§7.10.4).
+- **Endpoint functions** (`src/api/endpoints.ts`): `getScheduleSlots`, `postScheduleBook`, `getScheduleBookings`, `deleteScheduleBooking`. All Zod-parsed via `unwrap()`. Note slots returns `data: Slot[]` directly (array IS payload, not wrapped in `{ items }`).
+- **Query keys** (`src/api/query-keys.ts`): `qk.meetings.{all, slotsAll, slots(fromDate, days), bookingsAll, bookings(limit)}`. The `*All` aliases let mutations invalidate every variant in one call.
+- **Hooks** (`src/features/schedule/hooks/`):
+  - `useSlots({ fromDate, days })` — useQuery, 30s staleTime.
+  - `useBookings({ limit })` — useInfiniteQuery, cursor pagination.
+  - `useBookMeeting()` — useMutation; on success invalidates `slotsAll` + `bookingsAll`. On 409 conflict ALSO invalidates slots so the grid greys out the now-taken slot.
+  - `useCancelBooking()` — useMutation; uses `onSettled` (NOT `onSuccess`) to ALWAYS refetch bookings + slots. PRD §13 G9 — GCal delete is best-effort, so we trust the server's view over any local optimistic state.
+- **Route** (`src/app/router.tsx`): `/schedule` mounted under `<RequireAuth>` + `<ProfileGate>` + `<AppShell>` with no extra `<RoleGuard>` (all 10 roles authorised — matches `NAV_ITEMS.schedule.roles = ['*']`). Lazy-imported per [P-19].
+- **Page** (`src/features/schedule/routes/SchedulePage.tsx`): top half = available-slots calendar grid; bottom half = upcoming meetings table. URL params drive windowing — `?from_date=YYYY-MM-DD&days=1..30` (clamped). Today's date is the default; days defaults to 7. "Try 30 days" CTA flips the days param to 30 from both the form-bar and the empty-state.
+- **Components** (`src/features/schedule/components/`):
+  - `SlotGrid.tsx` — rows = N consecutive viewer-local dates, columns = the 30-min time buckets that have any slot in the response. Cells are green button when available, grey when not. The grid renders in the viewer's local timezone (PRD §8.12.2) via `Intl.DateTimeFormat().resolvedOptions().timeZone` resolved once.
+  - `BookingDialog.tsx` — opens on slot click. Target picker reads from the user's accepted connections (`useConnections`) with a name/org filter; on submit calls `useBookMeeting`. 409 → toast "That slot just filled up — pick another" + close. 404 → toast "User not found".
+  - `BookingsList.tsx` — DataTable with columns When (viewer-local) / Duration / Counterpart + RoleBadge / Direction (Organising/Invited) / Status / Cancel. Cancelled rows show an em-dash in the actions column. Cancel button opens `<CancelDialog>` confirm with the warning copy "If your Google Calendar still shows the event, delete it manually" per the prompt's gotcha. 403 → toast "Only the organiser, target, or admin can cancel".
+- **Format helpers** (`src/features/schedule/lib/format-tz.ts`): `viewerTimeZone()`, `fmtSlotTime`, `fmtSlotDate`, `fmtBookingDateTime`. All use `toZonedTime` from `date-fns-tz` v3.
+- **MSW** (`src/test/msw-fixtures/schedule-handlers.ts`): canonical owner of all four schedule routes. Stateful — booking removes the matched slot from the in-memory pool so a re-attempt on the same slot deterministically surfaces 409. Helpers: `setMswSlotsFixture`, `setMswBookingsFixture`, `queueSlotsError`, `queueBookError`, `queueBookingsError`, `queueCancelError`. Reset hook registered in `src/test/setup.ts` afterEach.
+- **Tests (+15 cases vs prior commit, total 162 across 45 files):**
+  - `schemas.test.ts` (7): zSlot accepts IST + rejects no-TZ + accepts empty array; zBookRequest accepts 30 + 60 / rejects 45 / rejects 600-char purpose; zBookForm coerces empty-string purpose to undefined.
+  - `use-slots.test.ts` (3): seed list / empty array / 500 ApiError.
+  - `use-bookings.test.ts` (2): seed page / 500 ApiError.
+  - `use-book-meeting.test.tsx` (2): success → invalidates slotsAll + bookingsAll; 409 → still invalidates slotsAll (refresh path).
+  - `use-cancel-booking.test.tsx` (2): success invalidates both / 403 still invalidates bookings (reconcile from server).
+  - `SchedulePage.test.tsx` (4): grid + bookings render / empty-slots state with Try 30 days CTA / 500 surfaces ErrorState / clicking a slot opens the booking dialog.
 
-Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (141/141 across 39 files), `pnpm build` (exits 0). Per-feature chunk: MISPage **25.24 KB / 6.22 KB gzip**. Main chunk: 288.39 → 289.06 KB gzip (+0.67 KB — well under the 30 KB-per-feature budget).
+Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (162/162 across 45 files), `pnpm build` (exits 0). Per-feature chunk: SchedulePage **20.80 KB / 7.05 KB gzip** — comfortably under the 30 KB-per-feature budget. Main chunk: 289.06 → 289.59 KB gzip (+0.53 KB).
 
 ### Next concrete step
 
-**Spot-check Gate 1 is now due** — 4 Stage 3 features complete (`profile-view`, `connections`, `pitch`, `mis`). Per `queue.md § Stage 3`: "Spot-check gate after 4 features total". The human should review before the next session picks up `schedule`.
+Next unchecked queue.md row is **`travel`** (PRD §7.11.1 POST /travel/plans, §7.11.2 GET, §7.11.3 DELETE, §7.11.4 PUT /travel/home-city). Date-range form + plan list + home-city setting.
 
-After the gate clears, the next unchecked queue.md row is **`schedule`** (PRD §7.10.1 GET slots, §7.10.2 POST book, §7.10.3 GET bookings, §7.10.4 DELETE book/{id}). Calendar grid UI in IST timezone via `date-fns-tz`.
-
-Smoke checks for the just-shipped MIS feature (manual):
-- (a) Sign in as `+911234567894` (startup_funded) → sidebar shows "MIS" → click `/mis` → form prefills with last-month values, period label reads "April 2026", no banner.
-- (b) Submit the form → success toast "Submitted MIS for 2026-04" → page refetches and now shows the warning banner with the submission timestamp; the submit button reads "Already submitted" and the form is disabled.
-- (c) Click submit again (it's disabled, but try via DevTools to remove `disabled`) — verify the 409 path: ApiError surfaces inline with code `mis_already_submitted`, form values are retained.
-- (d) Sign in as a non-startup_funded role (e.g. `+911234567892` LP) → MIS does NOT appear in the sidebar (NAV_ITEMS filter), and visiting `/mis` directly should redirect to `/unauthorized` (RoleGuard).
-- (e) Verify Indian numbering on prefill hints — `Last month: ₹ 20,00,000` (not `₹ 2,000,000`).
+Smoke checks for the just-shipped Schedule feature (manual):
+- (a) Sign in as `+911234567892` (LP) → sidebar shows "Schedule" → click `/schedule` → grid renders the next 7 days with green tiles in IST-derived buckets, displayed in the viewer's local TZ.
+- (b) Click a green tile → BookingDialog opens with the slot's date/time in the header, target list shows the user's accepted connections, duration radio defaults to 30 min, purpose is blank.
+- (c) Pick a target + Confirm booking → toast "Booked for {datetime}" → bookings table refreshes with the new row → the grid no longer offers the booked slot.
+- (d) Click that booked slot's `start` again (test path: book the same scheduled_at twice with a different target) → 409 toast "That slot just filled up — pick another" + grid refreshes.
+- (e) Click Cancel on a booking row → CancelDialog opens with the GCal warning → confirm → toast "Cancelled" → bookings list flips status to `cancelled` and removes the Cancel button.
+- (f) URL param sanity: visit `/schedule?from_date=2026-04-30&days=14` → grid window shifts to that range. `?days=99` clamps to 30.
+- (g) Sign in as a non-LP role (e.g. `+911234567894` startup_funded) → `/schedule` still loads (all-roles route).
 
 ### Open blockers
 
@@ -86,25 +91,26 @@ _(none)_
 
 ### Files touched this session
 
-- **MIS feature (new):**
-  - `src/features/mis/{schemas.ts, schemas.test.ts, index.ts}`.
-  - `src/features/mis/lib/format-inr.ts` (new — `₹ 21,00,000` Indian numbering).
-  - `src/features/mis/hooks/{use-mis-form, use-mis-prefill, use-submit-mis}.ts` + matching `.test.ts` files.
-  - `src/features/mis/components/MISForm.tsx`.
-  - `src/features/mis/routes/{MISPage.tsx, MISPage.test.tsx}`.
+- **Schedule feature (new):**
+  - `src/features/schedule/{schemas.ts, schemas.test.ts, index.ts}`.
+  - `src/features/schedule/lib/format-tz.ts` (new — viewer-TZ helpers wrapping date-fns-tz).
+  - `src/features/schedule/hooks/{use-slots, use-bookings, use-book-meeting, use-cancel-booking}.{ts,tsx}` + matching `.test.{ts,tsx}` files.
+  - `src/features/schedule/components/{SlotGrid, BookingDialog, BookingsList}.tsx`.
+  - `src/features/schedule/routes/{SchedulePage.tsx, SchedulePage.test.tsx}`.
 - **Cross-cutting:**
-  - `src/api/endpoints.ts` — added `getMisForm`, `getMisPrefill`, `postMisSubmit`.
-  - `src/api/query-keys.ts` — added `qk.mis.{all, form, prefill}`.
-  - `src/app/router.tsx` — `/mis` lazy-imported under startup_funded `<RoleGuard>`.
+  - `src/api/endpoints.ts` — added `getScheduleSlots`, `postScheduleBook`, `getScheduleBookings`, `deleteScheduleBooking`.
+  - `src/api/query-keys.ts` — added `qk.meetings.{all, slots, slotsAll, bookings, bookingsAll}`.
+  - `src/app/router.tsx` — `/schedule` lazy-imported under `<AppShell>` (no extra `<RoleGuard>`).
+  - `package.json` — added `date-fns-tz@^3.2.0`.
 - **MSW + tests:**
-  - `src/test/msw-fixtures/mis-handlers.ts` (new — stateful 409 reproduction).
+  - `src/test/msw-fixtures/schedule-handlers.ts` (new — stateful 409 reproduction).
   - `src/test/{msw-handlers.ts, setup.ts}` — registered + wired reset.
-- **Coordination:** `.claude/queue.md` (`mis` row ticked), `.claude/session.md` (this file).
+- **Coordination:** `.claude/queue.md` (`schedule` row ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 141/141 tests across 39 files (was 118/118 across 34 files — +23 new tests, +5 new test files: schemas, three hooks, one page).
+Yes. All four gates exit 0. 162/162 tests across 45 files (was 141/141 across 39 files — +21 new tests, +6 new test files: schemas, four hooks, one page).
 
 ### Last updated
 
-2026-04-25T19:00:00+05:30
+2026-04-25T19:20:00+05:30
