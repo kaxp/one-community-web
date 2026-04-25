@@ -19,6 +19,9 @@ import { resetMswMatchmakingOpsState } from './msw-fixtures/admin-matchmaking-op
 import { resetMswQuarterlyReportsState } from './msw-fixtures/admin-quarterly-reports-handlers';
 import { resetMswDlqState } from './msw-fixtures/admin-dlq-handlers';
 import { resetMswLpFunnelState } from './msw-fixtures/admin-lp-funnel-handlers';
+import { resetMswPartnerReferralState } from './msw-fixtures/admin-partner-referral-handlers';
+import { resetMswTracxnState } from './msw-fixtures/admin-tracxn-handlers';
+import { resetMswAnalyticsState } from './msw-fixtures/admin-analytics-handlers';
 import { useAuthStore } from '@/auth/auth-store';
 import { resetInteractionDedup } from '@/lib/interaction-dedup';
 
@@ -42,6 +45,9 @@ afterEach(() => {
   resetMswQuarterlyReportsState();
   resetMswDlqState();
   resetMswLpFunnelState();
+  resetMswPartnerReferralState();
+  resetMswTracxnState();
+  resetMswAnalyticsState();
   resetMswProfileState();
   resetInteractionDedup();
   useAuthStore.getState().clear();

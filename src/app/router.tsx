@@ -102,6 +102,21 @@ const AdminLpFunnelPage = lazy(() =>
     default: m.AdminLpFunnelPage,
   })),
 );
+const AdminPartnerReferralPage = lazy(() =>
+  import('@/features/admin/routes/AdminPartnerReferralPage').then((m) => ({
+    default: m.AdminPartnerReferralPage,
+  })),
+);
+const AdminTracxnPage = lazy(() =>
+  import('@/features/enrichment/routes/AdminTracxnPage').then((m) => ({
+    default: m.AdminTracxnPage,
+  })),
+);
+const AdminAnalyticsPage = lazy(() =>
+  import('@/features/analytics/routes/AdminAnalyticsPage').then((m) => ({
+    default: m.AdminAnalyticsPage,
+  })),
+);
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
 
@@ -392,6 +407,33 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminLpFunnelPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // PRD §7.12.6 — partner-referral broadcast.
+                      path: '/admin/partner-referral',
+                      element: (
+                        <Susp>
+                          <AdminPartnerReferralPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // PRD §7.15.1 — manual Tracxn ingest console.
+                      path: '/admin/tracxn',
+                      element: (
+                        <Susp>
+                          <AdminTracxnPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // PRD §7.14 — analytics with 4 URL tabs.
+                      path: '/admin/analytics',
+                      element: (
+                        <Susp>
+                          <AdminAnalyticsPage />
                         </Susp>
                       ),
                     },

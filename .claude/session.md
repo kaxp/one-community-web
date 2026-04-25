@@ -34,107 +34,113 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 4 Session 4.2 complete. Three admin features shipped: `admin-quarterly-reports`, `admin-dead-letter-jobs`, `admin-lp-funnel`. **Please spot-check before authorising Stage 4.3.**)_
+_(none — Stage 4 Session 4.3 complete. Three admin features shipped: `admin-partner-referral`, `admin-tracxn`, `admin-analytics`. **Stage 4 is now COMPLETE.** Please run final spot-check, tag `v0.4-admin`, then proceed to Stage 5.)_
 
 ### Last completed action
 
-Completed Stage 4.2 — three admin features in one batch.
+Completed Stage 4.3 — three admin features in one batch.
 
-**1. admin-quarterly-reports** (`/admin/quarterly-reports`):
-- 2 endpoints: `GET /admin/quarterly-reports?quarter=` (§7.12.7) + `POST /admin/quarterly-reports/approve` (§7.12.8).
-- Schema in `src/features/admin/schemas.ts` — `zQuarterlyReport` with `status: 'pending' | 'approved' | 'sent'`, `drive_url`, optional `distributed_at`/`recipient_count`.
-- Hooks: `useQuarterlyReports({ quarter })` + `useQuarterlyReportApprove()` (invalidates `qk.admin.quarterlyReportsAll` + `qk.admin.summary`).
-- Page: filter input + DataTable. Drive links use `target="_blank" rel="noopener noreferrer"`. Approve button only on pending rows. `<QuarterlyReportApproveDialog>` warns about distribution and surfaces a 409 inline with copy "Report already approved" instead of toasting (so the dialog can stay open while the list refetches).
-- Status label: pending → "Pending", approved → "Approved, distributing…", sent → "Sent". Single source via `statusLabel(report)`.
+**1. admin-partner-referral** (`/admin/partner-referral`):
+- 1 endpoint: `POST /admin/partner-referral` (§7.12.6).
+- Schema in `src/features/admin/schemas.ts` — `zPartnerReferralRequest` (sector required, message + startup_name optional with empty-string → undefined transform), `zPartnerReferralResponse.passthrough()`.
+- Hook: `usePartnerReferral()`.
+- Page: single `<ExecutionPanel>` with sector + startup_name + message fields. Toast on success: "Notified {N} partner{s}".
 
-**2. admin-dead-letter-jobs** (`/admin/dead-letter-jobs`):
-- 2 endpoints: `GET /admin/dead-letter-jobs` (§7.12.9 — **OFFSET pagination, the only endpoint that uses it** per §13 G10) + `POST /admin/dead-letter-jobs/{id}/retry` (§7.12.10).
-- Schema: `zDeadLetterJob` with `args: unknown[]`, `kwargs: Record<string,unknown>`, `traceback: string|null`, `retry_status: 'pending'|'retried'|'succeeded'|'abandoned'`. The list endpoint returns a bare array; pagination metadata lives at envelope level (`pagination.limit/offset`). The endpoint helper exposes a typed `DLQListResult` `{ items, limit, offset }`.
-- New shared component: `<OffsetPaginator>` in `src/components/pagination/OffsetPaginator.tsx`. Renders prev/next + "Page N · showing X of up to Y per page". Infers `hasNext = itemCount === limit` (we don't have a server-side total; this is the best signal until backend exposes one).
-- Hooks: `useDeadLetterJobs({ retry_status, limit, offset })` (15s staleTime) + `useDeadLetterRetry()` (invalidates `qk.admin.dlqAll` on settle so all status buckets refetch).
-- Page: URL-backed `?retry_status=pending|retried|succeeded|abandoned` tabs + `?offset=` paginator state. Click a row → `<DlqDetailDrawer>` with the full traceback rendered inside `<pre overflow-x-auto whitespace-pre>` and `args`/`kwargs` rendered as `JSON.stringify(value, null, 2)` inside `<code>`. Retry button only on pending rows; toast "Retried — new task {new_task_id}" on success, refetch on 409.
+**2. admin-tracxn** (`/admin/tracxn`):
+- 1 endpoint: `POST /enrichment/tracxn` (§7.15.1).
+- Schema in `src/features/enrichment/schemas.ts` — `zTracxnRequest` (company_name required, others optional with empty-string transforms), `zTracxnResponse.passthrough()` with `action: 'created'|'merged'|'duplicate_skipped'` discriminator.
+- Hook: `useTracxnIngest()` — invalidates `['search']` (prefix match — any new/updated startup may now appear) + `qk.admin.summary` on `created` / `merged` (skipped on `duplicate_skipped`).
+- Page: `<ExecutionPanel>` with all 7 input fields. The Funding Amount input uses `setValueAs` (not `valueAsNumber: true`) so an empty string becomes `undefined` cleanly. Toast copy varies per action: created → "Added {company_name}", merged → "Updated N fields on {company_name}", duplicate_skipped → "Already exists — no changes for {company_name}".
 
-**3. admin-lp-funnel** (`/admin/lp-funnel` picker + `/admin/lp-funnel/:user_id` detail):
-- 1 endpoint: `PUT /admin/lp/{user_id}/funnel-status` (§7.12.5).
-- Schema: `zLPFunnelStatus` enum + `zFunnelStatusRequest`/`Response`.
-- New lib: `src/features/admin/lib/funnel-labels.ts` — single source of truth for the 5 labels (`'1_new_lead'` → `"New Lead"`, `'2_first_reach_out'` → `"First reach-out"`, etc.) + a `FUNNEL_INDEX` map for client-side skip detection.
-- Hook: `useLpFunnelStatus()` — on success invalidates `qk.admin.lpFunnel(user_id)` + `qk.admin.summary`.
-- Picker page (`AdminLpFunnelPickerPage`): re-uses `useSearch` (POST /search) and filters to `target_type='lp'` results. Renders LP rows with an "Open funnel" link → `/admin/lp-funnel/:user_id`. Also has a "paste user_id directly" form for cases where the LP isn't in search.
-- Detail page (`AdminLpFunnelPage`): there is NO GET endpoint for current funnel status, so the page seeds `current` from the last-seen PUT response (or null on first load) and lets the admin pick a target stage. Buttons that would skip a stage are visually flagged "(needs override)" client-side via `FUNNEL_INDEX[target] - FUNNEL_INDEX[current] > 1`.
-- 409 surface: `FunnelOverrideDialog` opens when the backend rejects a forward skip, reading `current_status` + `attempted` from `err.detail`. Confirm re-PUTs with `override=true`. On success, the toast lists `auto_actions_triggered` (e.g. "Funnel set to In Conversation · deal_suggestions_enabled, meeting_scheduling_enabled").
+**3. admin-analytics** (`/admin/analytics`):
+- 6 endpoints: `GET /analytics/{overview, funnel/lp, funnel/startup, funnel/connections, cohort, match-success}` (§7.14.1–§7.14.6).
+- Schemas: `src/features/analytics/schemas.ts` — every shape `.passthrough()` per §13 G8. Overview models 11 documented KPIs; chart endpoints accept `items` arrays with the documented `status`/`week_of`/`cohort` keys plus tolerant extras. Cohort fields are all `nullable().optional()` because new cohorts haven't elapsed enough time for the longer windows.
+- Hooks: `useAnalyticsOverview`, `useAnalyticsFunnelLp`, `useAnalyticsFunnelStartup`, `useAnalyticsFunnelConnections`, `useAnalyticsCohort({ months })`, `useAnalyticsMatchSuccess`. All 60s staleTime.
+- Lib: `src/features/analytics/lib/labels.ts` — display label maps for LP funnel (re-using `LPFunnelStatus`), startup pipeline (top 6 + Other fallthrough), connections funnel.
+- Components (`src/features/analytics/components/`):
+  - `KpiCards.tsx` — 8 KPI cards rendered from a `KPIS` spec. Indian-numbering (`value.toLocaleString('en-IN')`). Unknown keys arriving from the backend are silently ignored (the debug dock can inspect raw via the `.passthrough()` pass).
+  - `FunnelBarChart.tsx` — horizontal `<BarChart>` from Recharts. Tooltip formatter guards against undefined.
+  - `CohortHeatmap.tsx` — table heatmap. Cells render `(retained_Nm / cohort_size * 100).toFixed(0) + '%'`; null cells (not yet elapsed) render `—` with a muted background. Color buckets at 80/60/40/20 thresholds.
+  - `MatchSuccessChart.tsx` — `<LineChart>` of accepted/rejected/skipped percentages over time. Multiplies the [0..1] payload by 100 for display.
+- Page (`AdminAnalyticsPage.tsx`): URL-backed `?tab=overview|funnel|cohort|match` tabs. Funnel tab renders three independently-error-bounded cards (LP, Startup, Connections) so a single failed endpoint doesn't break the others.
+- The main bundle grew +1.05 KB gzip; AdminAnalyticsPage chunk is 113.82 KB gzip — heavier than the prompt's 50–80 KB target because Recharts v3 has a wider surface area than v2. **Tracked as `[I-1]` in `issues.md` (severity L)** for Stage 5 polish; the lazy-split itself works correctly.
 
 **Cross-cutting:**
-- `src/api/endpoints.ts` — added `getQuarterlyReports`, `postQuarterlyReportApprove`, `getDeadLetterJobs` (with the typed `DLQListResult` shape that surfaces the envelope's `pagination` metadata), `postDeadLetterRetry`, `putLpFunnelStatus`.
-- `src/api/query-keys.ts` — added `qk.admin.quarterlyReports(quarter)`, `qk.admin.quarterlyReportsAll`, `qk.admin.dlq({retry_status,limit,offset})`, `qk.admin.dlqAll`, `qk.admin.lpFunnel(userId)`. Reshaped the existing dlq key from `(offset)` → object form to support per-status caching.
-- `src/app/router.tsx` — 4 new lazy routes wrapped in the existing admin RoleGuard.
-- MSW: 3 new handler files — `admin-quarterly-reports-handlers.ts`, `admin-dlq-handlers.ts`, `admin-lp-funnel-handlers.ts`. The DLQ handler pre-seeds 60 pending rows so the offset paginator can be exercised end-to-end (page 1 of 50, page 2 of 10). The funnel handler tracks per-user state + enforces skip detection (returns 409 unless `override=true`).
+- `src/api/endpoints.ts` — added 8 typed endpoint functions (`postPartnerReferral`, `postTracxnIngest`, `getAnalyticsOverview`, `getAnalyticsFunnelLp`, `getAnalyticsFunnelStartup`, `getAnalyticsFunnelConnections`, `getAnalyticsCohort`, `getAnalyticsMatchSuccess`).
+- `src/api/query-keys.ts` — added `qk.analytics.{overview, funnelLp, funnelStartup, funnelConnections, cohort(months), cohortAll, matchSuccess}`.
+- `src/app/router.tsx` — 3 new lazy routes under the existing admin RoleGuard.
+- MSW: 3 new handler files — `admin-partner-referral-handlers.ts`, `admin-tracxn-handlers.ts`, `admin-analytics-handlers.ts`. The Tracxn handler simulates idempotency (created → merged → duplicate_skipped on repeat submissions) AND exposes a `setMswTracxnForcedAction()` knob so tests can drive each branch deterministically. The analytics handler intentionally splices an unknown `speculative_signal_count` into the overview payload to prove `.passthrough()` preserves it.
 
-**Tests (+19 cases vs prior commit, total 290 across 76 files):**
-- `use-quarterly-reports.test.ts` (3): seeded list / quarter filter / 500.
-- `AdminQuarterlyReportsPage.test.tsx` (2): renders both rows with drive-link rel attributes / approve flow opens dialog + fires mutation.
-- `use-dead-letter-jobs.test.ts` (3): page 1 returns 50 / page 2 returns 10 / status filter respected.
-- `AdminDeadLetterJobsPage.test.tsx` (5): renders 50 rows + paginator / Next advances to page 2 / row click opens drawer with traceback + args + kwargs / Retry increments server count / tab switch shows different bucket.
-- `use-lp-funnel-status.test.tsx` (3): non-skip move success / 409 conflict on skip / override=true succeeds.
-- `AdminLpFunnelPage.test.tsx` (3): all 5 stage buttons render with labels / non-skip click fires PUT once / skip → override dialog → confirm fires successful PUT.
+**Tests (+18 cases vs prior commit, total 308 across 82 files):**
+- `use-partner-referral.test.tsx` (2): broadcasts seed payload / 422.
+- `AdminPartnerReferralPage.test.tsx` (2): renders form fields / submit fires + toast.
+- `use-tracxn-ingest.test.tsx` (3): created / merged with updated_fields / duplicate_skipped.
+- `AdminTracxnPage.test.tsx` (3): action-specific toast copy for each of the 3 actions.
+- `use-analytics.test.ts` (4): overview seed parses + preserves unknown keys (`.passthrough()` proof) / cohort 3 rows / match-success weekly rows / overview 500 → ApiError.
+- `AdminAnalyticsPage.test.tsx` (4): KPI cards on Overview tab / Funnel tab renders 3 charts / Cohort tab renders heatmap rows / Match Success tab renders the line chart. The page test mocks `<FunnelBarChart>` and `<MatchSuccessChart>` so jsdom doesn't have to ship Recharts' canvas/ResizeObserver internals.
 
-Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (290/290 across 76 files), `pnpm build` (exits 0). Per-feature chunks: AdminQuarterlyReportsPage **2.12 KB gzip**, AdminDeadLetterJobsPage **2.70 KB gzip**, AdminLpFunnelPickerPage **1.46 KB gzip**, AdminLpFunnelPage **1.93 KB gzip** — all comfortably under the 80 KB admin-feature budget. Main chunk: 292.35 → 293.26 KB gzip (+0.91 KB across 4 lazy routes).
+Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (308/308 across 82 files), `pnpm build` (exits 0). Per-feature chunks:
+- `AdminPartnerReferralPage` — **0.92 KB gzip** (well within budget).
+- `AdminTracxnPage` — **1.30 KB gzip** (well within budget).
+- `AdminAnalyticsPage` — **113.82 KB gzip** (over the prompt's 50–80 KB target; tracked as `[I-1]`).
+Main chunk: 293.26 → 294.31 KB gzip (+1.05 KB — within the prompt's <5 KB constraint).
 
 ### Next concrete step
 
-**Stage 4.2 is complete.** Per `queue.md` Session 4.2 footer: `_Spot-check gate_`. Wait for the human to spot-check before continuing into Session 4.3.
+**Stage 4 is COMPLETE.** Per `queue.md` Stage 4 footer: tag `v0.4-admin`. Wait for the human to:
+1. Run the final Stage 4 spot-check across all 9 admin features (3 from 4.1 + 3 from 4.2 + 3 from 4.3).
+2. Tag the repo `v0.4-admin`.
+3. Authorise Stage 5 (Polish + QA).
 
-Once authorised, the next features (Stage 4.3 — Partner referral + Tracxn + Analytics) are:
-- `admin-partner-referral` (§7.12.6).
-- `admin-tracxn` (§7.15.1).
-- `admin-analytics` (all of §7.14.1–7.14.6 with Recharts; remember §13 G8 — Zod `.passthrough()` until backend publishes formal schemas).
+Once authorised, the next features (Stage 5) are:
+- `qa-report` — Opus in QA mode writes `.claude/issues.md § Active`. No code changes.
+- `qa-fixes` — fix every non-deferred row from issues.md. Triages resolved vs archived. **Note:** `[I-1]` (analytics chunk size) is already in `§ Active` — fix or defer per human judgement.
+- `a11y-audit` — Lighthouse + keyboard nav smoke on top 10 screens.
+- `bundle-size` — route-level lazy on remaining admin routes (already done) + main < 300KB gzip.
+- `playwright-smoke` — signin → search → request-connect → admin-approve → target-accept E2E.
 
-Smoke checks for the just-shipped Stage 4.2 features (manual):
-- (a) Sign in as `+911234567890` (admin) → sidebar "Quarterly reports" → `/admin/quarterly-reports` → both seeded rows visible with status badges. The Q1-2026 row has an Approve button; Q4-2025 (sent) does not.
-- (b) Click Approve on Q1-2026 → confirm dialog warns about distribution → click Approve → row flips to "Approved, distributing…".
-- (c) Sidebar "Dead-letter jobs" → `/admin/dead-letter-jobs` → 50 pending rows + paginator. Click Next → 10 trailing rows. Click Previous → back to page 1.
-- (d) Click any task name → drawer opens with traceback in a horizontally-scrollable `<pre>`, args + kwargs as JSON. Close. Click Retry on a pending row → toast "Retried — new task celery-retry-1" → row moves to the Retried tab.
-- (e) Switch to the Retried tab via the tab bar → seed retried rows visible, no Retry button.
-- (f) Sidebar "LP funnel" → `/admin/lp-funnel` → search "Acme" or paste an LP user_id directly. Click "Open funnel" → detail page.
-- (g) On detail page, click "First reach-out" → toast "Funnel set to First reach-out · welcome_email_sent" → current badge updates.
-- (h) Click "In Conversation" → would skip → toast doesn't fire; the override dialog opens. Click "Enable override & continue" → toast lists `deal_suggestions_enabled, meeting_scheduling_enabled` + the badge advances.
-- (i) Sign in as a non-admin (LP) and try `/admin/quarterly-reports`, `/admin/dead-letter-jobs`, `/admin/lp-funnel/:id` → all redirect to `/unauthorized`.
+Smoke checks for the just-shipped Stage 4.3 features (manual):
+- (a) Sign in as `+911234567890` (admin) → sidebar "Tracxn ingest" → `/admin/tracxn` → submit a new company "Acme Test" → toast "Added Acme Test". Submit the SAME payload again → toast "Already exists — no changes for Acme Test". Change one field (e.g. funding_amount_cr) and submit again → toast "Updated 3 fields on Acme Test".
+- (b) Sidebar "Partner referral" → `/admin/partner-referral` → fill sector "fintech" → submit → toast "Notified 3 partners".
+- (c) Sidebar "Analytics" → `/admin/analytics` → Overview tab loads with 8 KPI cards. Switch to Funnel tab → 3 charts (LP, Startup pipeline with "Other" bucket, Connection requests). Switch to Cohort tab → heatmap with 3 cohorts; some cells render `—`. Switch to Match Success → line chart with 3 weekly data points trending up.
+- (d) Sign in as a non-admin (LP) and try the 3 routes → all redirect to `/unauthorized`.
+- (e) DevTools network tab on `/admin/analytics`: confirm the 113 KB Recharts chunk only loads when the analytics route activates, not on initial signin.
 
 ### Open blockers
 
-_(none)_
+_(none — `[I-1]` is non-blocking polish, deferred to Stage 5)_
 
 ### Files touched this session
 
-- **admin-quarterly-reports (new):**
-  - `src/features/admin/schemas.ts` — extended with `zQuarterlyReport`, request/response schemas, status enum.
-  - `src/features/admin/hooks/{use-quarterly-reports.ts, use-quarterly-report-approve.ts, use-quarterly-reports.test.ts}`.
-  - `src/features/admin/components/QuarterlyReportApproveDialog.tsx`.
-  - `src/features/admin/routes/{AdminQuarterlyReportsPage.tsx, AdminQuarterlyReportsPage.test.tsx}`.
-- **admin-dead-letter-jobs (new):**
-  - `src/features/admin/schemas.ts` — extended with DLQ enums + `zDeadLetterJob` + retry response.
-  - `src/components/pagination/OffsetPaginator.tsx` (new shared component — first reuse target for any future offset-paginated endpoint).
-  - `src/features/admin/hooks/{use-dead-letter-jobs.ts, use-dead-letter-retry.ts, use-dead-letter-jobs.test.ts}`.
-  - `src/features/admin/components/DlqDetailDrawer.tsx`.
-  - `src/features/admin/routes/{AdminDeadLetterJobsPage.tsx, AdminDeadLetterJobsPage.test.tsx}`.
-- **admin-lp-funnel (new):**
-  - `src/features/admin/schemas.ts` — extended with `zLPFunnelStatus` enum + request/response.
-  - `src/features/admin/lib/funnel-labels.ts` (new — single label map + `FUNNEL_INDEX`).
-  - `src/features/admin/hooks/{use-lp-funnel-status.ts, use-lp-funnel-status.test.tsx}`.
-  - `src/features/admin/components/FunnelOverrideDialog.tsx`.
-  - `src/features/admin/routes/{AdminLpFunnelPickerPage.tsx, AdminLpFunnelPage.tsx, AdminLpFunnelPage.test.tsx}`.
+- **admin-partner-referral (new):**
+  - `src/features/admin/schemas.ts` — extended with `zPartnerReferralRequest/Response`.
+  - `src/features/admin/hooks/{use-partner-referral.ts, use-partner-referral.test.tsx}`.
+  - `src/features/admin/routes/{AdminPartnerReferralPage.tsx, AdminPartnerReferralPage.test.tsx}`.
+- **admin-tracxn (new):**
+  - `src/features/enrichment/schemas.ts` (rewrite — was stub).
+  - `src/features/enrichment/index.ts` (barrel).
+  - `src/features/enrichment/hooks/{use-tracxn-ingest.ts, use-tracxn-ingest.test.tsx}`.
+  - `src/features/enrichment/routes/{AdminTracxnPage.tsx, AdminTracxnPage.test.tsx}`.
+- **admin-analytics (new):**
+  - `src/features/analytics/schemas.ts` (rewrite — was stub) + `index.ts` barrel.
+  - `src/features/analytics/lib/labels.ts`.
+  - `src/features/analytics/hooks/{use-analytics-overview, use-analytics-funnel-lp, use-analytics-funnel-startup, use-analytics-funnel-connections, use-analytics-cohort, use-analytics-match-success}.ts` + `use-analytics.test.ts`.
+  - `src/features/analytics/components/{KpiCards, FunnelBarChart, CohortHeatmap, MatchSuccessChart}.tsx`.
+  - `src/features/analytics/routes/{AdminAnalyticsPage.tsx, AdminAnalyticsPage.test.tsx}`.
 - **Cross-cutting:**
-  - `src/api/endpoints.ts` — added 5 typed endpoint functions (+ exported `DLQListResult` type).
-  - `src/api/query-keys.ts` — added quarterly-reports, dlq (object-keyed), lp-funnel keys.
-  - `src/app/router.tsx` — 4 new lazy routes under the admin RoleGuard.
+  - `src/api/endpoints.ts` — 8 new typed endpoint functions.
+  - `src/api/query-keys.ts` — `qk.analytics.*`.
+  - `src/app/router.tsx` — 3 new lazy routes.
+  - `package.json` — added `recharts@^3.8.1`.
 - **MSW + tests:**
-  - `src/test/msw-fixtures/{admin-quarterly-reports-handlers.ts, admin-dlq-handlers.ts, admin-lp-funnel-handlers.ts}` (new).
+  - `src/test/msw-fixtures/{admin-partner-referral-handlers.ts, admin-tracxn-handlers.ts, admin-analytics-handlers.ts}` (new).
   - `src/test/{msw-handlers.ts, setup.ts}` — registered + wired reset.
-- **Coordination:** `.claude/queue.md` (3 rows ticked), `.claude/session.md` (this file).
+- **Coordination:** `.claude/queue.md` (3 rows ticked), `.claude/session.md` (this file), `.claude/issues.md` ([I-1] added).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 290/290 tests across 76 files (was 271/271 across 70 files — +19 new tests, +6 new test files: 1 hook + 1 page per feature).
+Yes. All four gates exit 0. 308/308 tests across 82 files (was 290/290 across 76 files — +18 new tests, +6 new test files: 1 hook + 1 page per feature).
 
 ### Last updated
 
-2026-04-26T01:08:00+05:30
+2026-04-26T01:38:00+05:30

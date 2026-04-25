@@ -185,3 +185,30 @@ export const zFunnelStatusResponse = z.object({
   auto_actions_triggered: z.array(z.string()),
 });
 export type FunnelStatusResponse = z.infer<typeof zFunnelStatusResponse>;
+
+// PRD §7.12.6 — partner-referral broadcast.
+export const zPartnerReferralRequest = z.object({
+  sector: z.string().trim().min(1, 'Sector is required'),
+  message: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  startup_name: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+});
+export type PartnerReferralRequest = z.infer<typeof zPartnerReferralRequest>;
+
+export const zPartnerReferralResponse = z
+  .object({
+    partners_notified: z.number().int().nonnegative(),
+    partner_ids: z.array(z.string()),
+    sector: z.string(),
+  })
+  .passthrough();
+export type PartnerReferralResponse = z.infer<typeof zPartnerReferralResponse>;

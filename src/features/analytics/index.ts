@@ -1,2 +1,13 @@
-// analytics feature barrel. Populated in its Stage 2/3/4 session.
-export {};
+export type {
+  AnalyticsCohort,
+  AnalyticsFunnelConnections,
+  AnalyticsFunnelLp,
+  AnalyticsFunnelStartup,
+  AnalyticsMatchSuccess,
+  AnalyticsOverview,
+  CohortRow,
+  FunnelConnectionsItem,
+  FunnelLpItem,
+  FunnelStartupItem,
+  MatchSuccessRow,
+} from './schemas';

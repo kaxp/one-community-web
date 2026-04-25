@@ -83,9 +83,9 @@ _Spot-check gate_
 
 ### Session 4.3 — Partner referral + Tracxn + Analytics
 
-- [ ] **admin-partner-referral** — POST /admin/partner-referral (§7.12.6). Simple form.
-- [ ] **admin-tracxn** — POST /enrichment/tracxn (§7.15.1). Manual console form + action-specific toast (created / merged / skipped).
-- [ ] **admin-analytics** — all /analytics/* (§7.14.1–7.14.6). Four tabs: Overview (KPI cards), Funnel (3 stacked charts), Cohort (heatmap), Match Success (line chart). Recharts. Zod `.passthrough()` per §13 G8.
+- [x] **admin-partner-referral** — POST /admin/partner-referral (§7.12.6). Simple form.
+- [x] **admin-tracxn** — POST /enrichment/tracxn (§7.15.1). Manual console form + action-specific toast (created / merged / skipped).
+- [x] **admin-analytics** — all /analytics/* (§7.14.1–7.14.6). Four tabs: Overview (KPI cards), Funnel (3 stacked charts), Cohort (heatmap), Match Success (line chart). Recharts. Zod `.passthrough()` per §13 G8.
 
 _Spot-check gate_
 

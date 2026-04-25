@@ -81,4 +81,13 @@ export const qk = {
     history: (limit: number) => ['digest', 'history', { limit }] as const,
     historyAll: ['digest', 'history'] as const,
   },
+  analytics: {
+    overview: ['analytics', 'overview'] as const,
+    funnelLp: ['analytics', 'funnel', 'lp'] as const,
+    funnelStartup: ['analytics', 'funnel', 'startup'] as const,
+    funnelConnections: ['analytics', 'funnel', 'connections'] as const,
+    cohort: (months: number) => ['analytics', 'cohort', { months }] as const,
+    cohortAll: ['analytics', 'cohort'] as const,
+    matchSuccess: ['analytics', 'match-success'] as const,
+  },
 } as const;

@@ -40,6 +40,7 @@ import {
   zDeadLetterJobsResponse,
   zDeadLetterRetryResponse,
   zFunnelStatusResponse,
+  zPartnerReferralResponse,
   zQuarterlyReportApproveResponse,
   zQuarterlyReportsResponse,
   type AdminActionRequest,
@@ -52,10 +53,31 @@ import {
   type DLQRetryStatus,
   type FunnelStatusRequest,
   type FunnelStatusResponse,
+  type PartnerReferralRequest,
+  type PartnerReferralResponse,
   type QuarterlyReportApproveRequest,
   type QuarterlyReportApproveResponse,
   type QuarterlyReportsResponse,
 } from '@/features/admin/schemas';
+import {
+  zAnalyticsCohort,
+  zAnalyticsFunnelConnections,
+  zAnalyticsFunnelLp,
+  zAnalyticsFunnelStartup,
+  zAnalyticsMatchSuccess,
+  zAnalyticsOverview,
+  type AnalyticsCohort,
+  type AnalyticsFunnelConnections,
+  type AnalyticsFunnelLp,
+  type AnalyticsFunnelStartup,
+  type AnalyticsMatchSuccess,
+  type AnalyticsOverview,
+} from '@/features/analytics/schemas';
+import {
+  zTracxnResponse,
+  type TracxnRequest,
+  type TracxnResponse,
+} from '@/features/enrichment/schemas';
 import {
   zAdminDigestResponse,
   zDigestApproveResponse,
@@ -679,4 +701,69 @@ export async function putLpFunnelStatus(
   const payload = body.override === undefined ? { status: body.status } : body;
   const resp = await apiClient.put<ApiEnvelope<FunnelStatusResponse>>(url, payload);
   return zFunnelStatusResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.12.6 — partner-referral broadcast.
+export async function postPartnerReferral(
+  body: PartnerReferralRequest,
+): Promise<PartnerReferralResponse> {
+  const payload = stripUndefined(body as unknown as Record<string, unknown>);
+  const resp = await apiClient.post<ApiEnvelope<PartnerReferralResponse>>(
+    '/admin/partner-referral',
+    payload,
+  );
+  return zPartnerReferralResponse.parse(unwrap(resp.data, '/admin/partner-referral'));
+}
+
+// PRD §7.15.1 — Tracxn ingest. Idempotent on (website_domain, company_name).
+// `action ∈ {created, merged, duplicate_skipped}` drives the toast copy
+// page-side.
+export async function postTracxnIngest(body: TracxnRequest): Promise<TracxnResponse> {
+  const payload = stripUndefined(body as unknown as Record<string, unknown>);
+  const resp = await apiClient.post<ApiEnvelope<TracxnResponse>>('/enrichment/tracxn', payload);
+  return zTracxnResponse.parse(unwrap(resp.data, '/enrichment/tracxn'));
+}
+
+// PRD §7.14.1 — analytics overview KPIs.
+export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
+  const resp = await apiClient.get<ApiEnvelope<AnalyticsOverview>>('/analytics/overview');
+  return zAnalyticsOverview.parse(unwrap(resp.data, '/analytics/overview'));
+}
+
+// PRD §7.14.2 — LP funnel.
+export async function getAnalyticsFunnelLp(): Promise<AnalyticsFunnelLp> {
+  const resp = await apiClient.get<ApiEnvelope<AnalyticsFunnelLp>>('/analytics/funnel/lp');
+  return zAnalyticsFunnelLp.parse(unwrap(resp.data, '/analytics/funnel/lp'));
+}
+
+// PRD §7.14.3 — startup funnel.
+export async function getAnalyticsFunnelStartup(): Promise<AnalyticsFunnelStartup> {
+  const resp = await apiClient.get<ApiEnvelope<AnalyticsFunnelStartup>>(
+    '/analytics/funnel/startup',
+  );
+  return zAnalyticsFunnelStartup.parse(unwrap(resp.data, '/analytics/funnel/startup'));
+}
+
+// PRD §7.14.4 — connections funnel.
+export async function getAnalyticsFunnelConnections(): Promise<AnalyticsFunnelConnections> {
+  const resp = await apiClient.get<ApiEnvelope<AnalyticsFunnelConnections>>(
+    '/analytics/funnel/connections',
+  );
+  return zAnalyticsFunnelConnections.parse(unwrap(resp.data, '/analytics/funnel/connections'));
+}
+
+// PRD §7.14.5 — cohort retention.
+export async function getAnalyticsCohort(args: { months?: number }): Promise<AnalyticsCohort> {
+  const params = new URLSearchParams();
+  if (args.months !== undefined) params.set('months', String(args.months));
+  const qs = params.toString();
+  const url = `/analytics/cohort${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<AnalyticsCohort>>(url);
+  return zAnalyticsCohort.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.14.6 — match-success weekly.
+export async function getAnalyticsMatchSuccess(): Promise<AnalyticsMatchSuccess> {
+  const resp = await apiClient.get<ApiEnvelope<AnalyticsMatchSuccess>>('/analytics/match-success');
+  return zAnalyticsMatchSuccess.parse(unwrap(resp.data, '/analytics/match-success'));
 }

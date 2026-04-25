@@ -73,7 +73,16 @@ If the human defers an issue:
 
 ## § Active
 
-_(No active issues. QA pass has not run yet.)_
+### [I-1] AdminAnalyticsPage chunk is 113 KB gzip (target was 50–80 KB)
+
+- **Severity:** L
+- **File:** `src/features/analytics/routes/AdminAnalyticsPage.tsx` + the 4 chart components in `src/features/analytics/components/`
+- **Feature:** admin-analytics
+- **Rule violated:** Stage 4.3 prompt — "analytics chunk should appear separately ~50–80KB"
+- **Observed:** Recharts v3.8.1 ships heavier than the v2 estimates the prompt was written against. The lazy-split is working correctly (only fetched on `/admin/analytics`; main chunk only grew +1.05 KB gzip), but the analytics chunk itself is 386.37 KB raw / 113.82 KB gzip.
+- **Expected:** ~50–80 KB gzip per the prompt; the prod-grade fix is per-chart dynamic import or downgrading to recharts v2.
+- **Fix:** Either (a) wrap each chart import behind `React.lazy(() => import('recharts').then(...))` so the heavy library only loads on the active analytics tab, or (b) drop to `recharts@^2.x` which has a smaller surface area. Defer until Stage 5 polish.
+- **Found at:** 2026-04-26 (Stage 4.3 build)
 
 ---
 
