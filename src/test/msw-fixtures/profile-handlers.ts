@@ -1,5 +1,6 @@
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import type { ProfileView } from '@/features/profile/schemas';
+import { setMswConnectionsRows, setMswPendingRows } from '@/test/msw-fixtures/connections-handlers';
 
 // Three viewer states from PRD §7.5.1, scenario-switchable like search-handlers.ts.
 //   - 'no_connection'         — viewer has never interacted (default).
@@ -17,14 +18,6 @@ type ProfileScenario =
   | 'error_500';
 
 let scenario: ProfileScenario = 'no_connection';
-
-export function setMswProfileScenario(s: ProfileScenario) {
-  scenario = s;
-}
-
-export function resetMswProfileState() {
-  scenario = 'no_connection';
-}
 
 const STARTUP_FIXTURE_ID = '11111111-1111-4000-8000-000000000001';
 const STARTUP_FIXTURE_BASE: Pick<
@@ -84,18 +77,17 @@ const FIXTURES: Record<
   accepted_with_contact: ACCEPTED_WITH_CONTACT,
 };
 
-// Helpers for tests that exercise the §13 G1 interim path. Both connections
-// endpoints return scenario-driven fixtures so the composer derives the right
-// `viewer_interaction` flags + `contact`. POST /search is unchanged — its
-// catalogue (search-fixtures.ts) is augmented to include user_ids in the
-// haystack so passing the UUID as the `query` returns the matching item.
+// Rows seeded into the connections-handlers store (the canonical owner of
+// `GET /connections` + `GET /connections/pending`) when the corresponding
+// profile scenario is selected. The §13 G1 interim composer reads through to
+// those endpoints and derives `viewer_interaction` + `contact`.
 const ACCEPTED_CONNECTIONS_ITEM = {
   connection_id: 'aa11bb22-cc33-dd44-ee55-ff6677889900',
-  status: 'accepted',
+  status: 'accepted' as const,
   counterpart: {
     user_id: STARTUP_FIXTURE_ID,
     name: 'Kapil Sahu',
-    role: 'startup_funded',
+    role: 'startup_funded' as const,
     organisation: 'Acme Technologies',
     avatar_url: null,
     contact: {
@@ -104,6 +96,8 @@ const ACCEPTED_CONNECTIONS_ITEM = {
       linkedin_url: 'https://linkedin.com/in/kapilsahu',
     },
   },
+  intro_id: null,
+  feedback_submitted: true,
   created_at: '2026-04-10T10:30:00Z',
   responded_at: '2026-04-11T08:01:00Z',
 };
@@ -115,14 +109,39 @@ const PENDING_CONNECTION_ITEM = {
   counterpart: {
     user_id: STARTUP_FIXTURE_ID,
     name: 'Kapil Sahu',
-    role: 'startup_funded',
+    role: 'startup_funded' as const,
     organisation: 'Acme Technologies',
     avatar_url: null,
   },
-  message: null as string | null,
+  message: null,
   created_at: '2026-04-22T10:30:00Z',
-  responded_at: null as string | null,
+  responded_at: null,
 };
+
+// `GET /connections` and `GET /connections/pending` are owned by
+// connections-handlers (the connections feature). The profile §13 G1 interim
+// composer depends on those endpoints to derive `viewer_interaction` flags +
+// `contact`; we delegate scenario-specific seeding into the connections store
+// here so profile tests can keep using `setMswProfileScenario` as the single
+// switch.
+export function setMswProfileScenario(s: ProfileScenario) {
+  scenario = s;
+  if (s === 'accepted_with_contact') {
+    setMswConnectionsRows([ACCEPTED_CONNECTIONS_ITEM]);
+    setMswPendingRows([]);
+  } else if (s === 'pending') {
+    setMswConnectionsRows([]);
+    setMswPendingRows([PENDING_CONNECTION_ITEM]);
+  } else {
+    // no_connection / forbidden / not_found / error_500 — empty derived state.
+    setMswConnectionsRows([]);
+    setMswPendingRows([]);
+  }
+}
+
+export function resetMswProfileState() {
+  scenario = 'no_connection';
+}
 
 export const profileHandlers: HttpHandler[] = [
   // Real endpoint — exercised when VITE_PROFILE_V1_ENABLED=true.
@@ -150,29 +169,5 @@ export const profileHandlers: HttpHandler[] = [
       data: { ...fixture, user_id: String(params.id) },
       error: null,
     });
-  }),
-
-  // Connections list — used by the §13 G1 interim composer to derive
-  // `contact` + `has_connected`. Returns the fixture row only when the
-  // accepted scenario is active.
-  http.get('*/api/v1/connections', () => {
-    if (scenario === 'accepted_with_contact') {
-      return HttpResponse.json({
-        data: { items: [ACCEPTED_CONNECTIONS_ITEM], next_cursor: null },
-        error: null,
-      });
-    }
-    return HttpResponse.json({ data: { items: [], next_cursor: null }, error: null });
-  }),
-
-  // Pending connections — drives `has_requested`.
-  http.get('*/api/v1/connections/pending', () => {
-    if (scenario === 'pending') {
-      return HttpResponse.json({
-        data: { items: [PENDING_CONNECTION_ITEM], next_cursor: null },
-        error: null,
-      });
-    }
-    return HttpResponse.json({ data: { items: [], next_cursor: null }, error: null });
   }),
 ];

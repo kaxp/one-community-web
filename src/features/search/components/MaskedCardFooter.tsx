@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { Lock, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { can } from '@/lib/role-capabilities';
 import { useRole } from '@/auth/use-auth';
+import { RequestConnectDialog } from '@/features/connections/components/RequestConnectDialog';
 
 interface Props {
   targetUserId: string;
+  targetName?: string;
 }
 
 // The escalation panel rendered at the bottom of every masked result card.
@@ -13,17 +16,17 @@ interface Props {
 // out — request a connection (in-platform, admin-gated, the canonical
 // escalation per decisions.md [P-20]) or upgrade for instant access (the
 // monetisation hook — placeholder until the upgrade flow is built).
-export function MaskedCardFooter({ targetUserId }: Props) {
+export function MaskedCardFooter({ targetUserId, targetName }: Props) {
   const role = useRole();
   const canRequestConnect = can(role, 'connections.request');
+  const [open, setOpen] = useState(false);
 
   const onRequestConnect = () => {
     if (!canRequestConnect) {
       toast.error("Your role can't send connection requests yet.");
       return;
     }
-    // TODO(stage-3 connections): wire to POST /connections/request with target_id.
-    toast.success('Request to connect — coming with the Connections feature in Stage 3.');
+    setOpen(true);
   };
 
   const onUpgrade = () => {
@@ -54,6 +57,12 @@ export function MaskedCardFooter({ targetUserId }: Props) {
           <span>Upgrade for full access</span>
         </Button>
       </div>
+      <RequestConnectDialog
+        open={open}
+        onOpenChange={setOpen}
+        targetId={targetUserId}
+        targetName={targetName ?? 'this person'}
+      />
     </div>
   );
 }

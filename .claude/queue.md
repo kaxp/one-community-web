@@ -41,7 +41,7 @@ When a whole stage's boxes are ticked, pause and await human review before start
 ## Stage 3 — User features (Opus: 8 sessions autonomous, spot-checks every 4)
 
 - [x] **profile-view** — GET /profile/{id} (§7.5.1). **Flagged** — read §13 G1 first; build with interim service via `src/api/interim/profile-service.ts` when `VITE_PROFILE_V1_ENABLED=false`.
-- [ ] **connections** — GET /connections (§7.6.4) + GET /connections/pending (§7.6.5) + PATCH /connections/{id}/respond (§7.6.3) + POST /interactions/feedback (§7.7.2). Two routes. Incoming/outgoing tabs on pending.
+- [x] **connections** — GET /connections (§7.6.4) + GET /connections/pending (§7.6.5) + PATCH /connections/{id}/respond (§7.6.3) + POST /interactions/feedback (§7.7.2). Two routes. Incoming/outgoing tabs on pending.
 
 _Spot-check gate after 2 features above_
 

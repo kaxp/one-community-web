@@ -34,29 +34,57 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 3 first feature `profile-view` complete; next unchecked queue.md row is `connections`)_
+_(none — Stage 3 second feature `connections` complete; next unchecked queue.md row is `pitch`)_
 
 ### Last completed action
 
-Completed Stage 3 first feature **profile-view** end-to-end against the §13 G1 gap (`VITE_PROFILE_V1_ENABLED=false`). PRD §7.5.1 implemented; flip plan is a single env-var change.
+Completed Stage 3 second feature **connections** end-to-end. All four PRD endpoints (§7.6.1, §7.6.3, §7.6.4, §7.6.5) plus the §7.7.2 feedback flow ship behind two new routes plus the canonical "Request to connect" dialog reused by the Profile page and the partner-masked search footer.
 
-- **Schemas** (`src/features/profile/schemas.ts`): `zProfileView` + nested `zStartupBlock` / `zLPBlock` / `zVCBlock` / `zContact` / `zViewerInteraction`. Every nullable field is `.nullable().optional()` so the same parser handles all three viewer states (no-connection / pending / accepted-with-contact) plus partner-masked responses (PRD §8.12.3).
-- **Endpoint** (`src/api/endpoints.ts`): `getProfileById(id)` branches on `env.PROFILE_V1_ENABLED`. Flag on → real `GET /profile/{id}` + Zod parse. Flag off → `ProfileServiceInterim.getById(id)`. Public signature is identical so the flip is a one-line env change.
-- **Interim composer** (`src/api/interim/profile-service.ts`): runs `POST /search { query: targetUserId }` + `GET /connections` + `GET /connections/pending` in parallel; matches the target by `user_id` in the search hit (the connections lists derive `contact`, `has_connected`, `has_requested`); throws `ApiError(404)` when no source has the user. The search MSW haystack now includes `user_id` so the UUID-as-query strategy returns the matching catalogue item.
-- **Hook** (`src/features/profile/hooks/use-profile.ts`): thin `useQuery` keyed on `qk.profile.byId(id)` with `staleTime: 30_000`.
-- **Page** (`src/features/profile/routes/ProfilePage.tsx`): all four UI states — skeleton loading, EmptyState for missing id / 404, ErrorState for other errors, success body. Success body renders: back button, header card (avatar + name + role badge + organisation/designation), action area (Request to connect / Pending admin approval / Connected — driven by `viewer_interaction` + `can(role, 'connections.request')`), startup OR LP block based on target role, ContactCard ONLY when `contact !== null`. `useLogInteraction({ interaction_type: 'profile_view', target_id, target_type, source: 'profile_page' })` fires once on mount; the new module-level dedup absorbs StrictMode double-invokes and remounts within 10s. Partner viewers see `<LockedField>` blurred placeholders for missing rows via the new `<InfoRow>` primitive (mirrors the search-card mask UX from [P-21]).
-- **Routing** (`src/app/router.tsx`): `/profile/:id` mounted under `<RequireAuth><ProfileGate><AppShell>` inside the same searcher `<RoleGuard>` that wraps `/search` (`lp, potential_lp, vc, startup_funded, partner, admin, super_admin`). Page is `React.lazy`-imported at module scope per [P-19].
-- **Module-level interaction dedup** (`src/lib/interaction-dedup.ts`): hoisted out of `useLogInteraction`'s useRef into a module-scoped `Map` so a page mount → unmount → remount within 10s does NOT re-fire. `resetInteractionDedup()` wired into `src/test/setup.ts` afterEach to keep tests isolated.
-- **MSW** (`src/test/msw-fixtures/profile-handlers.ts`): three scenario fixtures (`no_connection`, `pending`, `accepted_with_contact`) + `forbidden` / `not_found` / `error_500` error scenarios, scenario-switchable via `setMswProfileScenario`. Owns `GET /profile/{id}` (for the flag=true path), `GET /connections`, and `GET /connections/pending` (for the §13 G1 interim composer). Registered in `msw-handlers.ts`; `resetMswProfileState()` wired into `setup.ts`.
-- **Tests** (+13 cases vs prior commit, total 82 across 21 files):
-  - 3 `useProfile` cases — composes no-connection / pending / accepted-with-contact viewer states correctly through the interim path.
-  - 5 `ProfilePage` smoke cases — renders Request-to-connect on no-connection, Pending status on pending, Contact card + Connected pill on accepted, "Profile not found" empty state on 404, and partner viewer renders without crashing.
+- **Schemas** (`src/features/connections/schemas.ts`): full set — `zAcceptedConnection` / `zPendingConnection` (with discriminator `direction`) / `zConnectionRequestBody` (200-char `message`) / `zRespondBody` (`accept|decline`) / `zFeedbackBody` (`yes|no`) plus matching response schemas. Optional `intro_id` + `feedback_submitted` on the accepted shape so the §7.7.2 prompt can render off the same row.
+- **Endpoint functions** (`src/api/endpoints.ts`): `requestConnection`, `respondToConnection`, `listConnections`, `listPendingConnections`, `submitFeedback` — all with Zod parse on the response and `stripUndefined` on the request payload.
+- **Query keys** (`src/api/query-keys.ts`): `qk.connections.list(limit)` + `qk.connections.pending(limit)` reshaped to drop the cursor parameter (cursor flows via `useInfiniteQuery`'s `pageParam`); the broad-prefix `qk.connections.listAll` / `qk.connections.pendingAll` keys remain for invalidation. Existing `qk.connections.pending(50)` call sites in admin tests continue to work after the signature change (still takes `limit`).
+- **Hooks** (`src/features/connections/hooks/`):
+  - `useConnections({limit=50})` — `useInfiniteQuery` against `qk.connections.list(50)`.
+  - `useConnectionsPending({limit=50})` — `useInfiniteQuery` against `qk.connections.pending(50)`. Direction filtering happens client-side per PRD §7.6.5 transformation note.
+  - `useRespondToConnection()` — optimistic remove from `qk.connections.pending(50)`, rollback on error. On accept, also invalidates `qk.connections.listAll` + `qk.profile.byId(counterpart_id)` (PRD §7.6.3 transformation note + §8.12.4 row).
+  - `useRequestConnection()` — invalidates `qk.connections.pendingAll` + `qk.profile.byId(target_id)` so the profile button flips to "Pending admin approval" (PRD §8.12.4).
+  - `useFeedback()` — thin `useMutation` against `POST /interactions/feedback`. Hides the prompt on 200 / 409 / 404 (the 409 + 404 paths collapse silently so users aren't told their already-recorded feedback failed).
+- **Routes** (`src/app/router.tsx`): `/connections` and `/connections/pending` mounted under `<RequireAuth><ProfileGate><AppShell>`. No `<RoleGuard>` wrapping — both routes are "any authenticated" per PRD §7.6.4 / §7.6.5. Both are `React.lazy`-imported at module scope per [P-19].
+- **Pages**:
+  - `routes/ConnectionsPage.tsx` — accepted list with skeleton / empty / error / success states. `<AcceptedConnectionCard>` renders counterpart link to `/profile/:id` + role badge + `<ContactStrip>` ONLY when `contact !== null` (never with a `?? '—'` placeholder for the whole block per the prompt's gotcha). The 48h `<FeedbackPrompt>` renders below the card when `intro_id` is present and `feedback_submitted !== true`.
+  - `routes/PendingConnectionsPage.tsx` — two URL-tabs (`?direction=incoming|outgoing`). Incoming `pending_target` rows get `<InlineExecutionButton>` Accept/Decline (one mutation hook per row → per-row isPending + per-call toasts). Outgoing rows render a status pill (Awaiting admin / Awaiting target / Rejected / Declined) and **never** show Accept/Decline. Filter is client-side; both directions fetch from the same `useInfiniteQuery`.
+- **Request-to-Connect dialog** (`components/RequestConnectDialog.tsx`): `<Dialog>` + RHF + Zod (200-char optional message). 200 → toast + close + invalidate. 409 → "already exists" toast + close. 404 → "user not found" toast + close. 422/other → inline `<ErrorState compact>`.
+- **Dialog wiring**:
+  - `src/features/profile/routes/ProfilePage.tsx` — Request-to-connect button now opens the dialog (replaces the previous Stage-2 toast-only stub).
+  - `src/features/search/components/MaskedCardFooter.tsx` — partner-mask "Request to connect" button now opens the dialog (replaces the previous toast-only stub). `<ResultCard>` passes `targetName = company_name ?? name` (startup) / `fund_name ?? name` (LP) so the dialog shows the right counterpart name.
+- **Components** (`src/features/connections/components/`):
+  - `ContactStrip.tsx` — three chips (email / phone / linkedin) for accepted connections. Renders `null` when no contact channel is present so the card never shows an empty strip.
+  - `FeedbackPrompt.tsx` — Yes/No prompt with internal `hidden` state; collapses on 200, 409, or 404.
+  - `AcceptedConnectionCard.tsx` — accepted row + optional feedback prompt.
+  - `PendingConnectionCard.tsx` — pending row with row-local `<Actions>` + `<StatusPill>` sub-components.
+  - `RequestConnectDialog.tsx` — see above.
+- **MSW** (`src/test/msw-fixtures/connections-handlers.ts`): canonical owner of `GET /connections`, `GET /connections/pending`, `POST /connections/request`, `PATCH /connections/:id/respond`, `POST /interactions/feedback`. Module-scoped fixture stores with helpers `setMswConnectionsRows`, `setMswPendingRows`, `queueRespondError`, `queueRequestError`, `queueFeedbackError`, `queueConnectionsListError`, `queuePendingListError`. Counter-based UUID generator avoids the malformed-UUID Zod-parse failures that an earlier draft hit. Profile-handlers no longer registers `GET /connections` / `GET /connections/pending`; `setMswProfileScenario` now seeds the connections-handlers store directly so the existing profile §13 G1 interim tests continue to pass with no test-file changes.
+- **Test setup** (`src/test/setup.ts` + `src/test/msw-handlers.ts`): registered the new handlers (after admin, before profile so admin's more-specific `/connections/:id/admin` matches before `/connections/:id/respond`); reset wired into `afterEach`.
+- **Tests** (+21 cases vs prior commit, total 103 across 28 files):
+  - `useConnections` (2): success + 500 error.
+  - `useConnectionsPending` (2): mixed direction + 500 error.
+  - `useRespondToConnection` (4): accept invalidates the right keys; decline does NOT invalidate listAll/profile; optimistic remove from cached pending; rollback on 409.
+  - `useRequestConnection` (2): success invalidates pendingAll + profile.byId; 409 surfaces ApiError.
+  - `useFeedback` (2): records yes; 409 surfaces ApiError.
+  - `ConnectionsPage` (4): renders seeded rows + email; empty state; ErrorState on 500; 48h feedback prompt visible when `intro_id` is set + `feedback_submitted=false`.
+  - `PendingConnectionsPage` (5): default Incoming tab with Accept/Decline; switching to Outgoing hides Accept/Decline + shows status pill; Accept optimistically removes the row; 409 conflict surfaces a single toast; empty-state message when active direction has no rows.
 
-Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (82/82), `pnpm build` (exits 0). Bundle: ProfilePage chunk **2.66 KB gzip**, main chunk 285.77 → 287.09 KB gzip (+1.32 KB — well under the 30 KB-per-feature budget per CLAUDE.md §10).
+Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (103/103), `pnpm build` (exits 0). Per-feature chunks: ConnectionsPage **1.95 KB gzip**, PendingConnectionsPage **2.31 KB gzip**, RequestConnectDialog **1.94 KB gzip**. Main chunk: 287.09 → 287.65 KB gzip (+0.56 KB — well under the 30 KB-per-feature budget).
 
 ### Next concrete step
 
-Pick up the next unchecked feature in `queue.md § Stage 3` — **`connections`** (PRD §7.6.4 + §7.6.5 + §7.6.3 + §7.7.2). Two routes (`/connections` accepted list, `/connections/pending` incoming/outgoing tabs), with PATCH `/connections/{id}/respond` + POST `/interactions/feedback` mutations. Note: the profile interim composer already calls `GET /connections` + `GET /connections/pending` via MSW handlers in `profile-handlers.ts` — the connections feature will likely promote those handlers (or replicate them) into a dedicated `connections-handlers.ts` and add the missing fixtures (rejected_admin, declined). Smoke checks for the just-shipped profile-view: (a) sign in as LP `+911234567892`, navigate to `/profile/11111111-1111-4000-8000-000000000001` — startup card renders with Request-to-connect button; (b) sign in as partner `+911234567897` to confirm masked view via `<InfoRow>` placeholders; (c) hard-refresh the page within 10s and verify only one `POST /interactions/log` fires (Network tab) — confirms the module-level dedup.
+Pick up the next unchecked feature in `queue.md § Stage 3` — **`pitch`** (PRD §7.3.1 GET / POST profile, §7.3.3 POST deck, §7.3.4 GET deck job poll). Use `<ExecutionPanel jobPoll={...}>` for the deck-eval flow per PRD §6.7. Smoke checks for the just-shipped connections feature:
+- (a) Sign in as LP `+911234567892`, navigate to `/connections` — accepted Kapil row renders with email/phone/LinkedIn chips and the 48h feedback prompt.
+- (b) Click Yes on the prompt → toast "Thanks for the feedback" + prompt collapses.
+- (c) Navigate to `/connections/pending` — Incoming tab default, Priya Rao Accept/Decline visible. Click Accept → row vanishes optimistically, toast "Connection accepted — contact details unlocked", `/connections` refetch surfaces the new accepted row.
+- (d) Switch to Outgoing tab via URL `?direction=outgoing` — Aryan Mehta + Rhea Iyer rows show status pills only (no Accept/Decline buttons; gotcha #3 from the prompt).
+- (e) On `/profile/<startup-id>` (no_connection scenario), click Request to connect → modal opens, 200-char counter live; submit → admin-approval toast + dialog closes.
+- (f) Sign in as partner `+911234567897`, run a search, click Request to connect on a result card → same dialog opens.
 
 ### Open blockers
 
@@ -64,16 +92,29 @@ _(none)_
 
 ### Files touched this session
 
-- **Profile feature (new):** `src/features/profile/{schemas.ts, index.ts}`, `src/features/profile/hooks/{use-profile.ts, use-profile.test.ts}`, `src/features/profile/components/{InfoRow.tsx, ProfileHeader.tsx, StartupBlock.tsx, LPBlock.tsx, ContactCard.tsx}`, `src/features/profile/routes/{ProfilePage.tsx, ProfilePage.test.tsx}`.
-- **Interim service (new):** `src/api/interim/profile-service.ts`.
-- **Cross-cutting:** `src/api/endpoints.ts` (`getProfileById`), `src/api/query-keys.ts` (`qk.profile.{all,byId}`), `src/app/router.tsx` (`/profile/:id` route + lazy import), `src/lib/interaction-dedup.ts` (new), `src/features/interactions/hooks/use-log-interaction.ts` (refactored to use module-level dedup).
-- **MSW + tests:** new `src/test/msw-fixtures/profile-handlers.ts`; modified `src/test/{msw-handlers.ts, setup.ts}`. `src/test/msw-fixtures/search-handlers.ts` haystacks now include `user_id` so the §13 G1 composer's UUID-as-query strategy works.
-- **Coordination:** `.claude/queue.md` (`profile-view` row ticked), `.claude/session.md` (this file).
+- **Connections feature (new):**
+  - `src/features/connections/{schemas.ts, index.ts}`.
+  - `src/features/connections/hooks/{use-connections,use-connections-pending,use-respond-to-connection,use-request-connection,use-feedback}.ts` (+ matching `.test.{ts,tsx}` files).
+  - `src/features/connections/components/{ContactStrip,FeedbackPrompt,AcceptedConnectionCard,PendingConnectionCard,RequestConnectDialog}.tsx`.
+  - `src/features/connections/routes/{ConnectionsPage,PendingConnectionsPage}.{tsx,test.tsx}`.
+- **Cross-cutting:**
+  - `src/api/endpoints.ts` — added `requestConnection`, `respondToConnection`, `listConnections`, `listPendingConnections`, `submitFeedback`.
+  - `src/api/query-keys.ts` — `qk.connections.list(limit)` and `qk.connections.pending(limit)` reshaped (cursor dropped from key; flows via pageParam).
+  - `src/app/router.tsx` — `/connections` + `/connections/pending` lazy-imported routes.
+- **Dialog wiring:**
+  - `src/features/profile/routes/ProfilePage.tsx` — Request-to-connect button opens `<RequestConnectDialog>` (replaces prior toast stub).
+  - `src/features/search/components/MaskedCardFooter.tsx` — partner-mask "Request to connect" opens `<RequestConnectDialog>` (replaces prior toast stub).
+  - `src/features/search/components/ResultCard.tsx` — passes `targetName` to `<MaskedCardFooter>`.
+- **MSW + tests:**
+  - `src/test/msw-fixtures/connections-handlers.ts` (new — canonical owner).
+  - `src/test/msw-fixtures/profile-handlers.ts` — removed `GET /connections` + `GET /connections/pending` handlers; `setMswProfileScenario` now delegates seeding into the connections-handlers store.
+  - `src/test/{msw-handlers.ts, setup.ts}` — registered + wired reset.
+- **Coordination:** `.claude/queue.md` (`connections` row ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 82/82 tests across 21 files.
+Yes. All four gates exit 0. 103/103 tests across 28 files.
 
 ### Last updated
 
-2026-04-25T16:30:00+05:30
+2026-04-25T17:05:00+05:30

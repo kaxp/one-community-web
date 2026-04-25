@@ -36,6 +36,16 @@ const AdminConnectionsPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import('@/features/profile/routes/ProfilePage').then((m) => ({ default: m.ProfilePage })),
 );
+const ConnectionsPage = lazy(() =>
+  import('@/features/connections/routes/ConnectionsPage').then((m) => ({
+    default: m.ConnectionsPage,
+  })),
+);
+const PendingConnectionsPage = lazy(() =>
+  import('@/features/connections/routes/PendingConnectionsPage').then((m) => ({
+    default: m.PendingConnectionsPage,
+  })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -111,6 +121,22 @@ export const router = createBrowserRouter(
                       ),
                     },
                   ],
+                },
+                {
+                  path: '/connections',
+                  element: (
+                    <Susp>
+                      <ConnectionsPage />
+                    </Susp>
+                  ),
+                },
+                {
+                  path: '/connections/pending',
+                  element: (
+                    <Susp>
+                      <PendingConnectionsPage />
+                    </Susp>
+                  ),
                 },
                 {
                   path: '/documents',

@@ -1,7 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Lock, Sparkles, UserSearch } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,6 +16,7 @@ import { ProfileHeader } from '@/features/profile/components/ProfileHeader';
 import { StartupProfileBlock } from '@/features/profile/components/StartupBlock';
 import { LPProfileBlock } from '@/features/profile/components/LPBlock';
 import { ContactCard } from '@/features/profile/components/ContactCard';
+import { RequestConnectDialog } from '@/features/connections/components/RequestConnectDialog';
 
 export function ProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -115,6 +115,7 @@ function ProfileBody({
   role: ReturnType<typeof useRole>;
 }) {
   const navigate = useNavigate();
+  const [dialogOpen, setDialogOpen] = useState(false);
   // Capability + state-derived rules per PRD §7.5.1 UI flow.
   const canRequestRole = can(role, 'connections.request');
   const showRequestButton =
@@ -138,12 +139,6 @@ function ProfileBody({
     [profile.role],
   );
 
-  const onRequestConnect = () => {
-    // Stage-3 connections feature wires this to POST /connections/request. Until
-    // then the button surfaces an in-platform escalation message (decisions.md [P-20]).
-    toast.success('Request to connect — coming with the Connections feature in Stage 3.');
-  };
-
   return (
     <div className="flex flex-col gap-6">
       <Button
@@ -162,7 +157,7 @@ function ProfileBody({
           <ProfileHeader profile={profile} isMasked={isMasked} />
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {showRequestButton ? (
-              <Button onClick={onRequestConnect}>Request to connect</Button>
+              <Button onClick={() => setDialogOpen(true)}>Request to connect</Button>
             ) : null}
             {showPendingStatus ? (
               <span
@@ -194,6 +189,13 @@ function ProfileBody({
       ) : null}
 
       {profile.contact ? <ContactCard contact={profile.contact} /> : null}
+
+      <RequestConnectDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        targetId={profile.user_id}
+        targetName={profile.name}
+      />
     </div>
   );
 }

@@ -148,7 +148,9 @@ export function ResultCard({ item, targetType, query, isMasked = false }: Props)
             locked={<LockedField label="AI rank" lines={2} tone="panel" />}
           />
 
-          {isMasked ? <MaskedCardFooter targetUserId={s.user_id} /> : null}
+          {isMasked ? (
+            <MaskedCardFooter targetUserId={s.user_id} targetName={s.company_name ?? s.name} />
+          ) : null}
         </CardContent>
       </Card>
     );
@@ -228,7 +230,9 @@ export function ResultCard({ item, targetType, query, isMasked = false }: Props)
           locked={<LockedField label="AI rank" lines={2} tone="panel" />}
         />
 
-        {isMasked ? <MaskedCardFooter targetUserId={lp.user_id} /> : null}
+        {isMasked ? (
+          <MaskedCardFooter targetUserId={lp.user_id} targetName={lp.fund_name ?? lp.name} />
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -37,6 +37,21 @@ import {
   type AdminConnectionStatus,
 } from '@/features/admin/schemas';
 import { zProfileView, type ProfileView } from '@/features/profile/schemas';
+import {
+  zAcceptedConnectionsResponse,
+  zConnectionRequestResponse,
+  zFeedbackResponse,
+  zPendingConnectionsResponse,
+  zRespondResponse,
+  type AcceptedConnectionsResponse,
+  type ConnectionRequestBody,
+  type ConnectionRequestResponse,
+  type FeedbackBody,
+  type FeedbackResponse,
+  type PendingConnectionsResponse,
+  type RespondBody,
+  type RespondResponse,
+} from '@/features/connections/schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
 
@@ -137,4 +152,58 @@ export async function getProfileById(id: string): Promise<ProfileView> {
     return zProfileView.parse(unwrap(resp.data, `/profile/${id}`));
   }
   return ProfileServiceInterim.getById(id);
+}
+
+// PRD §7.6.1 — `POST /connections/request`. `message` becomes `reason` in DB.
+export async function requestConnection(
+  body: ConnectionRequestBody,
+): Promise<ConnectionRequestResponse> {
+  const resp = await apiClient.post<ApiEnvelope<ConnectionRequestResponse>>(
+    '/connections/request',
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return zConnectionRequestResponse.parse(unwrap(resp.data, '/connections/request'));
+}
+
+// PRD §7.6.3 — `PATCH /connections/{id}/respond`. Target accepts/declines.
+export async function respondToConnection(id: string, body: RespondBody): Promise<RespondResponse> {
+  const resp = await apiClient.patch<ApiEnvelope<RespondResponse>>(
+    `/connections/${id}/respond`,
+    body,
+  );
+  return zRespondResponse.parse(unwrap(resp.data, `/connections/${id}/respond`));
+}
+
+// PRD §7.6.4 — `GET /connections` (accepted list).
+export async function listConnections(args: {
+  limit?: number;
+  cursor?: string | null;
+}): Promise<AcceptedConnectionsResponse> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.cursor) params.set('cursor', args.cursor);
+  const qs = params.toString();
+  const url = `/connections${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<AcceptedConnectionsResponse>>(url);
+  return zAcceptedConnectionsResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.6.5 — `GET /connections/pending` (incoming + outgoing pending).
+export async function listPendingConnections(args: {
+  limit?: number;
+  cursor?: string | null;
+}): Promise<PendingConnectionsResponse> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.cursor) params.set('cursor', args.cursor);
+  const qs = params.toString();
+  const url = `/connections/pending${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<PendingConnectionsResponse>>(url);
+  return zPendingConnectionsResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.7.2 — `POST /interactions/feedback`. 48h post-accept prompt.
+export async function submitFeedback(body: FeedbackBody): Promise<FeedbackResponse> {
+  const resp = await apiClient.post<ApiEnvelope<FeedbackResponse>>('/interactions/feedback', body);
+  return zFeedbackResponse.parse(unwrap(resp.data, '/interactions/feedback'));
 }

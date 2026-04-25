@@ -12,10 +12,12 @@ export const qk = {
   connections: {
     all: ['connections'] as const,
     listAll: ['connections', 'list'] as const,
-    list: (limit: number, cursor?: string) => ['connections', 'list', { limit, cursor }] as const,
+    // Stable key for useInfiniteQuery — cursor flows via pageParam, not the key.
+    // Kept parameter-tolerant (limit only) so different pagination sizes don't
+    // collide. Pre-existing call sites in admin tests pass a number; preserved.
+    list: (limit: number) => ['connections', 'list', { limit }] as const,
     pendingAll: ['connections', 'pending'] as const,
-    pending: (limit: number, cursor?: string) =>
-      ['connections', 'pending', { limit, cursor }] as const,
+    pending: (limit: number) => ['connections', 'pending', { limit }] as const,
   },
   search: {
     query: (body: unknown) => ['search', 'query', body] as const,
