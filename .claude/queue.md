@@ -32,7 +32,7 @@ When a whole stage's boxes are ticked, pause and await human review before start
 
 - [x] **auth** — /signin (OTP flow §7.1.1–7.1.3), /onboarding/profile (§7.2.3), /onboarding/lp-profile (§7.2.4). Route by role per PRD §10.2. MSW + unit + integration tests.
 - [x] **feature-search** — POST /search (§7.4.1) + per-card interaction log (§7.7.1). /search route with SearchBar, FilterChips (URL-backed), infinite scroll, ExecutionPanel for query submit. Handle partner role masking + stage3 fallback banner.
-- [ ] **feature-admin-connections** — GET /admin/connections (§7.12.2) + PATCH /connections/{id}/admin (§7.6.2). /admin/connections with status tabs, DataTable, InlineExecutionButton (optimistic). RoleGuard admin/super_admin.
+- [x] **feature-admin-connections** — GET /admin/connections (§7.12.2) + PATCH /connections/{id}/admin (§7.6.2). /admin/connections with status tabs, DataTable, InlineExecutionButton (optimistic). RoleGuard admin/super_admin.
 
 > Gate after Stage 2: human reviews BOTH calibration features thoroughly. If patterns are right, unlock autonomous mode. Tag `v0.2-calibration`.
 

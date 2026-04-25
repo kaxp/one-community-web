@@ -10,7 +10,10 @@ export const qk = {
     lpProfile: ['onboarding', 'lp-profile'] as const,
   },
   connections: {
+    all: ['connections'] as const,
+    listAll: ['connections', 'list'] as const,
     list: (limit: number, cursor?: string) => ['connections', 'list', { limit, cursor }] as const,
+    pendingAll: ['connections', 'pending'] as const,
     pending: (limit: number, cursor?: string) =>
       ['connections', 'pending', { limit, cursor }] as const,
   },
@@ -31,8 +34,10 @@ export const qk = {
   },
   admin: {
     summary: ['admin', 'summary'] as const,
-    connections: (tab: string, cursor?: string) =>
-      ['admin', 'connections', { tab, cursor }] as const,
+    connections: {
+      all: ['admin', 'connections'] as const,
+      list: (status: string) => ['admin', 'connections', { status }] as const,
+    },
     dlq: (offset: number) => ['admin', 'dlq', { offset }] as const,
   },
 } as const;

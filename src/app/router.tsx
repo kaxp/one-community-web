@@ -14,6 +14,7 @@ import { SignInPage } from '@/features/auth/routes/SignInPage';
 import { CompleteProfilePage } from '@/features/onboarding/routes/CompleteProfilePage';
 import { LPProfilePage } from '@/features/onboarding/routes/LPProfilePage';
 import { SearchPage } from '@/features/search/routes/SearchPage';
+import { AdminConnectionsPage } from '@/features/admin/routes/AdminConnectionsPage';
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
 
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
                     path: '/admin',
                     element: <Lazy importer={() => import('./routes/AdminHomePlaceholder')} />,
                   },
+                  { path: '/admin/connections', element: <AdminConnectionsPage /> },
                 ],
               },
             ],

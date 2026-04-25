@@ -28,6 +28,14 @@ import {
   type InteractionLogRequest,
   type InteractionLogResponse,
 } from '@/features/interactions/schemas';
+import {
+  zAdminActionResponse,
+  zAdminConnectionsResponse,
+  type AdminActionRequest,
+  type AdminActionResponse,
+  type AdminConnectionsResponse,
+  type AdminConnectionStatus,
+} from '@/features/admin/schemas';
 
 function unwrap<T>(env: ApiEnvelope<T>, path: string): T {
   if (env.data === null) {
@@ -91,4 +99,28 @@ export async function logInteraction(body: InteractionLogRequest): Promise<Inter
     stripUndefined(body as unknown as Record<string, unknown>),
   );
   return zInteractionLogResponse.parse(unwrap(resp.data, '/interactions/log'));
+}
+
+export async function getAdminConnections(args: {
+  status?: AdminConnectionStatus;
+  cursor?: string | null;
+}): Promise<AdminConnectionsResponse> {
+  const params = new URLSearchParams();
+  if (args.status) params.set('status', args.status);
+  if (args.cursor) params.set('cursor', args.cursor);
+  const qs = params.toString();
+  const url = `/admin/connections${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<AdminConnectionsResponse>>(url);
+  return zAdminConnectionsResponse.parse(unwrap(resp.data, url));
+}
+
+export async function adminActOnConnection(
+  id: string,
+  body: AdminActionRequest,
+): Promise<AdminActionResponse> {
+  const resp = await apiClient.patch<ApiEnvelope<AdminActionResponse>>(
+    `/connections/${id}/admin`,
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return zAdminActionResponse.parse(unwrap(resp.data, `/connections/${id}/admin`));
 }

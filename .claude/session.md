@@ -34,26 +34,30 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 2b feature-search complete; awaiting human review before Stage 2c admin-connections)_
+_(none — Stage 2c feature-admin-connections complete; Stage 2 fully done; awaiting human review before unlocking Stage 3 autonomous mode)_
 
 ### Last completed action
 
-Completed **Stage 2b — feature-search** (queue.md Stage 2 second row ticked). PRD §7.4.1 + §7.7.1 implemented end-to-end:
+Completed **Stage 2c — feature-admin-connections** (queue.md Stage 2 third row ticked, Stage 2 fully done). PRD §7.12.2 + §7.6.2 implemented end-to-end.
 
-- **Endpoints**: `searchUnified()` posts to `/search` (Zod-parsed `discriminatedUnion('target_type')` over startup + lp shapes; both variants accept all fields as optional so partner-masked responses parse cleanly). `logInteraction()` posts to `/interactions/log` (fire-and-forget at the call site).
-- **Hooks**: `useSearch({ query, filters, enabled })` is a `useInfiniteQuery` keyed on `qk.search.query({ query, filters })`, paginating via `next_cursor`, with `staleTime: 0`. `useLogInteraction()` returns a memoised `fire()` function with a 10s client-side dedup window per `(target_id, interaction_type)` (CLAUDE.md §5.6 — server dedups for 60s).
-- **Components**: `<SearchBar>` (search input + submit button), `<FilterChips>` (sector / stage / geography multi-select; URL-backed via `useSearchParams`; round-trips comma-joined values), `<ResultCard>` (target_type-narrowed render: startup variant shows company_name / one_liner / description / traction / funding_target_cr / ai_reason; LP variant shows fund_name / cheque_range / sectors / stages / geography / ai_reason. Defensive rendering — every optional field hides its row when null/missing, so partner-masked items render gracefully).
-- **Page**: `/search` ships all 4 UI states (skeleton loading, empty CTA when no query, error state with retry, populated result grid). Stage-3 fallback banner ("AI ranking temporarily unavailable…") shows when `stage3_applied=false`. Search input is debounced 400ms via new `lib/use-debounced-value.ts` and the URL/queryKey update on the trailing edge. The form-level submit button is wired to a `useMutation` that pre-warms the query cache — surfacing isPending / inline ErrorState in the spirit of `<ExecutionPanel>` (PRD §6.7.1 explicitly classifies /search as a "plain page", but the prompt asked for ExecutionPanel surface — we surface mutation state without forcing the whole page into the panel's renderResult slot, since infinite scroll lives below).
-- **Per-card analytics**: `<ResultCard>` mounts an `IntersectionObserver` (threshold 0.4); when a card becomes visible it fires `search_view` once, deduped client-side. Falls back to immediate fire when IntersectionObserver isn't available (jsdom, tests).
-- **Routing**: `/search` is mounted under `<RoleGuard roles={['lp','potential_lp','vc','startup_funded','admin','super_admin']}>` inside `AppShell`. **Removed `partner` from `search.use` capability and from the `search` NAV_ITEM** to honor CLAUDE.md §15 / PRD §7.4.1 (partner is excluded from search). Added a regression test for it.
-- **MSW**: 5 fixtures in `src/test/msw-fixtures/search-fixtures.ts` (startup-results, lp-results, empty, stage3_fallback, partner-masked) plus an `error_500` and `rate_limit` mode. `src/test/msw-fixtures/search-handlers.ts` exposes `setMswSearchScenario(...)` + `getMswInteractionLogCount()` for tests; reset helpers wired into `src/test/setup.ts`.
-- **Tests**: 7 hook tests (useSearch — startup / lp / fallback / empty / disabled / 429), 3 hook tests (useLogInteraction — fires, dedupes, silent on failure), 7 SearchPage smoke tests (4 UI states, partner masking renders without crash, stage3 banner, interaction fire). Total **+18 cases vs prior commit**.
+- **Endpoints**: `getAdminConnections({ status?, cursor? })` GETs `/admin/connections` with query params. `adminActOnConnection(id, body)` PATCHes `/connections/{id}/admin` with `{ action: 'approve'|'reject', note? }`. Both Zod-parsed at the boundary.
+- **Schemas**: `src/features/admin/schemas.ts` defines `zAdminConnectionStatus` (6-value enum), `ADMIN_TAB_STATUSES` (the 4 tab values: `pending_admin`, `pending_target`, `accepted`, `declined`), `zAdminConnection` row shape with `requester` + `target` `zPartyRef`, plus the action request/response shapes.
+- **Hooks**: `useAdminConnections({ status })` is a `useInfiniteQuery` keyed on `qk.admin.connections.list(status)`, paginating via `next_cursor`. `useAdminConnectionAction()` is a `useMutation` with **optimistic remove + rollback on error** — `onMutate` cancels in-flight queries, snapshots the cached page list, and filters out the row by `connection_id`; `onError` restores the snapshot; `onSettled` invalidates `qk.admin.connections.all`, `qk.admin.summary`, and `qk.connections.pendingAll` so the row reappears under its new status, the badge count refreshes, and the target's pending queue is fresh (PRD §7.6.2 transformation note).
+- **Query keys** (`src/api/query-keys.ts`): `qk.admin.connections` is now a `{ all, list(status) }` object; `qk.connections` gained `all` + `pendingAll` prefix constants for blanket invalidation.
+- **DataTable** (new shared primitive): `src/components/data-table/DataTable.tsx` is a TanStack Table v8 wrapper (`@tanstack/react-table` v8.21.3 added). Generic, accepts `columns`, `data`, `getRowId`, `onRowClick`, `emptyState`. Tailwinded to match shadcn aesthetic.
+- **Page**: `/admin/connections` (`src/features/admin/routes/AdminConnectionsPage.tsx`). URL-backed status tabs (`?status=<tab>`), 4 tab buttons mirroring `ADMIN_TAB_STATUSES` with `aria-selected` + visible active state. DataTable columns: Requester / Target / Message / Created / Status badge / Actions. The Actions column renders `<InlineExecutionButton>` Approve + Reject only on `pending_admin` rows; success toast "Approved"/"Rejected"; on 409 the toast surfaces "Already handled — refreshing" and the cache invalidation refetches the row. All 4 UI states ship: skeleton loading, error with retry, empty per-tab state with manual refresh, populated table.
+- **Routing**: `/admin/connections` is mounted as a sibling of `/admin` under `<RoleGuard roles={['admin','super_admin']}>` inside `AppShell` (`src/app/router.tsx`).
+- **MSW**: `src/test/msw-fixtures/admin-handlers.ts` ships 5 seeded rows across the four tab statuses + helpers `setMswAdminRows`, `queueAdminListError`, `queueAdminActionError`, `getMswAdminRowCount`, `resetMswAdminState`. The PATCH handler enforces `pending_admin` precondition (returns 409 otherwise) and mutates the in-memory store so a follow-up GET reflects the new status. Reset wired into `src/test/setup.ts`.
+- **Tests** (+11 cases vs prior commit, total 69):
+  - 3 `useAdminConnections` cases — status filter respected, pending_admin only returns pending_admin rows, accepted only returns accepted rows, 500 surfaces ApiError.
+  - 3 `useAdminConnectionAction` cases — approve invalidates the three documented keys (asserted via `vi.spyOn(queryClient.invalidateQueries)`), optimistic remove from cache during the request, full rollback on error.
+  - 5 `AdminConnectionsPage` smoke tests — default tab is `pending_admin`, tab click switches via URL + `aria-selected`, empty state renders when MSW rows are emptied, ErrorState renders on 500, approving a row removes it from the visible list.
 
-Four gates clean: `pnpm lint` (0 errors, 4 cosmetic react-refresh warnings), `pnpm typecheck` (0), `pnpm test` (55/55 across 16 files), `pnpm build` (exits 0; main chunk 289.99 KB gzip — under the 300 KB target).
+Four gates clean: `pnpm lint` (0 errors, 4 cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (69/69 across 19 files), `pnpm build` (exits 0).
 
 ### Next concrete step
 
-Wait for the human's Stage 2b review. Smoke checks: (a) sign in as LP, type "fintech" → debounce 400ms then results stream in; URL params should reflect `?q=fintech`; (b) toggle Sector chips → result grid updates and URL persists; (c) try as `partner` role → no Search nav item; visiting `/search` directly → `/unauthorized`; (d) hit Search button explicitly → fresh fetch fires; (e) Network tab should show 1 `/interactions/log` per visible card with body `{ interaction_type: 'search_view', target_type, ... }`. If approved, prompt **Stage 2c — feature-admin-connections** (queue.md Stage 2 third row).
+Wait for the human's Stage 2c review **plus** the Stage 2 calibration gate (queue.md says: "If patterns are right, unlock autonomous mode. Tag `v0.2-calibration`."). Smoke checks: (a) sign in as admin (`+918087464723`), visit `/admin/connections`, tabs render, default is `pending_admin`; (b) click Approve on a row → row disappears, toast "Approved", switch to `pending_target` tab → row reappears there; (c) URL persists tab via `?status=`; (d) try as LP → `/unauthorized`; (e) trigger 409 (server returns conflict) → row rolls back, "Already handled — refreshing" toast, list refetches. If approved, prompt the Stage 3 prompt (`docs/plan.md § Stage 3`) — first feature `profile-view` (`§7.5.1`, gap-flagged).
 
 ### Open blockers
 
@@ -61,20 +65,21 @@ _(none)_
 
 ### Files touched this session
 
-- **Search feature (new):** `src/features/search/{schemas.ts, index.ts}`, `src/features/search/hooks/{use-search.ts, use-search.test.ts}`, `src/features/search/lib/labels.ts`, `src/features/search/components/{SearchBar.tsx, FilterChips.tsx, ResultCard.tsx}`, `src/features/search/routes/{SearchPage.tsx, SearchPage.test.tsx}`.
-- **Interactions feature (new):** `src/features/interactions/{schemas.ts, index.ts}`, `src/features/interactions/hooks/{use-log-interaction.ts, use-log-interaction.test.ts}`.
-- **Cross-cutting:** new `src/lib/use-debounced-value.ts`; modified `src/api/endpoints.ts` (`searchUnified` + `logInteraction`); modified `src/api/query-keys.ts` (added `qk.interactions.log`); modified `src/app/router.tsx` (`/search` route under RoleGuard); modified `src/lib/role-capabilities.ts` (partner excluded from `search.use` + `search` nav); added test `src/lib/role-capabilities.test.ts` (partner-not-in-search regression).
-- **MSW + tests:** new `src/test/msw-fixtures/{search-fixtures.ts, search-handlers.ts}`; modified `src/test/{msw-handlers.ts, setup.ts}`.
-- **From prior turns (still in HEAD):** Stage 1 chassis, Stage 2a auth + onboarding, P-17 session-termination policy, responsive-nav rule (`<NavList>` / `<MobileNavDrawer>` / `<Sheet>`).
-- `.claude/queue.md` (`feature-search` row ticked), `.claude/session.md` (this file).
+- **Admin feature (new):** `src/features/admin/{schemas.ts, index.ts}`, `src/features/admin/hooks/{use-admin-connections.ts, use-admin-connections.test.ts, use-admin-connection-action.ts, use-admin-connection-action.test.tsx}`, `src/features/admin/lib/status-labels.ts`, `src/features/admin/routes/{AdminConnectionsPage.tsx, AdminConnectionsPage.test.tsx}`.
+- **Shared:** new `src/components/data-table/DataTable.tsx` (TanStack Table v8 wrapper).
+- **Cross-cutting:** modified `src/api/endpoints.ts` (`getAdminConnections`, `adminActOnConnection`), `src/api/query-keys.ts` (`qk.admin.connections.{all,list}`, `qk.connections.{all,listAll,pendingAll}`), `src/app/router.tsx` (`/admin/connections` route).
+- **MSW + tests:** new `src/test/msw-fixtures/admin-handlers.ts`; modified `src/test/{msw-handlers.ts, setup.ts}`.
+- **Deps:** `@tanstack/react-table` ^8.21.3 added to `package.json`.
+- **Prior turns (still in HEAD):** Stage 1 chassis, Stage 2a auth/onboarding, Stage 2b search, P-17 session-termination policy, P-18 dashboard-as-landing policy, responsive-nav rule.
+- `.claude/queue.md` (`feature-admin-connections` row ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 55/55 tests across 16 files.
+Yes. All four gates exit 0. 69/69 tests across 19 files.
 
 ### Last updated
 
-2026-04-25T11:30:00+05:30
+2026-04-25T12:12:00+05:30
 
 ---
 
