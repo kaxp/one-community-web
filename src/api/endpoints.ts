@@ -36,11 +36,30 @@ import {
 import {
   zAdminActionResponse,
   zAdminConnectionsResponse,
+  zAdminSummaryResponse,
   type AdminActionRequest,
   type AdminActionResponse,
   type AdminConnectionsResponse,
   type AdminConnectionStatus,
+  type AdminSummaryResponse,
 } from '@/features/admin/schemas';
+import {
+  zAdminDigestResponse,
+  zDigestApproveResponse,
+  zDigestGenerateResponse,
+  zDigestHistoryResponse,
+  zDigestPendingResponse,
+  zDigestSendResponse,
+  type AdminDigestResponse,
+  type DigestApproveRequest,
+  type DigestApproveResponse,
+  type DigestGenerateRequest,
+  type DigestGenerateResponse,
+  type DigestHistoryResponse,
+  type DigestPendingResponse,
+  type DigestSendRequest,
+  type DigestSendResponse,
+} from '@/features/digest/schemas';
 import { zProfileView, type ProfileView } from '@/features/profile/schemas';
 import {
   zAcceptedConnectionsResponse,
@@ -100,8 +119,18 @@ import {
   type TravelPlansResponse,
 } from '@/features/travel/schemas';
 import {
+  zMatchApproveResponse,
+  zMatchGenerateAck,
+  zMatchJobStatus,
+  zMatchPendingResponse,
   zMatchSuggestionsResponse,
   zRespondResult,
+  type MatchApproveRequest,
+  type MatchApproveResponse,
+  type MatchGenerateAck,
+  type MatchGenerateRequest,
+  type MatchJobStatus,
+  type MatchPendingResponse,
   type MatchSuggestionsResponse,
   type RespondRequest,
   type RespondResult,
@@ -488,4 +517,83 @@ export async function getProfileViewers(args: {
   const url = `/interactions/profile-viewers${qs ? `?${qs}` : ''}`;
   const resp = await apiClient.get<ApiEnvelope<ProfileViewersResponse>>(url);
   return zProfileViewersResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.12.1 — admin/summary KPI dashboard. Cached 60s with refetch on focus.
+export async function getAdminSummary(): Promise<AdminSummaryResponse> {
+  const resp = await apiClient.get<ApiEnvelope<AdminSummaryResponse>>('/admin/summary');
+  return zAdminSummaryResponse.parse(unwrap(resp.data, '/admin/summary'));
+}
+
+// PRD §7.12.3 — `GET /admin/digest`. Returns `data: WorkflowRow[]` (bare).
+export async function getAdminDigest(): Promise<AdminDigestResponse> {
+  const resp = await apiClient.get<ApiEnvelope<AdminDigestResponse>>('/admin/digest');
+  return zAdminDigestResponse.parse(unwrap(resp.data, '/admin/digest'));
+}
+
+// PRD §7.12.4 — `POST /admin/digest/send`. 409 conflict when an in-flight
+// send is already running for the workflow. §13 G4 — passthrough Zod parse.
+export async function postAdminDigestSend(body: DigestSendRequest): Promise<DigestSendResponse> {
+  const resp = await apiClient.post<ApiEnvelope<DigestSendResponse>>('/admin/digest/send', body);
+  return zDigestSendResponse.parse(unwrap(resp.data, '/admin/digest/send'));
+}
+
+// PRD §7.13.1 — `POST /digest/generate`. Backend writes pending rows, no send.
+export async function postDigestGenerate(
+  body: DigestGenerateRequest,
+): Promise<DigestGenerateResponse> {
+  const resp = await apiClient.post<ApiEnvelope<DigestGenerateResponse>>('/digest/generate', body);
+  return zDigestGenerateResponse.parse(unwrap(resp.data, '/digest/generate'));
+}
+
+// PRD §7.13.2 — `POST /digest/approve`. 409 if the row is already approved/sent.
+export async function postDigestApprove(
+  body: DigestApproveRequest,
+): Promise<DigestApproveResponse> {
+  const resp = await apiClient.post<ApiEnvelope<DigestApproveResponse>>('/digest/approve', body);
+  return zDigestApproveResponse.parse(unwrap(resp.data, '/digest/approve'));
+}
+
+// PRD §7.13.3 — `GET /digest/pending` (admin review queue).
+export async function getDigestPending(): Promise<DigestPendingResponse> {
+  const resp = await apiClient.get<ApiEnvelope<DigestPendingResponse>>('/digest/pending');
+  return zDigestPendingResponse.parse(unwrap(resp.data, '/digest/pending'));
+}
+
+// PRD §7.13.4 — `GET /digest/history?limit=...` (sent rows).
+export async function getDigestHistory(args: { limit?: number }): Promise<DigestHistoryResponse> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  const qs = params.toString();
+  const url = `/digest/history${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<DigestHistoryResponse>>(url);
+  return zDigestHistoryResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.8.1 — admin starts the matchmaking generation job. 202 + job_id.
+export async function postMatchGenerate(body: MatchGenerateRequest): Promise<MatchGenerateAck> {
+  const resp = await apiClient.post<ApiEnvelope<MatchGenerateAck>>('/matchmaking/generate', body);
+  return zMatchGenerateAck.parse(unwrap(resp.data, '/matchmaking/generate'));
+}
+
+// PRD §7.8.2 — Celery job poll.
+export async function getMatchJob(jobId: string): Promise<MatchJobStatus> {
+  const url = `/matchmaking/jobs/${jobId}`;
+  const resp = await apiClient.get<ApiEnvelope<MatchJobStatus>>(url);
+  return zMatchJobStatus.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.8.3 — admin approves a single suggestion.
+export async function postMatchApprove(body: MatchApproveRequest): Promise<MatchApproveResponse> {
+  const resp = await apiClient.post<ApiEnvelope<MatchApproveResponse>>(
+    '/matchmaking/approve',
+    body,
+  );
+  return zMatchApproveResponse.parse(unwrap(resp.data, '/matchmaking/approve'));
+}
+
+// PRD §7.8.4 — admin pending list. Returns `data: MatchSuggestion[]` (bare).
+export async function getMatchPending(): Promise<MatchPendingResponse> {
+  const resp = await apiClient.get<ApiEnvelope<MatchPendingResponse>>('/matchmaking/pending');
+  return zMatchPendingResponse.parse(unwrap(resp.data, '/matchmaking/pending'));
 }

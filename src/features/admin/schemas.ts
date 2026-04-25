@@ -59,3 +59,37 @@ export const zAdminActionResponse = z.object({
   acted_at: zISODateTime,
 });
 export type AdminActionResponse = z.infer<typeof zAdminActionResponse>;
+
+// PRD §7.12.1 — admin/summary KPI dashboard.
+const zMisStatusRow = z.object({
+  startup_id: zUUID,
+  company_name: z.string(),
+  period: z.string(),
+  submitted: z.boolean(),
+});
+export type AdminMisStatusRow = z.infer<typeof zMisStatusRow>;
+
+const zRecentDigestRow = z.object({
+  id: zUUID,
+  digest_type: z.string(),
+  sent_at: zISODateTime,
+});
+export type AdminRecentDigest = z.infer<typeof zRecentDigestRow>;
+
+const zRecentActionRow = z.object({
+  admin_id: zUUID,
+  admin_name: z.string(),
+  action: z.string(),
+  target_type: z.string(),
+  target_id: zUUID,
+  created_at: zISODateTime,
+});
+export type AdminRecentAction = z.infer<typeof zRecentActionRow>;
+
+export const zAdminSummaryResponse = z.object({
+  pending_connection_count: z.number().int().nonnegative(),
+  mis_status: z.array(zMisStatusRow),
+  recent_digests: z.array(zRecentDigestRow),
+  recent_actions: z.array(zRecentActionRow),
+});
+export type AdminSummaryResponse = z.infer<typeof zAdminSummaryResponse>;

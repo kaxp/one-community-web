@@ -71,7 +71,17 @@ const ProfileViewersPage = lazy(() =>
 const AddUserPage = lazy(() =>
   import('@/features/onboarding/routes/AddUserPage').then((m) => ({ default: m.AddUserPage })),
 );
-const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
+const AdminHomePage = lazy(() =>
+  import('@/features/admin/routes/AdminHomePage').then((m) => ({ default: m.AdminHomePage })),
+);
+const AdminDigestPage = lazy(() =>
+  import('@/features/digest/routes/AdminDigestPage').then((m) => ({ default: m.AdminDigestPage })),
+);
+const AdminMatchmakingOpsPage = lazy(() =>
+  import('@/features/matchmaking/routes/AdminMatchmakingOpsPage').then((m) => ({
+    default: m.AdminMatchmakingOpsPage,
+  })),
+);
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
 
@@ -299,7 +309,7 @@ export const router = createBrowserRouter(
                       path: '/admin',
                       element: (
                         <Susp>
-                          <AdminHomePlaceholder />
+                          <AdminHomePage />
                         </Susp>
                       ),
                     },
@@ -308,6 +318,24 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminConnectionsPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // PRD §7.12.3 + §7.12.4 + §7.13.* — digest console.
+                      path: '/admin/digest',
+                      element: (
+                        <Susp>
+                          <AdminDigestPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // PRD §7.8.1–§7.8.4 — admin matchmaking ops.
+                      path: '/admin/matchmaking',
+                      element: (
+                        <Susp>
+                          <AdminMatchmakingOpsPage />
                         </Susp>
                       ),
                     },

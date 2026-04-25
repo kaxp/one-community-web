@@ -44,3 +44,59 @@ export const zRespondResult = z.object({
   connection_id: zUUID.nullable(),
 });
 export type RespondResult = z.infer<typeof zRespondResult>;
+
+// PRD §7.8.1 — admin starts a generation job.
+export const zMatchGenerateRequest = z.object({
+  week_of: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use yyyy-MM-dd'),
+});
+export type MatchGenerateRequest = z.infer<typeof zMatchGenerateRequest>;
+
+export const zMatchGenerateAck = z.object({
+  job_id: zUUID,
+  status: z.literal('queued'),
+  week_of: z.string(),
+});
+export type MatchGenerateAck = z.infer<typeof zMatchGenerateAck>;
+
+// PRD §7.8.2 — Celery job poll (mirrors §7.3.4 deck job shape).
+export const MATCH_JOB_STATES = [
+  'PENDING',
+  'STARTED',
+  'SUCCESS',
+  'FAILURE',
+  'RETRY',
+  'REVOKED',
+] as const;
+export const zMatchJobState = z.enum(MATCH_JOB_STATES);
+
+export const zMatchGenerateResult = z.object({
+  generated_count: z.number().int().nonnegative(),
+  week_of: z.string(),
+});
+export type MatchGenerateResult = z.infer<typeof zMatchGenerateResult>;
+
+export const zMatchJobStatus = z.object({
+  job_id: zUUID,
+  state: zMatchJobState,
+  ready: z.boolean(),
+  successful: z.boolean().nullable(),
+  result: zMatchGenerateResult.nullable(),
+});
+export type MatchJobStatus = z.infer<typeof zMatchJobStatus>;
+
+// PRD §7.8.3 — admin approve.
+export const zMatchApproveRequest = z.object({
+  suggestion_id: zUUID,
+});
+export type MatchApproveRequest = z.infer<typeof zMatchApproveRequest>;
+
+export const zMatchApproveResponse = z.object({
+  suggestion_id: zUUID,
+  status: z.literal('approved'),
+  approved_at: z.string().datetime({ offset: true }),
+});
+export type MatchApproveResponse = z.infer<typeof zMatchApproveResponse>;
+
+// PRD §7.8.4 — admin pending list (same item shape as §7.8.5).
+export const zMatchPendingResponse = z.array(zMatchSuggestion);
+export type MatchPendingResponse = z.infer<typeof zMatchPendingResponse>;

@@ -1,2 +1,16 @@
-// digest feature barrel. Populated in its Stage 2/3/4 session.
-export {};
+export type {
+  AdminDigestResponse,
+  DigestApproveRequest,
+  DigestApproveResponse,
+  DigestContent,
+  DigestContentStatus,
+  DigestGenerateRequest,
+  DigestGenerateResponse,
+  DigestHistoryResponse,
+  DigestPendingResponse,
+  DigestRow,
+  DigestSendRequest,
+  DigestSendResponse,
+  DigestWorkflow,
+  DigestWorkflowStatus,
+} from './schemas';

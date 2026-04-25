@@ -58,14 +58,21 @@ export const qk = {
   matchmaking: {
     suggestions: ['matchmaking', 'suggestions'] as const,
     pending: ['matchmaking', 'pending'] as const,
+    jobAll: ['matchmaking', 'job'] as const,
     job: (id: string) => ['matchmaking', 'job', id] as const,
   },
   admin: {
     summary: ['admin', 'summary'] as const,
+    digest: ['admin', 'digest'] as const,
     connections: {
       all: ['admin', 'connections'] as const,
       list: (status: string) => ['admin', 'connections', { status }] as const,
     },
     dlq: (offset: number) => ['admin', 'dlq', { offset }] as const,
+  },
+  digest: {
+    pending: ['digest', 'pending'] as const,
+    history: (limit: number) => ['digest', 'history', { limit }] as const,
+    historyAll: ['digest', 'history'] as const,
   },
 } as const;
