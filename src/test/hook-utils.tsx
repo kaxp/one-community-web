@@ -12,7 +12,12 @@ export function renderHookWithProviders<Result, Props>(
   });
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[options?.route ?? '/']}>{children}</MemoryRouter>
+      <MemoryRouter
+        initialEntries={[options?.route ?? '/']}
+        future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
+      >
+        {children}
+      </MemoryRouter>
     </QueryClientProvider>
   );
   return renderHook(hook, { wrapper: Wrapper, ...options });

@@ -1,3 +1,8 @@
+// Deliberately NOT built on <ExecutionPanel>. PRD §6.7.1 reserves the panel for the
+// "single form → single mutation → single response" pattern. Sign-in is a 2-step
+// state machine (phone → OTP) with chained mutations + a post-success /auth/me fetch
+// + role-based navigation, plus a 30s resend cooldown timer. The state graph doesn't
+// fit the panel's contract; rolling a hand-built form here is the right call.
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';

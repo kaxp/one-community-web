@@ -605,6 +605,22 @@ maxWidth: {
 
 - **Touches:** `src/features/auth/lib/post-signin-navigate.ts`, `src/app/routes/HomePage.tsx`, `src/features/auth/routes/SignInPage.test.tsx`. No backend coordination needed.
 
+### [P-19] Lazy-split every new feature route by default  ✅ resolved 2026-04-25
+
+- **Decision:** Every feature page route under `/onboarding/*`, `/admin/*`, and the dashboard outlet (`/search`, `/pitch`, `/mis`, `/schedule`, `/travel`, `/matchmaking`, `/profile-viewers`, `/connections`, `/connections/pending`, `/admin/...`) is wrapped in `React.lazy(() => import('@/features/<x>/routes/<X>Page').then((m) => ({ default: m.<X>Page })))` at module scope in `src/app/router.tsx`. The route element is wrapped in a small `<Susp>` helper that mounts a `<Suspense fallback={<PageLoader />}>` boundary. Eager-loaded routes are limited to the auth shell and the small static pages: `HomePage`, `SignInPage`, `DashboardPage` (default landing per P-18 — must paint instantly), `ExpiredPage`, `UnauthorizedPage`, `NotFoundPage`, `ComingSoonPage`. The previous per-render `Lazy({ importer })` helper was removed — `React.lazy` MUST be hoisted to module scope so it de-dupes module loads across navigations.
+
+  **Why:** Bundle observability. Stage 1 main chunk was 239 KB gzip; Stage 2 had crept to 312 KB after just three features (auth, search, admin-connections) — already over the queue.md Stage 5 target of < 300 KB. Without lazy-splitting now, Stage 3/4 would have added another ~18 features × 20–30 KB and the initial chunk would have ballooned to ~700 KB by `v1.0`. Per-feature delta visibility matters more than a clean bundle at the end.
+
+  **What changed:** `src/app/router.tsx` — `SearchPage`, `AdminConnectionsPage`, `CompleteProfilePage`, `LPProfilePage`, `AdminHomePlaceholder` are now lazy. Added a `<Susp>` wrapper. Removed the per-render `Lazy({ importer })` anti-pattern. Also added `future: { v7_relativeSplatPath: true, v7_startTransition: true }` to `createBrowserRouter` (and to the `MemoryRouter` in `src/test/{test-utils,hook-utils}.tsx`) to silence the v7 future-flag warnings — cosmetic.
+
+  Bundle delta on the commit that introduced P-19: main chunk **312 KB → 285.77 KB gzip** (–26 KB), with five feature chunks materialising separately (SearchPage 3.91 KB, AdminConnectionsPage 22.35 KB, LPProfilePage 1.79 KB, CompleteProfilePage 1.15 KB, AdminHomePlaceholder + skeleton trivial). 70/70 tests still green.
+
+  **Future-session rule:** When you add a new feature route in Stage 3+, edit `src/app/router.tsx` and add a `const NewPage = lazy(() => import('@/features/<x>/routes/<X>Page').then((m) => ({ default: m.<X>Page })));` plus a `<Susp><NewPage /></Susp>` route element. Do not import the page eagerly. After every feature commit, watch the build output and confirm the per-feature chunk shows up separately and the main chunk's gzip size hasn't regressed by more than 5 KB.
+
+- **Rationale:** Human direction (2026-04-25): "Either move route-level lazy splitting forward — wrap SearchPage, AdminConnectionsPage, LPProfilePage in lazy() now (15-minute Edit) → Stage 1's 239 KB target probably restored." Cheap, prevents continued growth, keeps per-feature deltas accurate. Originally queued for Stage 5 (`queue.md § Stage 5 — bundle-size`); pulled forward.
+
+- **Touches:** `src/app/router.tsx`, `src/test/test-utils.tsx`, `src/test/hook-utils.tsx`. Future feature sessions add one more `lazy()` line per feature route.
+
 _(Further P-N items added below as mid-build decisions are made. Keep sequential order.)_
 
 <!--
