@@ -68,7 +68,7 @@ describe('SearchPage (PRD §7.4.1)', () => {
 
     await typeAndSubmit('nothing matches');
 
-    expect(await screen.findByText(/no results/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no matches for/i)).toBeInTheDocument();
   });
 
   it('surfaces a 429 rate-limit via the inline error', async () => {

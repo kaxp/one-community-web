@@ -590,6 +590,21 @@ maxWidth: {
 
 - **Touches:** `src/api/client.ts`, `src/auth/require-auth.tsx`, `src/auth/profile-gate.tsx`, `src/test/msw-fixtures/auth-handlers.ts`, new tests `src/api/client.test.ts` + `src/auth/profile-gate.test.tsx`. Also implicitly changes the backend's expectations: when the backend wants to force a client-side logout (e.g. a hard token revocation), it must either (a) let the JWT naturally expire, or (b) expose a distinct server-side signal that we plumb through explicitly. No such signal exists today — when it does, open a fresh P-N item.
 
+### [P-18] Post-signin landing → /dashboard for every role  ✅ resolved 2026-04-25
+
+- **Decision:** After a successful OTP verify (and successful `/auth/me` hydration), every role lands on `/dashboard`. The PRD §10.2 role-default-route map (`admin → /admin`, `lp → /search`, `startup_inprogress → /pitch`, …) is **no longer used** for the signin landing or for the `/` cold-start redirect. The same rule applies whenever a signed-in user navigates to `/`.
+
+  **What still uses the role-based map:** post-onboarding workflow continuation only — `nextRouteAfterProfile()` still routes LP/PotentialLP to `/onboarding/lp-profile` and other roles to their workflow home (`/search`, `/pitch`, `/connections/pending`). That's a continuation of an in-progress flow, not a fresh login. The `defaultHomeFor(role)` helper that powers the LP-profile Skip button continues to use the map. They are renamed inside `post-signin-navigate.ts` to `POST_ONBOARDING_BY_ROLE` to make the scope unambiguous.
+
+  **What changed in code:**
+  - `src/features/auth/lib/post-signin-navigate.ts` — `nextRouteForUser()` now returns `'/dashboard'` for every role with `profile_complete=true` (and `'/onboarding/profile'` when the profile isn't complete).
+  - `src/app/routes/HomePage.tsx` — when the visitor is signed in, redirects unconditionally to `/dashboard` instead of looking up the role map.
+  - `src/features/auth/routes/SignInPage.test.tsx` — updated the integration test to assert navigation to `/dashboard` post-OTP-verify.
+
+- **Rationale:** Human direction (2026-04-25): "Every user when doing manual login must redirect to dashboard page." A consistent landing surface for every persona is easier to design, document, and onboard against. Role-specific workflow homes remain reachable from the sidebar at any time. **This explicitly overrides PRD §10.2's role-home prescription** — when the PRD is next updated it should be reconciled against P-18.
+
+- **Touches:** `src/features/auth/lib/post-signin-navigate.ts`, `src/app/routes/HomePage.tsx`, `src/features/auth/routes/SignInPage.test.tsx`. No backend coordination needed.
+
 _(Further P-N items added below as mid-build decisions are made. Keep sequential order.)_
 
 <!--

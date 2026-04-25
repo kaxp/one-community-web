@@ -111,6 +111,8 @@ export function SearchPage() {
         firstPage={firstPage}
         totalLoaded={totalLoaded}
         query={debouncedQuery.trim()}
+        filters={filters}
+        onClearFilters={() => onFiltersChange({})}
       />
     </div>
   );
@@ -121,9 +123,18 @@ interface SearchResultsProps {
   firstPage: SearchResponse | undefined;
   totalLoaded: number;
   query: string;
+  filters: SearchFilters;
+  onClearFilters: () => void;
 }
 
-function SearchResults({ state, firstPage, totalLoaded, query }: SearchResultsProps) {
+function SearchResults({
+  state,
+  firstPage,
+  totalLoaded,
+  query,
+  filters,
+  onClearFilters,
+}: SearchResultsProps) {
   if (query.length === 0) {
     return (
       <EmptyState
@@ -152,10 +163,25 @@ function SearchResults({ state, firstPage, totalLoaded, query }: SearchResultsPr
     );
   }
   if (!firstPage || firstPage.results.length === 0) {
+    const filterCount =
+      (filters.sector?.length ?? 0) +
+      (filters.stage?.length ?? 0) +
+      (filters.geography?.length ?? 0);
     return (
       <EmptyState
-        title="No results"
-        description="Try a broader query, fewer filters, or a different sector."
+        title={`No matches for “${query}”`}
+        description={
+          filterCount > 0
+            ? `We couldn't find anyone matching that query with the ${filterCount} active filter${filterCount === 1 ? '' : 's'}. Try clearing filters or rephrasing.`
+            : 'Try rephrasing — broader terms, a different sector, or a related concept often surface more matches.'
+        }
+        action={
+          filterCount > 0 ? (
+            <Button variant="outline" size="sm" onClick={onClearFilters}>
+              Clear filters
+            </Button>
+          ) : undefined
+        }
       />
     );
   }

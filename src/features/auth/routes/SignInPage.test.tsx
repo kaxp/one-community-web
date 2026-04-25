@@ -14,7 +14,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('SignInPage integration', () => {
-  it('completes phone → OTP → /auth/me and navigates LP to /search', async () => {
+  it('completes phone → OTP → /auth/me and navigates every role to /dashboard (P-18)', async () => {
     navigateMock.mockReset();
     const user = userEvent.setup();
     renderWithProviders(<SignInPage />);
@@ -31,7 +31,7 @@ describe('SignInPage integration', () => {
     }
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/search', { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true });
     });
     const state = useAuthStore.getState();
     expect(state.role).toBe('lp');
