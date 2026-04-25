@@ -68,6 +68,9 @@ const ProfileViewersPage = lazy(() =>
     default: m.ProfileViewersPage,
   })),
 );
+const AddUserPage = lazy(() =>
+  import('@/features/onboarding/routes/AddUserPage').then((m) => ({ default: m.AddUserPage })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -235,6 +238,24 @@ export const router = createBrowserRouter(
                       <ProfileViewersPage />
                     </Susp>
                   ),
+                },
+                {
+                  // PRD §7.2.1 + §13.2 G2 — `/add-user` card-scan flow.
+                  // Capability list matches CAPABILITIES['card_scan.use'] in
+                  // role-capabilities.ts: LP / Potential LP / VC + admin.
+                  element: (
+                    <RoleGuard roles={['lp', 'potential_lp', 'vc', 'admin', 'super_admin']} />
+                  ),
+                  children: [
+                    {
+                      path: '/add-user',
+                      element: (
+                        <Susp>
+                          <AddUserPage />
+                        </Susp>
+                      ),
+                    },
+                  ],
                 },
                 {
                   path: '/connections',

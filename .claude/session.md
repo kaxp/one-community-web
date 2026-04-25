@@ -34,46 +34,65 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 3 eighth feature `profile-viewers` complete. **8 of 9 Stage 3 user features are done — please run Spot-check Gate 2 before continuing.** The remaining row is `onboarding-add-user`, which is the spot-check-gate-2 boundary per `queue.md`.)_
+_(none — Stage 3 ninth and final feature `onboarding-add-user` complete. **Stage 3 is DONE.** Please run the final Stage 3 gate, tag `v0.3-user-features`, then proceed to Stage 4.1 (admin home + digest + matchmaking ops).)_
 
 ### Last completed action
 
-Completed Stage 3 eighth feature **profile-viewers** end-to-end. PRD §7.7.3 (`GET /interactions/profile-viewers`, cursor-paginated) ships behind `/profile-viewers` for all 10 authenticated roles, with PII discipline per §13 G11 enforced via TWO independent layers.
+Completed Stage 3 ninth feature **onboarding-add-user** end-to-end. Both PRD endpoints (§7.2.1 POST /onboarding/card-scan + §7.2.2 GET /onboarding/card-scan/{scan_id}) ship behind `/add-user` for `lp`, `potential_lp`, `vc`, `admin`, `super_admin` (matches `CAPABILITIES.card_scan.use`). Client-side OCR via tesseract.js per §13 G2; duplicate-contact modal on 409 with admin-only "Open existing user" CTA.
 
-- **Schemas** (`src/features/profile-viewers/schemas.ts`):
-  - `zViewerProfile` — exactly five fields (`user_id`, `name`, `role`, `organisation`, `avatar_url`). NO `email` / `phone`. NO `.passthrough()`. This is the parse-time firewall (Layer 1) — Zod silently drops any rogue keys the backend might add later.
-  - `zProfileViewerItem` wraps `viewer` + `viewed_at` (ISO datetime).
-  - `zProfileViewersResponse` is the cursor-paginated `{ items, next_cursor }` envelope.
-- **Endpoint function** (`src/api/endpoints.ts`): `getProfileViewers({ limit, cursor })` Zod-parses the response via `unwrap()`.
-- **Query keys**: `qk.interactions.profileViewersAll` + `qk.interactions.profileViewers(limit)`.
-- **Hook** (`src/features/profile-viewers/hooks/use-profile-viewers.ts`): `useInfiniteQuery` keyed by `limit`; cursor flows through `pageParam` per CLAUDE.md §5.5. 60s staleTime, 5min gcTime.
-- **Component** (`src/features/profile-viewers/components/ViewerCard.tsx`): destructures ONLY `{ user_id, name, role, organisation, avatar_url }` from `item.viewer` plus `viewed_at`. Inlines a small `initials()` helper for the avatar fallback (the existing copy in `features/profile/components/ProfileHeader.tsx` is duplicated rather than refactored — extracting to a shared lib is out of scope for this feature). Card is keyboard-accessible (`role="button"` + `Enter/Space` activation) and navigates to `/profile/{viewer.user_id}` on click. `viewed_at` renders as `formatDistanceToNow` with the full ISO in the `title` attribute.
-- **Route** (`src/app/router.tsx`): `/profile-viewers` mounted under `<RequireAuth>` + `<ProfileGate>` + `<AppShell>` with no extra `<RoleGuard>` (matches `NAV_ITEMS.viewers.roles = ['*']`). Lazy-imported per [P-19].
-- **Page** (`src/features/profile-viewers/routes/ProfileViewersPage.tsx`): card grid (`md:grid-cols-2`). Loading = 4 skeleton tiles, error = `<ErrorState>`, empty = `<EmptyState icon={Eye}>` with the "No one has viewed your profile yet." copy from §7.7.3 UI flow #4. "Load more" button surfaces when `hasNextPage` is true.
-- **MSW** (`src/test/msw-fixtures/profile-viewers-handlers.ts`): cursor-pagination simulation (`?cursor=<offset>`). Helpers: `setMswProfileViewersFixture`, `setMswProfileViewersGenerated(count)` for the 60-row paginate scenario, `setMswProfileViewersLeakPii(true)` which deliberately splices `email` + `phone` onto the first row's `viewer` payload to prove the firewall, `queueProfileViewersError`. Reset hook registered in `src/test/setup.ts` afterEach.
-- **README** (`src/features/profile-viewers/README.md`): documents the two enforcement layers + the render contract for `<ViewerCard>`. Explicitly required by the prompt; CLAUDE.md "no README without explicit ask" exception applies.
-- **PII-grep regression test (Layer 2 — `pii-discipline.test.ts`)**: walks every `.ts` / `.tsx` file under `src/features/profile-viewers/`, strips block + line comments, and asserts no source line matches `/viewer\.email\b/` or `/viewer\.phone\b/`. The README and the test file itself are allow-listed (they document the rule). If a future edit lands a forbidden read in the source, the test fails the test gate.
-- **Tests (+16 cases vs prior commit, total 223 across 59 files):**
-  - `schemas.test.ts` (4): populated parse / Zod strips backend-leaked email+phone / empty paginated response / required-field rejection.
-  - `pii-discipline.test.ts` (1): the source-grep regression.
-  - `use-profile-viewers.test.ts` (5): 5-row seed / empty fixture / 60-row paginate (50+10) / Zod strips PII at the hook boundary / 500 ApiError.
-  - `ProfileViewersPage.test.tsx` (6): renders 5 cards / empty state / 500 ErrorState / click → /profile/:id navigation / Load more pagination / no leaked email/phone in DOM.
+- **tesseract.js installed** (`pnpm add tesseract.js@^7.0.0`).
+- **OCR interim** (`src/api/interim/ocr-client.ts`): `OCRServiceInterim.recognize({ blob, onProgress }) → { raw_text, confidence }`. tesseract.js is **dynamically imported inside `recognize()`** so the 14.93 KB JS chunk lives in its own split bundle rather than the main bundle (saved ~6 KB gzip on `index-*.js`).
+- **Card-scan schemas** (`src/features/onboarding/schemas.ts`):
+  - `zCardScanRequest` — `raw_text >= 10 chars` (initial parse) + optional `parsed` + `category` (final confirm). Backend distinguishes phases by body shape per §7.2.1.
+  - `zCardScanParsed` — every field nullable (GPT-4o may fail to extract any).
+  - `zCardScanResponse` — `scan_id`, `parsed`, `user_created`, `user_id?`.
+  - `zCardScanRecord` (§7.2.2 GET response) — adds `image_url`, `ocr_raw`, `extracted_data`, `status: pending|processed|failed`, `created_at`.
+  - `zScanCategory` — `lp | potential_lp | vc | startup | partner` (radio options).
+  - `zContactReviewForm` — RHF form schema. **Optional fields use flat `z.string()` + `.refine(v === '' || regex)` rather than `.transform()` unions** to avoid RHF widening `errors.<field>?.message` to `string | FieldError | Merge<...>`. The submit handler runs `emptyToNull` to strip blank optionals before sending. Also enforces phone normalisation to E.164 via `toE164()` per §8.12.1.
+- **Endpoint functions** (`src/api/endpoints.ts`):
+  - `postCardScan(body)` — Zod-parsed `CardScanResponse`. Strips `undefined` keys.
+  - `getCardScan(scanId)` — Zod-parsed `CardScanRecord`.
+  - `runOCR({ blob, onProgress })` — **branches on `env.OCR_SERVER_ENABLED`**: when `true`, POSTs `multipart/form-data` to `/ocr`; when `false`, delegates to `OCRServiceInterim`. The hook surface (`useOCR`) is identical regardless.
+- **Query keys**: `qk.onboarding.cardScan(scanId)` + `qk.onboarding.cardScanAll`.
+- **Hooks** (`src/features/onboarding/hooks/`):
+  - `useCardScan()` — `useMutation`. On success, invalidates `qk.onboarding.cardScan(scan_id)` so a follow-up §7.2.2 GET reads fresh.
+  - `useGetCardScan(scanId | undefined)` — `useQuery`, gated by `enabled: !!scanId` so it's a no-op on the upload step. 60s staleTime.
+  - `useOCR()` — bespoke (not `useMutation`) because the progress stream needs synchronous state updates per Tesseract tick. Returns `{ isRunning, progress, status, result, error, recognize, reset }`. Catches and converts thrown errors into `ApiError` with `code: 'ocr_failed'`.
+- **Route** (`src/app/router.tsx`): `/add-user` lazy-imported under `<RoleGuard roles={['lp','potential_lp','vc','admin','super_admin']} />`. Lazy-imported per [P-19].
+- **Page** (`src/features/onboarding/routes/AddUserPage.tsx`): three-step state machine — `upload` → `parsing` → `review`.
+  - Upload step: `<FileDropzone>` (jpeg/png/heic) + `<textarea>` paste fallback. Drop runs `useOCR().recognize()`; the page surfaces a progress indicator with the % from Tesseract.
+  - On OCR complete or paste-then-Parse, automatically POSTs `{raw_text}` to `/onboarding/card-scan` (initial parse phase) → enters review step.
+  - Review form prefills from `parsed.*`; renders `<FieldFlag>` chips for missing required fields (red, "Missing — required") and null parsed fields (amber, "Low confidence"). Five-option category radio (LP / Potential LP / VC / Startup / Partner).
+  - Submit POSTs `{raw_text, parsed, category}` (confirm phase). 200 with `user_created=true` toasts "Contact added — user created."; `user_created=false` toasts "Contact saved — admin will follow up to provision the account."; 409 `duplicate_contact` opens `<DuplicateContactDialog>`.
+- **Components** (`src/features/onboarding/components/DuplicateContactDialog.tsx`): admin-only "Open existing user" CTA navigates to `/profile/{existing_user_id}`. Non-admins see only "Cancel". TODO marker references the missing admin endpoint for in-place updates of someone else's profile (PRD §7.2.3 PATCH only updates the caller's own profile, so updating someone else's record is admin-DB territory until a dedicated endpoint ships).
+- **MSW** (`src/test/msw-fixtures/onboarding-handlers.ts`): canonical owner of `/onboarding/card-scan` (POST + GET) plus an `/ocr` stub for the flag-flip path. Stateful — each POST stashes the record by `scan_id` so a follow-up GET reads it back. Helpers: `setMswCardScanParsed`, `setMswCardScanCreatesUser`, `queueCardScanParseError`, `queueCardScanConfirmError`, `queueCardScanGetError`, `queueOcrError`, `setMswOcrPayload`, `getMswCardScanRecords`. Reset hook registered in `src/test/setup.ts` afterEach.
+- **Tests (+26 cases vs prior commit, total 249 across 64 files):**
+  - `schemas.test.ts` (9): rejects short raw_text / accepts initial parse / accepts confirm body / response with user_created / all-null parsed / unknown category rejected / form requires name+phone / form accepts blank optionals / form rejects bad email+url.
+  - `use-card-scan.test.tsx` (4 + 2 useGetCardScan): parse path / confirm creates user / confirm without user creation / 409 duplicate detail; useGetCardScan no-op when undefined / fetches a previously-created record.
+  - `use-ocr.test.tsx` (2): client-side path success with progress + final result / thrown error → ApiError(`ocr_failed`).
+  - `run-ocr.test.ts` (2): flag OFF uses `OCRServiceInterim` / flag ON POSTs multipart to `/ocr`.
+  - `AddUserPage.test.tsx` (7): renders dropzone + textarea / paste flow → review prefilled / red+amber field flags / submit success (user_created=true) / submit success (user_created=false admin-followup copy) / 409 duplicate as admin shows CTA + navigates / 409 duplicate as LP hides CTA.
 
-Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (223/223 across 59 files), `pnpm build` (exits 0). Per-feature chunk: ProfileViewersPage **5.74 KB / 2.42 KB gzip** — comfortably under the 30 KB-per-feature budget. Main chunk: 290.30 → 290.42 KB gzip (+0.12 KB).
+Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (249/249 across 64 files), `pnpm build` (exits 0). Per-feature chunk: AddUserPage **71.34 KB / 20.57 KB gzip**; tesseract.js dynamic-import chunk **14.93 KB / 6.43 KB gzip**. Main chunk 290.42 → 291.34 KB gzip (+0.92 KB; would have been +6.99 KB without the dynamic import).
 
 ### Next concrete step
 
-**Stage 3 spot-check gate 2 is now due** per `queue.md` (8 features built since calibration). Wait for the human to spot-check before starting `onboarding-add-user`.
+**Stage 3 is COMPLETE.** All 9 user-facing features are merged. Per `queue.md` Stage 3 footer: "Gate after Stage 3 (user features done): tag `v0.3-user-features`."
 
-Once the gate clears, the next unchecked queue.md row is **`onboarding-add-user`** (PRD §7.2.1 POST /onboarding/card-scan + §7.2.2 GET /onboarding/card-scan/{id}). Client-side OCR via `tesseract.js` per §13 G2; duplicate-contact modal on 409.
+Wait for the human to:
+1. Run the final Stage 3 review (every box in §10 DoD against each shipped feature).
+2. Tag the repo `v0.3-user-features`.
+3. Authorise Stage 4.1 (Session 4.1 — Admin home + digest + matchmaking ops).
 
-Smoke checks for the just-shipped Profile Viewers feature (manual):
-- (a) Sign in as `+911234567892` (LP) → sidebar shows "Who viewed me" → click `/profile-viewers` → grid renders 5 seeded viewer cards (Kapil / Priya / Anita / Rohan / Sneha) with name + role badge + organisation + relative-time line.
-- (b) Hover the "Viewed X ago" line → tooltip shows the full ISO datetime (PPpp format).
-- (c) Click any card → navigates to `/profile/<user_id>` (works whether or not the profile is reachable; if not, the existing `<ProfilePage>` will surface its own error).
-- (d) `setMswProfileViewersGenerated(60)` (via dev hooks, or just generate viewers organically) → "Load more" button appears under the grid → click → second page of 10 appended; button disappears.
-- (e) `setMswProfileViewersLeakPii(true)` → reload `/profile-viewers` → DOM does NOT show `should-not-render@example.com` or `+919999999999` even though the JSON response contained them. (Network tab can confirm the bytes arrived; the Zod schema strips them before they reach React.)
-- (f) `setMswProfileViewersFixture([])` → reload → empty state with "No one has viewed your profile yet." copy + Eye icon.
+Once authorised, the next unchecked queue.md row is **`admin-home`** (PRD §7.12.1 GET /admin/summary — KPI cards + recent actions feed). Stage 4 features are batched into 3 sessions per `queue.md`; session 4.1 covers `admin-home` + `admin-digest` + `admin-matchmaking-ops`.
+
+Smoke checks for the just-shipped onboarding-add-user feature (manual):
+- (a) Sign in as `+911234567892` (LP) → sidebar "Add contact" → `/add-user` → page renders dropzone + paste textarea.
+- (b) Drop a real card image into the dropzone → progress indicator ticks 0% → 100% over 2–6s → page transitions to review step with parsed values prefilled. Network tab shows tesseract.js chunk fetched on demand.
+- (c) Or paste the seed text "Kapil Sahu\nPrincipal, Warmup Ventures\n+91-9876543210\nkapil@example.com" + click "Parse text" → review form prefills with name="Kapil Sahu", phone="+919876543210", etc.
+- (d) Edit fields, pick a category radio, click "Save contact" → toast "Contact added — user created." → page resets to upload step.
+- (e) Try the same card again → 409 → modal opens. As LP: only "Cancel". Sign in as admin (`+911234567890`) and retry → "Open existing user" button navigates to `/profile/{user_id}`.
+- (f) Flag flip: set `VITE_OCR_SERVER_ENABLED=true` in `.env.development` and restart dev → drop image → network tab shows POST to `/api/v1/ocr` (multipart) instead of fetching tesseract.js. Same downstream UX.
 
 ### Open blockers
 
@@ -81,24 +100,29 @@ _(none)_
 
 ### Files touched this session
 
-- **profile-viewers feature (new):**
-  - `src/features/profile-viewers/{schemas.ts, schemas.test.ts, index.ts, README.md, pii-discipline.test.ts}`.
-  - `src/features/profile-viewers/hooks/{use-profile-viewers.ts, use-profile-viewers.test.ts}`.
-  - `src/features/profile-viewers/components/ViewerCard.tsx`.
-  - `src/features/profile-viewers/routes/{ProfileViewersPage.tsx, ProfileViewersPage.test.tsx}`.
+- **onboarding-add-user (new):**
+  - `src/features/onboarding/schemas.ts` (extended — added card-scan + contact-review schemas).
+  - `src/features/onboarding/schemas.test.ts` (new — 9 cases).
+  - `src/features/onboarding/components/DuplicateContactDialog.tsx`.
+  - `src/features/onboarding/hooks/use-card-scan.ts` + `use-get-card-scan.ts` + `use-ocr.ts`, plus matching `use-card-scan.test.tsx` + `use-ocr.test.tsx`.
+  - `src/features/onboarding/routes/AddUserPage.tsx` + `AddUserPage.test.tsx`.
+- **OCR interim:**
+  - `src/api/interim/ocr-client.ts` (new — dynamic-import tesseract.js).
+  - `src/api/run-ocr.test.ts` (new — flag-flip branch coverage).
 - **Cross-cutting:**
-  - `src/api/endpoints.ts` — added `getProfileViewers`.
-  - `src/api/query-keys.ts` — added `qk.interactions.profileViewersAll` + `qk.interactions.profileViewers(limit)`.
-  - `src/app/router.tsx` — `/profile-viewers` lazy-imported under `<AppShell>`.
+  - `src/api/endpoints.ts` — added `postCardScan`, `getCardScan`, `runOCR`.
+  - `src/api/query-keys.ts` — added `qk.onboarding.cardScan(scanId)` + `qk.onboarding.cardScanAll`.
+  - `src/app/router.tsx` — `/add-user` lazy-imported with `<RoleGuard>`.
+  - `package.json` — added `tesseract.js@^7.0.0`.
 - **MSW + tests:**
-  - `src/test/msw-fixtures/profile-viewers-handlers.ts` (new — paginated + PII-leak toggle).
+  - `src/test/msw-fixtures/onboarding-handlers.ts` (new — POST + GET + /ocr stub).
   - `src/test/{msw-handlers.ts, setup.ts}` — registered + wired reset.
-- **Coordination:** `.claude/queue.md` (`profile-viewers` row ticked), `.claude/session.md` (this file).
+- **Coordination:** `.claude/queue.md` (`onboarding-add-user` row ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 223/223 tests across 59 files (was 207/207 across 55 files — +16 new tests, +4 new test files: schemas, pii-discipline grep, hook, page).
+Yes. All four gates exit 0. 249/249 tests across 64 files (was 223/223 across 59 files — +26 new tests, +5 new test files: schemas, two hooks, run-ocr branch, page).
 
 ### Last updated
 
-2026-04-25T23:32:00+05:30
+2026-04-25T23:50:00+05:30

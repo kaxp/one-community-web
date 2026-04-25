@@ -8,6 +8,8 @@ export const qk = {
   onboarding: {
     profile: ['onboarding', 'profile'] as const,
     lpProfile: ['onboarding', 'lp-profile'] as const,
+    cardScan: (scanId: string) => ['onboarding', 'card-scan', scanId] as const,
+    cardScanAll: ['onboarding', 'card-scan'] as const,
   },
   connections: {
     all: ['connections'] as const,

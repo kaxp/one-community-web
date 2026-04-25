@@ -11,8 +11,13 @@ import {
   type OtpVerifyResponse,
 } from '@/features/auth/schemas';
 import {
+  zCardScanRecord,
+  zCardScanResponse,
   zLPProfileResponse,
   zProfileUpdateResponse,
+  type CardScanRecord,
+  type CardScanRequest,
+  type CardScanResponse,
   type LPProfileRequest,
   type LPProfileResponse,
   type ProfileUpdateRequest,
@@ -107,6 +112,7 @@ import {
 } from '@/features/profile-viewers/schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
+import { OCRServiceInterim, type OCRProgress, type OCRResult } from '@/api/interim/ocr-client';
 
 function unwrap<T>(env: ApiEnvelope<T>, path: string): T {
   if (env.data === null) {
@@ -149,6 +155,50 @@ export async function postLPProfile(body: LPProfileRequest): Promise<LPProfileRe
     stripUndefined(body),
   );
   return zLPProfileResponse.parse(unwrap(resp.data, '/onboarding/lp-profile'));
+}
+
+// PRD §7.2.1 — `POST /onboarding/card-scan`. Two phases: (1) initial parse
+// with `raw_text` only → backend GPT-4o populates `parsed`. (2) final
+// confirm with `parsed` + `category` → backend optionally creates a user
+// row. 409 `duplicate_contact` includes `existing_user_id` in detail.
+export async function postCardScan(body: CardScanRequest): Promise<CardScanResponse> {
+  const resp = await apiClient.post<ApiEnvelope<CardScanResponse>>(
+    '/onboarding/card-scan',
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return zCardScanResponse.parse(unwrap(resp.data, '/onboarding/card-scan'));
+}
+
+// PRD §7.2.2 — `GET /onboarding/card-scan/{scan_id}`. Ownership-gated.
+export async function getCardScan(scanId: string): Promise<CardScanRecord> {
+  const url = `/onboarding/card-scan/${scanId}`;
+  const resp = await apiClient.get<ApiEnvelope<CardScanRecord>>(url);
+  return zCardScanRecord.parse(unwrap(resp.data, url));
+}
+
+// PRD §13.2 G2 — OCR. When `VITE_OCR_SERVER_ENABLED=true`, hit the backend
+// `POST /ocr` (multipart). Otherwise run tesseract.js client-side.
+// `onProgress` is forwarded to the interim service; the server-side path
+// reports a single 100% step on completion (the backend response is
+// effectively all-or-nothing from the client's POV).
+export async function runOCR(args: {
+  blob: Blob | File;
+  onProgress?: (p: OCRProgress) => void;
+}): Promise<OCRResult> {
+  if (env.OCR_SERVER_ENABLED) {
+    const form = new FormData();
+    form.append('file', args.blob, args.blob instanceof File ? args.blob.name : 'card.jpg');
+    args.onProgress?.({ status: 'uploading', progress: 0.1 });
+    const resp = await apiClient.post<ApiEnvelope<OCRResult>>('/ocr', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    args.onProgress?.({ status: 'done', progress: 1 });
+    return unwrap(resp.data, '/ocr');
+  }
+  return OCRServiceInterim.recognize({
+    blob: args.blob,
+    ...(args.onProgress ? { onProgress: args.onProgress } : {}),
+  });
 }
 
 export async function searchUnified(body: SearchRequest): Promise<SearchResponse> {

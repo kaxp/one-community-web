@@ -1,0 +1,431 @@
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ErrorState } from '@/components/error-state/ErrorState';
+import { FileDropzone } from '@/components/forms/FileDropzone';
+import { FormField } from '@/components/forms/FormField';
+import { useOCR } from '@/features/onboarding/hooks/use-ocr';
+import { useCardScan } from '@/features/onboarding/hooks/use-card-scan';
+import { DuplicateContactDialog } from '@/features/onboarding/components/DuplicateContactDialog';
+import {
+  SCAN_CATEGORIES,
+  zContactReviewForm,
+  type CardScanParsed,
+  type ContactReviewForm,
+  type ScanCategory,
+} from '@/features/onboarding/schemas';
+import { toE164 } from '@/lib/phone';
+import type { ApiError } from '@/api/errors';
+
+type Step = 'upload' | 'parsing' | 'review';
+
+const CATEGORY_LABEL: Record<ScanCategory, string> = {
+  lp: 'LP',
+  potential_lp: 'Potential LP',
+  vc: 'VC',
+  startup: 'Startup',
+  partner: 'Partner',
+};
+
+function defaultsFrom(parsed: CardScanParsed | null): ContactReviewForm {
+  return {
+    name: parsed?.name ?? '',
+    phone: parsed?.phone ?? '',
+    email: parsed?.email ?? '',
+    organisation: parsed?.organisation ?? '',
+    designation: parsed?.designation ?? '',
+    linkedin_url: parsed?.linkedin_url ?? '',
+    category: 'lp',
+  };
+}
+
+function emptyToNull(v: string | undefined): string | null {
+  if (!v || v.trim() === '') return null;
+  return v;
+}
+
+interface FieldFlagProps {
+  parsedValue: string | null | undefined;
+  required?: boolean;
+}
+
+// PRD §7.2.1 UI flow — render an amber chip when the GPT-4o parse left the
+// field null (low confidence) and a red chip when a required field is
+// missing entirely. Both are advisory; the form's Zod schema is the
+// authoritative gate on submit.
+function FieldFlag({ parsedValue, required = false }: FieldFlagProps) {
+  if (parsedValue && parsedValue.length > 0) return null;
+  if (required) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-error/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-error">
+        Missing — required
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warning">
+      Low confidence
+    </span>
+  );
+}
+
+// PRD §7.2.1 + §13.2 G2 — `/add-user` flow.
+//
+// Three-step state machine: `upload` → `parsing` → `review`. The dropzone
+// runs tesseract.js (or POST /ocr when VITE_OCR_SERVER_ENABLED=true), the
+// raw text auto-submits to `POST /onboarding/card-scan` for the GPT-4o
+// parse, and the review form prefills + lets the scanner pick a category
+// before the final create-or-update POST.
+export function AddUserPage() {
+  const [step, setStep] = useState<Step>('upload');
+  const [parsed, setParsed] = useState<CardScanParsed | null>(null);
+  const [rawText, setRawText] = useState('');
+  const [duplicateUserId, setDuplicateUserId] = useState<string | null>(null);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+
+  const ocr = useOCR();
+  const cardScan = useCardScan();
+
+  const form = useForm<ContactReviewForm>({
+    resolver: zodResolver(zContactReviewForm),
+    defaultValues: defaultsFrom(null),
+  });
+
+  // Re-prime the review form whenever a fresh `parsed` lands.
+  useEffect(() => {
+    if (parsed) form.reset(defaultsFrom(parsed));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed]);
+
+  const startParse = (text: string) => {
+    const trimmed = text.trim();
+    if (trimmed.length < 10) {
+      toast.error('OCR output looks too short — try a clearer image');
+      return;
+    }
+    setRawText(trimmed);
+    setStep('parsing');
+    cardScan.mutate(
+      { raw_text: trimmed },
+      {
+        onSuccess: (data) => {
+          setParsed(data.parsed);
+          setStep('review');
+        },
+        onError: (err: ApiError) => {
+          if (err.code !== 'validation_error') {
+            toast.error(err.userMessage);
+          }
+          setStep('upload');
+        },
+      },
+    );
+  };
+
+  const onFiles = async (files: File[]) => {
+    const file = files[0];
+    if (!file) return;
+    const result = await ocr.recognize(file);
+    if (result?.raw_text) {
+      startParse(result.raw_text);
+    } else {
+      toast.error('Could not read text from this image. Try a clearer photo or paste manually.');
+    }
+  };
+
+  const onPasteSubmit = () => {
+    startParse(rawText);
+  };
+
+  const onResetToUpload = () => {
+    cardScan.reset();
+    ocr.reset();
+    setParsed(null);
+    setRawText('');
+    form.reset(defaultsFrom(null));
+    setStep('upload');
+  };
+
+  const onConfirmSubmit = (values: ContactReviewForm) => {
+    cardScan.mutate(
+      {
+        raw_text: rawText,
+        parsed: {
+          name: values.name,
+          phone: toE164(values.phone),
+          email: emptyToNull(values.email),
+          organisation: emptyToNull(values.organisation),
+          designation: emptyToNull(values.designation),
+          linkedin_url: emptyToNull(values.linkedin_url),
+        },
+        category: values.category,
+      },
+      {
+        onSuccess: (data) => {
+          if (data.user_created) {
+            toast.success('Contact added — user created.');
+          } else {
+            toast.success('Contact saved — admin will follow up to provision the account.');
+          }
+          onResetToUpload();
+        },
+        onError: (err: ApiError) => {
+          if (err.code === 'duplicate_contact') {
+            const existing =
+              (err.detail as { existing_user_id?: string } | null)?.existing_user_id ?? null;
+            setDuplicateUserId(existing);
+            setDuplicateOpen(true);
+            return;
+          }
+          if (err.code !== 'validation_error') {
+            toast.error(err.userMessage);
+          }
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header>
+        <h1 className="text-3xl font-semibold text-ink-heading">Add a contact</h1>
+        <p className="text-sm text-ink-muted">
+          Snap a business card. We&apos;ll OCR it, parse the fields, and let you confirm before
+          adding to the community.
+        </p>
+      </header>
+
+      {step === 'upload' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload card image</CardTitle>
+            <CardDescription>JPG, PNG, or HEIC. Single side; well-lit photo.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <FileDropzone
+              onFiles={(files) => {
+                void onFiles(files);
+              }}
+              accept={{
+                'image/jpeg': ['.jpg', '.jpeg'],
+                'image/png': ['.png'],
+                'image/heic': ['.heic'],
+              }}
+              disabled={ocr.isRunning || cardScan.isPending}
+              label="Drop a card image or click to upload"
+            />
+
+            {ocr.isRunning ? (
+              <div
+                role="status"
+                aria-live="polite"
+                data-testid="ocr-progress"
+                className="flex items-center gap-3 rounded-md border border-border bg-surface-muted p-3 text-sm text-ink-body"
+              >
+                <Loader2 className="h-4 w-4 animate-spin text-brand" aria-hidden />
+                <span>
+                  Reading card… {Math.round(ocr.progress * 100)}%{' '}
+                  {ocr.status ? <em className="text-ink-muted">({ocr.status})</em> : null}
+                </span>
+              </div>
+            ) : null}
+
+            {ocr.error ? (
+              <ErrorState
+                error={ocr.error}
+                compact
+                onRetry={() => {
+                  ocr.reset();
+                }}
+              />
+            ) : null}
+
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <Label htmlFor="add-user-raw">Or paste OCR text directly</Label>
+              <textarea
+                id="add-user-raw"
+                rows={5}
+                className="rounded-md border border-border bg-surface p-3 text-sm text-ink-heading focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                placeholder="Kapil Sahu&#10;Principal, Warmup Ventures&#10;+91-9876543210&#10;kapil@example.com"
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                data-testid="add-user-raw-input"
+              />
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onPasteSubmit}
+                  disabled={rawText.trim().length < 10 || cardScan.isPending}
+                  data-testid="add-user-parse-paste"
+                >
+                  Parse text
+                </Button>
+              </div>
+            </div>
+
+            {cardScan.isError && cardScan.error ? (
+              <ErrorState error={cardScan.error} compact />
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === 'parsing' ? (
+        <Card>
+          <CardContent className="flex items-center gap-3 p-6 text-sm text-ink-body">
+            <Loader2 className="h-4 w-4 animate-spin text-brand" aria-hidden />
+            <span>Parsing card text with GPT-4o…</span>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === 'review' && parsed ? (
+        <Card>
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>Confirm contact details</CardTitle>
+              <CardDescription>
+                Edit any field, pick a category, and save. Missing required fields are flagged in
+                red; low-confidence GPT extractions are flagged amber.
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={onResetToUpload}>
+              <RefreshCw className="h-4 w-4" aria-hidden />
+              <span>Restart</span>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={form.handleSubmit(onConfirmSubmit)}
+              className="flex flex-col gap-4"
+              noValidate
+            >
+              <fieldset disabled={cardScan.isPending} className="contents">
+                <FormField
+                  label="Full name"
+                  htmlFor="add-user-name"
+                  error={form.formState.errors.name?.message}
+                >
+                  <div className="flex flex-col gap-1">
+                    <Input id="add-user-name" {...form.register('name')} />
+                    <FieldFlag parsedValue={parsed.name} required />
+                  </div>
+                </FormField>
+
+                <FormField
+                  label="Phone"
+                  htmlFor="add-user-phone"
+                  error={form.formState.errors.phone?.message}
+                  hint="Will be normalised to E.164 before saving."
+                >
+                  <div className="flex flex-col gap-1">
+                    <Input id="add-user-phone" inputMode="tel" {...form.register('phone')} />
+                    <FieldFlag parsedValue={parsed.phone} required />
+                  </div>
+                </FormField>
+
+                <FormField
+                  label="Email"
+                  htmlFor="add-user-email"
+                  error={form.formState.errors.email?.message}
+                >
+                  <div className="flex flex-col gap-1">
+                    <Input id="add-user-email" type="email" {...form.register('email')} />
+                    <FieldFlag parsedValue={parsed.email} />
+                  </div>
+                </FormField>
+
+                <FormField
+                  label="Organisation"
+                  htmlFor="add-user-org"
+                  error={form.formState.errors.organisation?.message}
+                >
+                  <div className="flex flex-col gap-1">
+                    <Input id="add-user-org" {...form.register('organisation')} />
+                    <FieldFlag parsedValue={parsed.organisation} />
+                  </div>
+                </FormField>
+
+                <FormField
+                  label="Designation"
+                  htmlFor="add-user-desig"
+                  error={form.formState.errors.designation?.message}
+                >
+                  <div className="flex flex-col gap-1">
+                    <Input id="add-user-desig" {...form.register('designation')} />
+                    <FieldFlag parsedValue={parsed.designation} />
+                  </div>
+                </FormField>
+
+                <FormField
+                  label="LinkedIn URL"
+                  htmlFor="add-user-linkedin"
+                  error={form.formState.errors.linkedin_url?.message}
+                >
+                  <div className="flex flex-col gap-1">
+                    <Input
+                      id="add-user-linkedin"
+                      placeholder="https://linkedin.com/in/…"
+                      {...form.register('linkedin_url')}
+                    />
+                    <FieldFlag parsedValue={parsed.linkedin_url} />
+                  </div>
+                </FormField>
+
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="text-sm font-medium text-ink-heading">Category</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {SCAN_CATEGORIES.map((c) => (
+                      <Label
+                        key={c}
+                        className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-muted"
+                      >
+                        <input type="radio" value={c} {...form.register('category')} />
+                        {CATEGORY_LABEL[c]}
+                      </Label>
+                    ))}
+                  </div>
+                  {form.formState.errors.category ? (
+                    <p className="text-xs text-error" role="alert">
+                      {form.formState.errors.category.message}
+                    </p>
+                  ) : null}
+                </fieldset>
+              </fieldset>
+
+              {cardScan.isError && cardScan.error?.code !== 'duplicate_contact' ? (
+                <ErrorState error={cardScan.error} compact />
+              ) : null}
+
+              <div className="flex justify-end">
+                <Button type="submit" disabled={cardScan.isPending} data-testid="add-user-submit">
+                  {cardScan.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      <span>Saving…</span>
+                    </>
+                  ) : (
+                    'Save contact'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <DuplicateContactDialog
+        open={duplicateOpen}
+        existingUserId={duplicateUserId}
+        onClose={() => setDuplicateOpen(false)}
+      />
+    </div>
+  );
+}

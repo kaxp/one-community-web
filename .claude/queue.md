@@ -57,7 +57,7 @@ _Spot-check gate after 4 features total_
 
 _Spot-check gate after 4 features above (8 total)_
 
-- [ ] **onboarding-add-user** — POST /onboarding/card-scan (§7.2.1) + GET /onboarding/card-scan/{id} (§7.2.2). Client-side OCR via tesseract.js per §13 G2. Duplicate-contact modal on 409.
+- [x] **onboarding-add-user** — POST /onboarding/card-scan (§7.2.1) + GET /onboarding/card-scan/{id} (§7.2.2). Client-side OCR via tesseract.js per §13 G2. Duplicate-contact modal on 409.
 
 > Gate after Stage 3 (user features done): tag `v0.3-user-features`.
 
