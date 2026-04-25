@@ -1,2 +1,9 @@
-// search feature barrel. Populated in its Stage 2/3/4 session.
-export {};
+export { useSearch } from './hooks/use-search';
+export type {
+  SearchRequest,
+  SearchResponse,
+  SearchFilters,
+  SearchResultItem,
+  StartupResultItem,
+  LPResultItem,
+} from './schemas';

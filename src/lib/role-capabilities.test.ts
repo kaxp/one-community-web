@@ -33,6 +33,12 @@ describe('role-capabilities', () => {
     expect(can('partner', 'connections.request')).toBe(false);
   });
 
+  it('partner role is excluded from search.use per CLAUDE.md §15 / PRD §7.4.1', () => {
+    expect(can('partner', 'search.use')).toBe(false);
+    const items = navForRole('partner');
+    expect(items.find((i) => i.key === 'search')).toBeUndefined();
+  });
+
   it('NAV_ITEMS roles are a subset of UserRole or "*"', () => {
     for (const item of NAV_ITEMS) {
       expect(item.roles.length).toBeGreaterThan(0);

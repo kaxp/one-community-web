@@ -34,35 +34,26 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 2a auth + responsive nav rule + session-termination policy all complete; awaiting human review before feature-search)_
+_(none — Stage 2b feature-search complete; awaiting human review before Stage 2c admin-connections)_
 
 ### Last completed action
 
-Followed Stage 2a with two scoped policy fixes prompted by hands-on review:
+Completed **Stage 2b — feature-search** (queue.md Stage 2 second row ticked). PRD §7.4.1 + §7.7.1 implemented end-to-end:
 
-1. **Responsive navigation** (CLAUDE.md §7.11 updated, mirrors PRD §10.1). The Stage-1 sidebar was `hidden lg:block`, leaving tablet + mobile users with no nav at all. Fix:
-   - New `<Sheet>` primitive in `src/components/ui/sheet.tsx` (Radix Dialog with side-anchored content).
-   - Extracted shared `<NavList>` (`src/components/layout/NavList.tsx`) — single source of truth, used by both the desktop sidebar and the mobile drawer; tap-target height `min-h-11` per CLAUDE.md §7.11.
-   - New `<MobileNavDrawer>` (`src/components/layout/MobileNavDrawer.tsx`) renders a hamburger button (`lg:hidden`) in the TopBar, opens a left-anchored sheet with the same `<NavList>`, and auto-closes when a link is clicked.
-   - `<Sidebar>` is now lg+ only and pulls from `<NavList>`; `<TopBar>` mounts the drawer; `<AppShell>` unchanged.
-   - 3 new tests in `src/components/layout/MobileNavDrawer.test.tsx` (button accessible name, full role-filtered nav rendered in dialog, admin items shown for admin role).
-   - **Rule baked into CLAUDE.md §7.11**: every viewport must surface nav, the desktop sidebar + mobile drawer share `<NavList>`, `<Sheet>` is the sanctioned drawer primitive, and PR review must test 375 / 768 / 1024 / 1440. This is now a hard rule for every future feature session.
+- **Endpoints**: `searchUnified()` posts to `/search` (Zod-parsed `discriminatedUnion('target_type')` over startup + lp shapes; both variants accept all fields as optional so partner-masked responses parse cleanly). `logInteraction()` posts to `/interactions/log` (fire-and-forget at the call site).
+- **Hooks**: `useSearch({ query, filters, enabled })` is a `useInfiniteQuery` keyed on `qk.search.query({ query, filters })`, paginating via `next_cursor`, with `staleTime: 0`. `useLogInteraction()` returns a memoised `fire()` function with a 10s client-side dedup window per `(target_id, interaction_type)` (CLAUDE.md §5.6 — server dedups for 60s).
+- **Components**: `<SearchBar>` (search input + submit button), `<FilterChips>` (sector / stage / geography multi-select; URL-backed via `useSearchParams`; round-trips comma-joined values), `<ResultCard>` (target_type-narrowed render: startup variant shows company_name / one_liner / description / traction / funding_target_cr / ai_reason; LP variant shows fund_name / cheque_range / sectors / stages / geography / ai_reason. Defensive rendering — every optional field hides its row when null/missing, so partner-masked items render gracefully).
+- **Page**: `/search` ships all 4 UI states (skeleton loading, empty CTA when no query, error state with retry, populated result grid). Stage-3 fallback banner ("AI ranking temporarily unavailable…") shows when `stage3_applied=false`. Search input is debounced 400ms via new `lib/use-debounced-value.ts` and the URL/queryKey update on the trailing edge. The form-level submit button is wired to a `useMutation` that pre-warms the query cache — surfacing isPending / inline ErrorState in the spirit of `<ExecutionPanel>` (PRD §6.7.1 explicitly classifies /search as a "plain page", but the prompt asked for ExecutionPanel surface — we surface mutation state without forcing the whole page into the panel's renderResult slot, since infinite scroll lives below).
+- **Per-card analytics**: `<ResultCard>` mounts an `IntersectionObserver` (threshold 0.4); when a card becomes visible it fires `search_view` once, deduped client-side. Falls back to immediate fire when IntersectionObserver isn't available (jsdom, tests).
+- **Routing**: `/search` is mounted under `<RoleGuard roles={['lp','potential_lp','vc','startup_funded','admin','super_admin']}>` inside `AppShell`. **Removed `partner` from `search.use` capability and from the `search` NAV_ITEM** to honor CLAUDE.md §15 / PRD §7.4.1 (partner is excluded from search). Added a regression test for it.
+- **MSW**: 5 fixtures in `src/test/msw-fixtures/search-fixtures.ts` (startup-results, lp-results, empty, stage3_fallback, partner-masked) plus an `error_500` and `rate_limit` mode. `src/test/msw-fixtures/search-handlers.ts` exposes `setMswSearchScenario(...)` + `getMswInteractionLogCount()` for tests; reset helpers wired into `src/test/setup.ts`.
+- **Tests**: 7 hook tests (useSearch — startup / lp / fallback / empty / disabled / 429), 3 hook tests (useLogInteraction — fires, dedupes, silent on failure), 7 SearchPage smoke tests (4 UI states, partner masking renders without crash, stage3 banner, interaction fire). Total **+18 cases vs prior commit**.
 
-2. **Session-termination policy** (decisions.md [P-17], CLAUDE.md §15) — unchanged from previous turn but worth restating:
-   - JWT's `expiresAt` is the only gate; only sign-out / natural expiry / fresh-signin failure clear the store.
-   - `api/client.ts`, `auth/require-auth.tsx`, `auth/profile-gate.tsx` no longer clear on 401.
-   - MSW tokens encode the phone (`msw-jwt.<base64url(phone)>`) so dev refresh recovers the session.
-   - Regression tests in `src/api/client.test.ts` + `src/auth/profile-gate.test.tsx`.
-
-Previously-completed auth chassis is unchanged: 5 typed endpoints, 5 React Query hooks with tests, `/signin` phone→OTP flow, `/onboarding/profile` + `/onboarding/lp-profile` on `<ExecutionPanel>`, role-based post-signin routing, `DevPhoneHelper` dev affordance.
-
-Four gates clean on this commit: `pnpm lint` (0 errors, 4 cosmetic react-refresh warnings), `pnpm typecheck` (0), `pnpm test` (37/37 across 13 files — +3 cases vs the P-17 commit), `pnpm build` (exits 0; main chunk ~285 KB gzip).
-
-Infra carryover (unchanged this turn): test runner is jsdom 24 (MSW 2.13 × happy-dom 14 TypedEvent incompat), `vite.config.ts` pins `test.env.VITE_*`, `auth-store.ts` has an in-memory storage fallback for tests.
+Four gates clean: `pnpm lint` (0 errors, 4 cosmetic react-refresh warnings), `pnpm typecheck` (0), `pnpm test` (55/55 across 16 files), `pnpm build` (exits 0; main chunk 289.99 KB gzip — under the 300 KB target).
 
 ### Next concrete step
 
-Wait for the human's Stage 2a review. Smoke checks: (a) sign in as LP at 375 / 768 / 1024 / 1440, hamburger appears below 1024px and the drawer renders the same nav as the desktop sidebar, link click dismisses the drawer; (b) refresh while signed in stays on the role home with the TopBar user chip intact; (c) wrong OTP inline-errors and clears the field; (d) `/expired` page renders when `expiresAt` elapses. If approved, proceed to **Stage 2b — feature-search** (queue.md Stage 2 second row).
+Wait for the human's Stage 2b review. Smoke checks: (a) sign in as LP, type "fintech" → debounce 400ms then results stream in; URL params should reflect `?q=fintech`; (b) toggle Sector chips → result grid updates and URL persists; (c) try as `partner` role → no Search nav item; visiting `/search` directly → `/unauthorized`; (d) hit Search button explicitly → fresh fetch fires; (e) Network tab should show 1 `/interactions/log` per visible card with body `{ interaction_type: 'search_view', target_type, ... }`. If approved, prompt **Stage 2c — feature-admin-connections** (queue.md Stage 2 third row).
 
 ### Open blockers
 
@@ -70,17 +61,20 @@ _(none)_
 
 ### Files touched this session
 
-- **Responsive nav rule (CLAUDE.md §7.11):** new `src/components/ui/sheet.tsx`, new `src/components/layout/NavList.tsx`, new `src/components/layout/MobileNavDrawer.tsx`, new `src/components/layout/MobileNavDrawer.test.tsx`; modified `src/components/layout/Sidebar.tsx`, `src/components/layout/TopBar.tsx`; updated `CLAUDE.md §7.11`.
-- **Policy change (decisions.md P-17):** modified `src/api/client.ts`, `src/auth/require-auth.tsx`, `src/auth/profile-gate.tsx`, `src/test/msw-fixtures/auth-handlers.ts`; added `src/api/client.test.ts`, `src/auth/profile-gate.test.tsx`; updated `CLAUDE.md §15` and `.claude/decisions.md § Resolved` with P-17.
-- **From earlier in Stage 2a (still in HEAD):** `src/features/auth/{schemas.ts, index.ts, hooks/*, lib/*, components/*, routes/*}`, `src/features/onboarding/{schemas.ts, index.ts, hooks/*, routes/*}`, `src/auth/profile-gate.tsx`, `src/test/{hook-utils.tsx, msw-fixtures/*}`, `src/api/{endpoints.ts, query-keys.ts}`, `src/auth/auth-store.ts`, `src/app/router.tsx`, `src/test/{msw-handlers.ts, setup.ts}`, `vite.config.ts`, `package.json`.
+- **Search feature (new):** `src/features/search/{schemas.ts, index.ts}`, `src/features/search/hooks/{use-search.ts, use-search.test.ts}`, `src/features/search/lib/labels.ts`, `src/features/search/components/{SearchBar.tsx, FilterChips.tsx, ResultCard.tsx}`, `src/features/search/routes/{SearchPage.tsx, SearchPage.test.tsx}`.
+- **Interactions feature (new):** `src/features/interactions/{schemas.ts, index.ts}`, `src/features/interactions/hooks/{use-log-interaction.ts, use-log-interaction.test.ts}`.
+- **Cross-cutting:** new `src/lib/use-debounced-value.ts`; modified `src/api/endpoints.ts` (`searchUnified` + `logInteraction`); modified `src/api/query-keys.ts` (added `qk.interactions.log`); modified `src/app/router.tsx` (`/search` route under RoleGuard); modified `src/lib/role-capabilities.ts` (partner excluded from `search.use` + `search` nav); added test `src/lib/role-capabilities.test.ts` (partner-not-in-search regression).
+- **MSW + tests:** new `src/test/msw-fixtures/{search-fixtures.ts, search-handlers.ts}`; modified `src/test/{msw-handlers.ts, setup.ts}`.
+- **From prior turns (still in HEAD):** Stage 1 chassis, Stage 2a auth + onboarding, P-17 session-termination policy, responsive-nav rule (`<NavList>` / `<MobileNavDrawer>` / `<Sheet>`).
+- `.claude/queue.md` (`feature-search` row ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 37/37 tests across 13 files.
+Yes. All four gates exit 0. 55/55 tests across 16 files.
 
 ### Last updated
 
-2026-04-25T11:08:00+05:30
+2026-04-25T11:30:00+05:30
 
 ---
 

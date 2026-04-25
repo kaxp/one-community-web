@@ -17,6 +17,9 @@ export const qk = {
   search: {
     query: (body: unknown) => ['search', 'query', body] as const,
   },
+  interactions: {
+    log: ['interactions', 'log'] as const,
+  },
   pitch: {
     profile: ['pitch', 'profile'] as const,
     deckJob: (id: string) => ['pitch', 'deckJob', id] as const,

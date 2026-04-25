@@ -1,2 +1,6 @@
-// interactions feature barrel. Populated in its Stage 2/3/4 session.
-export {};
+export { useLogInteraction } from './hooks/use-log-interaction';
+export type {
+  InteractionLogRequest,
+  InteractionLogResponse,
+  LoggableInteractionType,
+} from './schemas';

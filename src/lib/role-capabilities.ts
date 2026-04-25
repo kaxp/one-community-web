@@ -1,7 +1,9 @@
 import type { UserRole } from '@/types/enums';
 
 export const CAPABILITIES = {
-  'search.use': ['lp', 'potential_lp', 'vc', 'startup_funded', 'partner', 'admin', 'super_admin'],
+  // Partner is deliberately EXCLUDED from search per CLAUDE.md §15 + PRD §7.4.1.
+  // Do not re-add partner without a product decision.
+  'search.use': ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin'],
   'search.see_contact': [],
   'connections.request': ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin'],
   'connections.respond': [
@@ -55,7 +57,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Search',
     path: '/search',
     icon: 'Search',
-    roles: ['lp', 'potential_lp', 'vc', 'startup_funded', 'partner', 'admin', 'super_admin'],
+    // Partner excluded — see comment on CAPABILITIES['search.use'].
+    roles: ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin'],
   },
   {
     key: 'matchmaking',

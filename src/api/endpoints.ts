@@ -18,6 +18,16 @@ import {
   type ProfileUpdateRequest,
   type ProfileUpdateResponse,
 } from '@/features/onboarding/schemas';
+import {
+  zSearchResponse,
+  type SearchRequest,
+  type SearchResponse,
+} from '@/features/search/schemas';
+import {
+  zInteractionLogResponse,
+  type InteractionLogRequest,
+  type InteractionLogResponse,
+} from '@/features/interactions/schemas';
 
 function unwrap<T>(env: ApiEnvelope<T>, path: string): T {
   if (env.data === null) {
@@ -60,4 +70,25 @@ export async function postLPProfile(body: LPProfileRequest): Promise<LPProfileRe
     stripUndefined(body),
   );
   return zLPProfileResponse.parse(unwrap(resp.data, '/onboarding/lp-profile'));
+}
+
+export async function searchUnified(body: SearchRequest): Promise<SearchResponse> {
+  const payload: Record<string, unknown> = stripUndefined(body);
+  if (
+    payload.filters &&
+    typeof payload.filters === 'object' &&
+    Object.keys(payload.filters as Record<string, unknown>).length === 0
+  ) {
+    delete payload.filters;
+  }
+  const resp = await apiClient.post<ApiEnvelope<SearchResponse>>('/search', payload);
+  return zSearchResponse.parse(unwrap(resp.data, '/search'));
+}
+
+export async function logInteraction(body: InteractionLogRequest): Promise<InteractionLogResponse> {
+  const resp = await apiClient.post<ApiEnvelope<InteractionLogResponse>>(
+    '/interactions/log',
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return zInteractionLogResponse.parse(unwrap(resp.data, '/interactions/log'));
 }

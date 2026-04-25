@@ -13,6 +13,7 @@ import { ComingSoonPage } from './routes/ComingSoonPage';
 import { SignInPage } from '@/features/auth/routes/SignInPage';
 import { CompleteProfilePage } from '@/features/onboarding/routes/CompleteProfilePage';
 import { LPProfilePage } from '@/features/onboarding/routes/LPProfilePage';
+import { SearchPage } from '@/features/search/routes/SearchPage';
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
 
@@ -42,6 +43,14 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: '/dashboard', element: <DashboardPage /> },
+              {
+                element: (
+                  <RoleGuard
+                    roles={['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin']}
+                  />
+                ),
+                children: [{ path: '/search', element: <SearchPage /> }],
+              },
               {
                 path: '/documents',
                 element: (
