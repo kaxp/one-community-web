@@ -49,6 +49,9 @@ const PendingConnectionsPage = lazy(() =>
 const PitchPage = lazy(() =>
   import('@/features/pitch/routes/PitchPage').then((m) => ({ default: m.PitchPage })),
 );
+const MISPage = lazy(() =>
+  import('@/features/mis/routes/MISPage').then((m) => ({ default: m.MISPage })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -144,6 +147,21 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <PitchPage />
+                        </Susp>
+                      ),
+                    },
+                  ],
+                },
+                {
+                  // PRD §7.9 — MIS is gated to startup_funded + admin / super_admin
+                  // (matches CAPABILITIES['mis.submit']).
+                  element: <RoleGuard roles={['startup_funded', 'admin', 'super_admin']} />,
+                  children: [
+                    {
+                      path: '/mis',
+                      element: (
+                        <Susp>
+                          <MISPage />
                         </Susp>
                       ),
                     },

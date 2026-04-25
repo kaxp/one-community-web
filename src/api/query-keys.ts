@@ -34,6 +34,11 @@ export const qk = {
     deckJobAll: ['pitch', 'deckJob'] as const,
     deckJob: (id: string) => ['pitch', 'deckJob', id] as const,
   },
+  mis: {
+    all: ['mis'] as const,
+    form: ['mis', 'form'] as const,
+    prefill: ['mis', 'prefill'] as const,
+  },
   matchmaking: {
     suggestions: ['matchmaking', 'suggestions'] as const,
     pending: ['matchmaking', 'pending'] as const,

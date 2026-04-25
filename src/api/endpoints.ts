@@ -62,6 +62,15 @@ import {
   type StartupProfileRequest,
   type StartupProfileResponse,
 } from '@/features/pitch/schemas';
+import {
+  zMISFormResponse,
+  zMISPrefillResponse,
+  zMISSubmitResponse,
+  type MISFormResponse,
+  type MISPrefillResponse,
+  type MISSubmitRequest,
+  type MISSubmitResponse,
+} from '@/features/mis/schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
 
@@ -250,4 +259,31 @@ export async function getDeckJob(jobId: string): Promise<DeckJobStatus> {
   const url = `/pitch/deck/jobs/${jobId}`;
   const resp = await apiClient.get<ApiEnvelope<DeckJobStatus>>(url);
   return zDeckJobStatus.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.9.1 — `GET /portfolio/mis` (current month form schema + prefill).
+export async function getMisForm(): Promise<MISFormResponse> {
+  const resp = await apiClient.get<ApiEnvelope<MISFormResponse>>('/portfolio/mis');
+  return zMISFormResponse.parse(unwrap(resp.data, '/portfolio/mis'));
+}
+
+// PRD §7.9.3 — `GET /portfolio/mis/prefill` (last month's data). Admins must
+// pass `company_id`; non-admins resolve from JWT.
+export async function getMisPrefill(args?: {
+  companyId?: string | undefined;
+}): Promise<MISPrefillResponse> {
+  const params = new URLSearchParams();
+  if (args?.companyId) params.set('company_id', args.companyId);
+  const qs = params.toString();
+  const url = `/portfolio/mis/prefill${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<MISPrefillResponse>>(url);
+  return zMISPrefillResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.9.2 — `POST /portfolio/mis`. UNIQUE(startup_id, period) enforced
+// → 409 mis_already_submitted. Body must already include the strict raw_data
+// (build via `buildMISRequest`).
+export async function postMisSubmit(body: MISSubmitRequest): Promise<MISSubmitResponse> {
+  const resp = await apiClient.post<ApiEnvelope<MISSubmitResponse>>('/portfolio/mis', body);
+  return zMISSubmitResponse.parse(unwrap(resp.data, '/portfolio/mis'));
 }

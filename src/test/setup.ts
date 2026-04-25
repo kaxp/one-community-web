@@ -7,6 +7,7 @@ import { resetMswAdminState } from './msw-fixtures/admin-handlers';
 import { resetMswProfileState } from './msw-fixtures/profile-handlers';
 import { resetMswConnectionsState } from './msw-fixtures/connections-handlers';
 import { resetMswPitchState } from './msw-fixtures/pitch-handlers';
+import { resetMswMisState } from './msw-fixtures/mis-handlers';
 import { useAuthStore } from '@/auth/auth-store';
 import { resetInteractionDedup } from '@/lib/interaction-dedup';
 
@@ -18,6 +19,7 @@ afterEach(() => {
   resetMswAdminState();
   resetMswConnectionsState();
   resetMswPitchState();
+  resetMswMisState();
   resetMswProfileState();
   resetInteractionDedup();
   useAuthStore.getState().clear();

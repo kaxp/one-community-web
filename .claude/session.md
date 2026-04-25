@@ -34,52 +34,51 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 3 third feature `pitch` complete; next unchecked queue.md row is `mis`)_
+_(none — Stage 3 fourth feature `mis` complete. The four-features spot-check gate is now due before continuing to `schedule`.)_
 
 ### Last completed action
 
-Completed Stage 3 third feature **pitch** end-to-end. All four PRD endpoints (§7.3.1–§7.3.4) ship behind a single `/pitch` route with three URL-tabs. Also wired the long-deferred `<ExecutionPanel jobPoll>` branch — types existed, the runtime didn't.
+Completed Stage 3 fourth feature **mis** end-to-end. All three PRD endpoints (§7.9.1 GET form / §7.9.3 GET prefill / §7.9.2 POST submit) ship behind a single `/mis` route gated to `startup_funded` + admin / super_admin.
 
-- **`<ExecutionPanel jobPoll>` branch (cross-cutting)** — `src/components/execution-panel/ExecutionPanel.tsx` now owns the polling state machine described in PRD §6.7.3. Submit returns a 202 ack with `job_id`; the panel extracts the id, registers the job in the debug dock via `registerJob()` (PRD §6.8), and drives a `useQuery` with `refetchInterval: (q) => q.state.data?.ready ? false : intervalMs` capped at `maxPolls` (defaults 3000ms / 30 polls). Renders a polling banner during `STARTED`, the `renderResult` block on SUCCESS, an "Evaluation failed" panel on FAILURE with a retry button that resets the mutation, and a "Still running" timeout panel with manual refresh after the cap. Types refactored: `ExecutionPanelProps<TInput, TOutput, TAck = TOutput>` so the mutation can return a 202 ack while `renderResult` consumes the polled `TOutput`. `onJobAccepted?(ack, jobId)` is the seam for the debug-dock registration.
-- **Job registry** — new `src/lib/debug/use-job-registry.ts` writes `localStorage['oc.debug.jobs']` (FIFO cap 100). Pure module (no React) so the dock can read it without importing the panel.
-- **Pitch schemas** (`src/features/pitch/schemas.ts`): `zStartupProfileRequest` / `zStartupProfileResponse` matching §7.3.1, `zDeckUploadRequest` / `zDeckUploadAck` matching §7.3.3 (ack carries `job_id` + `status: 'queued'`), `zAIEvaluationResult` matching §7.3.4 SUCCESS payload (signal + summary + strengths/concerns/recommended_lp_types), `zDeckJobStatus` for the poll endpoint. Discriminated `StartupProfileResult = { status: 'missing' } | { status: 'present', data }` so the page branches off the 404 domain signal cleanly. `STARTUP_STAGES` re-exported from onboarding for convenience. Optional number fields use a NaN-tolerant pattern (`refine + .optional() + .transform(NaN→undefined)`) — no `z.preprocess` because that erases the input type and breaks the form's `Partial<TInput>` inference under `exactOptionalPropertyTypes`.
-- **Stage label helper** — `src/features/pitch/lib/stage-label.ts` exposes `stageLabel(stage)` (`pre_seed → "Pre-Seed"` etc.) and `formatCrore(value)` (PRD §8.12.2 — `₹ 10 Cr` via `toLocaleString('en-IN')`).
-- **Endpoint functions** (`src/api/endpoints.ts`): `getStartupProfile`, `postStartupProfile`, `postDeck`, `getDeckJob` — all Zod-parsed. Profile save uses `stripUndefined` per CLAUDE.md §5.10 (backend has no clear-field allowlist).
-- **Query keys** (`src/api/query-keys.ts`): `qk.pitch.profile`, plus `qk.pitch.deckJobAll` (broad-prefix invalidation per §8.12.4) AND `qk.pitch.deckJob(id)` (per-job, used as the panel's `jobPoll.queryKey` prefix that gets the id appended).
-- **Hooks** (`src/features/pitch/hooks/`):
-  - `useStartupProfile` — catches the 404 ApiError and folds it into `{ status: 'missing' }`. Re-throws every other error as ApiError so `<ErrorState>` can surface it.
-  - `useUpsertStartupProfile` — mutation. On success invalidates `qk.pitch.profile` AND `qk.pitch.deckJobAll` (clears stale eval state per PRD §7.3.1 transformation note).
-  - `useSubmitDeck` — mutation returning the 202 ack `DeckUploadAck`. On success invalidates `qk.pitch.profile` so `deck_url` flips from null to the submitted URL (per §8.12.4).
-  - `useDeckJobStatus(jobId)` — standalone polling hook (used in tests; the route consumes `getDeckJob` via `<ExecutionPanel jobPoll.queryFn>`).
-- **Route** (`src/app/router.tsx`): `/pitch` mounted under a `<RoleGuard roles={['startup_inprogress','startup_onboarded','startup_funded','admin','super_admin']}>`. Lazy-imported per [P-19].
-- **Page** (`src/features/pitch/routes/PitchPage.tsx`): three URL-tabs (`?tab=profile|deck|evaluation`).
-  - **Profile** (always) — `useStartupProfile` → either empty `<StartupProfileForm>` (404) or prefilled (200).
-  - **Deck** (visible iff profile present) — `<CurrentDeckSummary>` + `<DeckUploadPanel>`. The deck panel is the canonical `<ExecutionPanel jobPoll>` consumer: 202 → poll every 3s → SUCCESS renders `<AIEvaluationCard>` inline; FAILURE/timeout handled by the panel itself.
-  - **AI Evaluation** (visible iff a successful eval has happened) — re-renders the latest result via the `onEvaluation` callback bubbled up from `<DeckUploadPanel>`.
-  - On 404 from POST /pitch/deck, the panel auto-navigates to `?tab=profile` (the user has no startup row yet — PRD §7.3.3).
-- **Components** (`src/features/pitch/components/`):
-  - `StartupProfileForm.tsx` — full §7.3.1 schema. `ExecutionPanel<StartupProfileRequest, StartupProfileResponse>` with stage select + ask amount + URLs.
-  - `DeckUploadPanel.tsx` — `ExecutionPanel<DeckUploadRequest, AIEvaluationResult, DeckUploadAck>`. Wires the `jobPoll` config + `onJobAccepted` (registers in debug dock) + `onEvaluation` upward callback. Mirrors the panel's polling cache (read-only, `enabled: false`) so the latest SUCCESS result can be lifted to the parent without extra network calls.
-  - `AIEvaluationCard.tsx` — green/yellow/red badge keyed off `result.signal` (`strong | moderate | weak`), summary, strengths/concerns bullet lists, opaque LP-type chips. Concerns get a tinted background when signal === 'weak' per PRD §7.3.4 transformation note.
-- **MSW** (`src/test/msw-fixtures/pitch-handlers.ts`): canonical owner of `GET /pitch/profile`, `POST /pitch/profile`, `POST /pitch/deck`, `GET /pitch/deck/jobs/:jobId`. Module-scoped fixture stores with helpers `setMswProfileScenario`, `setMswPitchProfileFixture`, `queuePitchProfileError`, `queuePitchProfileSaveError`, `queuePitchDeckError`, `setMswDeckOutcome` (success / failure / timeout, configurable `pollsBeforeReady`), `setMswPitchAIResult`. Per-job counter map keyed by job_id so the deck-job poll handler is genuinely stateful across multiple ticks. UUID generator hand-shaped to satisfy Zod's RFC-4122 v4 regex (8-4-4-4-12 with version-4 + variant nibbles in the right places).
-- **Tests** (+15 cases vs prior commit, total 118 across 34 files):
-  - `useStartupProfile` (3): present, missing (404 → status='missing', not ApiError), 500 surfaces ApiError.
-  - `useUpsertStartupProfile` (2): success + 422 ApiError.
-  - `useSubmitDeck` (2): 202 ack + 404 ApiError.
-  - `useDeckJobStatus` (2): STARTED while polls remaining, SUCCESS once `pollsBeforeReady=0`.
-  - `ExecutionPanel.jobpoll.test.tsx` (3): polls until SUCCESS triggers renderResult; FAILURE renders the failure block; `onJobAccepted` fires exactly once with the extracted job_id.
-  - `PitchPage` (3): 404 renders Create form (no Deck/Evaluation tabs); existing profile renders Edit form (Deck tab visible); Deck tab + successful poll renders the `<AIEvaluationCard>` with strengths.
+- **MIS schemas** (`src/features/mis/schemas.ts`):
+  - `zMISFormResponse` (§7.9.1), `zMISPrefillResponse` (§7.9.3), `zMISSubmitResponse` (§7.9.2 ack), `zMISPrefill` (nullable prefill payload shared by both GETs).
+  - `zMISRawData` — **strict** 6-key allowlist (`revenue_inr` + `burn_inr` Decimal-string, `headcount` int, `runway_months` float, `highlights` + `lowlights` ≤ 2000-char string). `.partial().strict()` so each key is individually optional but extras throw `ZodError`. Tested explicitly.
+  - `zMISFormInput` — RHF input shape (revenue/burn/runway/headcount as numbers, highlights/lowlights as strings) with the same NaN-tolerant `.optional() + .transform(NaN→undefined)` pattern used in pitch.
+  - `zMISSubmitRequest` — wire body (period regex + top-level + raw_data).
+  - `buildMISRequest(period, form)` — pure helper that converts form input to wire body. INR amounts go into `raw_data.revenue_inr` / `burn_inr` as `value.toFixed(2)` Decimal strings (PRD §8.12.1). Validates `raw_data` via `.strict()` before composing the body — any developer typo throws here, before the network call.
+- **Endpoint functions** (`src/api/endpoints.ts`): `getMisForm`, `getMisPrefill({ companyId? })`, `postMisSubmit(body)` — all Zod-parsed via `unwrap()`.
+- **Query keys** (`src/api/query-keys.ts`): `qk.mis.{all, form, prefill}`. `prefill` accepts an optional `{ companyId }` suffix when admin mode is needed (passed through tuple-style for cache identity).
+- **Hooks** (`src/features/mis/hooks/`):
+  - `useMisForm()` — useQuery against `qk.mis.form`. ApiError flows through (no domain-signal carve-out — 404 here means "no startup profile", which is genuinely an error state for this page).
+  - `useMisPrefill({ companyId?, enabled? })` — parallel useQuery against `qk.mis.prefill`.
+  - `useSubmitMis(period)` — useMutation accepting `MISFormInput`; internally calls `buildMISRequest(period, form)` then `postMisSubmit`. Invalidates `qk.mis.form` (so `already_submitted` flips true) AND `qk.admin.summary` (admin's mis_status badge) per §8.12.4.
+- **Route** (`src/app/router.tsx`): `/mis` mounted under `<RoleGuard roles={['startup_funded', 'admin', 'super_admin']}>` (matches `CAPABILITIES['mis.submit']`). Lazy-imported per [P-19].
+- **Page** (`src/features/mis/routes/MISPage.tsx`): two parallel queries via independent hooks (`useMisForm` + `useMisPrefill`), full four states (loading skeleton / ErrorState / already-submitted banner / success form). Banner reads "MIS for {period} was already submitted on {date}. Submitting again will be rejected with a 409. Contact your admin if you need to override." Submit button label flips to "Already submitted" and the form is `disabled` when `already_submitted=true`.
+- **Components** (`src/features/mis/components/`):
+  - `MISForm.tsx` — `<ExecutionPanel<MISFormInput, MISSubmitResponse>>` consumer. Numeric inputs for revenue/burn/runway/headcount + textareas for highlights/lowlights (max 2000 chars enforced both via `maxLength` HTML attr and Zod). Last-month prefill values surface as field hints (`Last month: ₹ 20,00,000`) using `formatINR`.
+- **Period label** — `formatPeriodLabel('2026-04')` → `April 2026` via `date-fns` `format(parse('yyyy-MM'), 'LLLL yyyy')` (PRD §8.12.2).
+- **MSW** (`src/test/msw-fixtures/mis-handlers.ts`): canonical owner of `GET /portfolio/mis`, `GET /portfolio/mis/prefill`, `POST /portfolio/mis`. Stateful — first POST flips the in-memory fixture's `already_submitted` flag to `true`, so a second POST in the same test produces real 409 `mis_already_submitted` (mirrors backend UNIQUE(startup_id, period) behaviour). Helpers: `setMswMisFormFixture`, `setMswMisAlreadySubmitted`, `setMswMisPrefillFixture`, `queueMisFormError`, `queueMisPrefillError`, `queueMisSubmitError`. Reset hook registered in `src/test/setup.ts` afterEach.
+- **Tests (+23 cases vs prior commit, total 141 across 39 files):**
+  - `schemas.test.ts` (10): zMISRawData accepts 6 allowlisted keys / rejects extra key / rejects misspelled key / accepts empty {}; PERIOD_REGEX positive + negative cases; buildMISRequest INR-as-Decimal-string + omits raw_data when empty + omits undefined top-level fields.
+  - `use-mis-form.test.ts` (3): success / already_submitted with timestamp / 500 ApiError.
+  - `use-mis-prefill.test.ts` (3): success / prefill=null / 404 ApiError.
+  - `use-submit-mis.test.ts` (3): happy path / 409 mis_already_submitted / 422 validation_error.
+  - `MISPage.test.tsx` (4): renders prefilled form (no banner) / shows already-submitted banner + disabled submit button / 500 surfaces ErrorState / submit succeeds → page refetches → banner appears + form values retained.
 
-Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (118/118 across 34 files), `pnpm build` (exits 0). Per-feature chunk: PitchPage **11.48 KB / 3.95 KB gzip**. Main chunk: 287.65 → 288.39 KB gzip (+0.74 KB — well under the 30 KB-per-feature budget).
+Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (141/141 across 39 files), `pnpm build` (exits 0). Per-feature chunk: MISPage **25.24 KB / 6.22 KB gzip**. Main chunk: 288.39 → 289.06 KB gzip (+0.67 KB — well under the 30 KB-per-feature budget).
 
 ### Next concrete step
 
-Pick up the next unchecked feature in `queue.md § Stage 3` — **`mis`** (PRD §7.9.1 GET, §7.9.2 POST, §7.9.3 GET prefill). Wrap the submit in `<ExecutionPanel>` (no jobPoll this time). Strict `raw_data` keys per §7.9.2 — reject any key not in the allowlist before submit. 409 on `mis_already_submitted` opens an override dialog. Smoke checks for the just-shipped pitch feature:
-- (a) Sign in as startup_funded `+911234567894`, navigate to `/pitch` → Profile tab default, prefilled with Acme. Edit and Save → toast "Profile saved" + cache refetch.
-- (b) Sign in as a fresh startup with no profile (use MSW `setMswProfileScenario('missing')` in dev tooling) → empty Create form, only Profile tab visible.
-- (c) Click Deck tab → paste any URL → submit. Polling banner appears; ~6s later (2 polls × 3s) AI evaluation card appears with green "Strong signal" badge + strengths/concerns bullets.
-- (d) Force a failure via debug tooling (or temp `setMswDeckOutcome('failure')`) → "Evaluation failed" block with Retry; click Retry → the form re-enables for resubmit.
-- (e) Confirm the AI Evaluation tab now appears in the tab bar after the first SUCCESS, and re-renders the latest eval block when clicked.
+**Spot-check Gate 1 is now due** — 4 Stage 3 features complete (`profile-view`, `connections`, `pitch`, `mis`). Per `queue.md § Stage 3`: "Spot-check gate after 4 features total". The human should review before the next session picks up `schedule`.
+
+After the gate clears, the next unchecked queue.md row is **`schedule`** (PRD §7.10.1 GET slots, §7.10.2 POST book, §7.10.3 GET bookings, §7.10.4 DELETE book/{id}). Calendar grid UI in IST timezone via `date-fns-tz`.
+
+Smoke checks for the just-shipped MIS feature (manual):
+- (a) Sign in as `+911234567894` (startup_funded) → sidebar shows "MIS" → click `/mis` → form prefills with last-month values, period label reads "April 2026", no banner.
+- (b) Submit the form → success toast "Submitted MIS for 2026-04" → page refetches and now shows the warning banner with the submission timestamp; the submit button reads "Already submitted" and the form is disabled.
+- (c) Click submit again (it's disabled, but try via DevTools to remove `disabled`) — verify the 409 path: ApiError surfaces inline with code `mis_already_submitted`, form values are retained.
+- (d) Sign in as a non-startup_funded role (e.g. `+911234567892` LP) → MIS does NOT appear in the sidebar (NAV_ITEMS filter), and visiting `/mis` directly should redirect to `/unauthorized` (RoleGuard).
+- (e) Verify Indian numbering on prefill hints — `Last month: ₹ 20,00,000` (not `₹ 2,000,000`).
 
 ### Open blockers
 
@@ -87,30 +86,25 @@ _(none)_
 
 ### Files touched this session
 
-- **ExecutionPanel jobPoll wiring (cross-cutting):**
-  - `src/components/execution-panel/ExecutionPanel.tsx` — full polling state machine.
-  - `src/components/execution-panel/types.ts` — `<TInput, TOutput, TAck = TOutput>` split + `onJobAccepted` prop.
-  - `src/components/execution-panel/ExecutionPanel.jobpoll.test.tsx` (new — 3 cases).
-  - `src/lib/debug/use-job-registry.ts` (new — `localStorage['oc.debug.jobs']`, FIFO cap 100).
-- **Pitch feature (new):**
-  - `src/features/pitch/{schemas.ts, index.ts}`.
-  - `src/features/pitch/lib/stage-label.ts` (new — `stageLabel` + `formatCrore`).
-  - `src/features/pitch/hooks/{use-startup-profile,use-upsert-startup-profile,use-submit-deck,use-deck-job-status}.ts` (+ matching `.test.ts` files).
-  - `src/features/pitch/components/{StartupProfileForm,DeckUploadPanel,AIEvaluationCard}.tsx`.
-  - `src/features/pitch/routes/{PitchPage.tsx, PitchPage.test.tsx}`.
+- **MIS feature (new):**
+  - `src/features/mis/{schemas.ts, schemas.test.ts, index.ts}`.
+  - `src/features/mis/lib/format-inr.ts` (new — `₹ 21,00,000` Indian numbering).
+  - `src/features/mis/hooks/{use-mis-form, use-mis-prefill, use-submit-mis}.ts` + matching `.test.ts` files.
+  - `src/features/mis/components/MISForm.tsx`.
+  - `src/features/mis/routes/{MISPage.tsx, MISPage.test.tsx}`.
 - **Cross-cutting:**
-  - `src/api/endpoints.ts` — added `getStartupProfile`, `postStartupProfile`, `postDeck`, `getDeckJob`.
-  - `src/api/query-keys.ts` — added `qk.pitch.deckJobAll` (broad-prefix invalidation).
-  - `src/app/router.tsx` — `/pitch` lazy-imported under startup-roles `<RoleGuard>`.
+  - `src/api/endpoints.ts` — added `getMisForm`, `getMisPrefill`, `postMisSubmit`.
+  - `src/api/query-keys.ts` — added `qk.mis.{all, form, prefill}`.
+  - `src/app/router.tsx` — `/mis` lazy-imported under startup_funded `<RoleGuard>`.
 - **MSW + tests:**
-  - `src/test/msw-fixtures/pitch-handlers.ts` (new — canonical owner with per-job counter map).
+  - `src/test/msw-fixtures/mis-handlers.ts` (new — stateful 409 reproduction).
   - `src/test/{msw-handlers.ts, setup.ts}` — registered + wired reset.
-- **Coordination:** `.claude/queue.md` (`pitch` row ticked), `.claude/session.md` (this file).
+- **Coordination:** `.claude/queue.md` (`mis` row ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 118/118 tests across 34 files.
+Yes. All four gates exit 0. 141/141 tests across 39 files (was 118/118 across 34 files — +23 new tests, +5 new test files: schemas, three hooks, one page).
 
 ### Last updated
 
-2026-04-25T18:05:00+05:30
+2026-04-25T19:00:00+05:30
