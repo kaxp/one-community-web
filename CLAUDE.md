@@ -733,6 +733,13 @@ export const USER_MESSAGES: Record<string, string> = {
 - Tap targets: 44×44 px minimum (use `min-h-11 min-w-11` or equivalent).
 - Modals full-screen on mobile: `<Dialog><DialogContent className="max-w-[95vw] md:max-w-lg">...</DialogContent></Dialog>`.
 - Forms: use native input types (`type="tel"`, `type="email"`).
+- **Responsive navigation — non-negotiable** (mirrors PRD §10.1):
+  - **Desktop (≥ 1024px / `lg`):** persistent left sidebar (`<Sidebar>` + `<NavList>`).
+  - **Tablet + mobile (< 1024px):** sidebar is hidden; navigation reaches the user via `<MobileNavDrawer>` — a hamburger button rendered in the `TopBar` that opens a Radix `Sheet` (left-anchored) showing the SAME `<NavList>`. Clicking a nav link inside the drawer auto-closes it.
+  - **Single source of truth for nav items:** `NAV_ITEMS` in `src/lib/role-capabilities.ts`. Both the desktop sidebar and the mobile drawer render `<NavList>`, which calls `navForRole()` against that map. Never duplicate the nav list.
+  - **Forbidden:** any layout that uses `hidden ... lg:block` (or equivalent) on the sidebar without exposing an alternate access path on smaller viewports. Reaching a route via direct URL only is not acceptable.
+  - **PR review:** new screens that mount under `<AppShell>` MUST be tested at 375 / 768 / 1024 / 1440 widths. The hamburger must be visible and tappable below 1024px; the drawer must trap focus, close on Esc, and close on link click.
+  - **Reusable primitives:** `<Sheet>` (in `src/components/ui/sheet.tsx`) is the sanctioned drawer for any side-anchored overlay. Do not invent a parallel drawer. Use shadcn `<Dialog>` for centred modals.
 
 ### 7.12 Performance
 

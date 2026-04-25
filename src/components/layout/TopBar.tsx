@@ -5,6 +5,7 @@ import { useAuthStore } from '@/auth/auth-store';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { RoleBadge } from '@/components/role-badge';
 import { Button } from '@/components/ui/button';
+import { MobileNavDrawer } from './MobileNavDrawer';
 
 export function TopBar() {
   const user = useUser();
@@ -16,13 +17,16 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-surface px-4 md:px-6">
-      <Link to="/dashboard" className="flex items-center gap-2">
-        <BrandLogo />
-        <span className="hidden text-lg font-semibold text-ink-heading md:inline">
-          One Community
-        </span>
-        <span className="text-lg font-semibold text-ink-heading md:hidden">One Community</span>
-      </Link>
+      <div className="flex items-center gap-2">
+        <MobileNavDrawer />
+        <Link to="/dashboard" className="flex items-center gap-2">
+          <BrandLogo />
+          <span className="hidden text-lg font-semibold text-ink-heading md:inline">
+            One Community
+          </span>
+          <span className="text-lg font-semibold text-ink-heading md:hidden">One Community</span>
+        </Link>
+      </div>
 
       <div className="flex items-center gap-3">
         {user ? (

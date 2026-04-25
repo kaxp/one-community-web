@@ -34,27 +34,35 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 2a auth feature complete, session-termination policy refactored per user direction, awaiting human review before feature-search)_
+_(none — Stage 2a auth + responsive nav rule + session-termination policy all complete; awaiting human review before feature-search)_
 
 ### Last completed action
 
-Amended the Stage 2a auth feature to enforce the new **session-termination policy** (decisions.md [P-17], CLAUDE.md §15 updated):
+Followed Stage 2a with two scoped policy fixes prompted by hands-on review:
 
-- `src/api/client.ts` no longer clears `authStore` on 401 / `token_expired` / `link_expired`. It still rethrows the `ApiError` so individual callers can react.
-- `src/auth/require-auth.tsx` no longer listens to `auth:expire` events. Token validity check is now: `token && expiresAt > Date.now()` on every render — nothing else.
-- `src/auth/profile-gate.tsx` no longer clears the session or redirects to `/signin` when `/auth/me` returns 401 (or anything else). It falls back to the persisted user snapshot from `zustand/persist`; a `profile_complete=false` snapshot still redirects to `/onboarding/profile`. A browser refresh while signed in now keeps the session intact, which was the reported bug.
-- `src/test/msw-fixtures/auth-handlers.ts` — MSW tokens now encode the phone (`msw-jwt.<base64url(phone)>`) and authenticated handlers decode it on every request. This keeps the dev-mode mock stateless across page loads, so refresh + MSW works end-to-end. `setMswSignedInPhone()` remains for tests that bypass the sign-in flow.
-- New regression tests: `src/api/client.test.ts` (3 cases asserting 401 / `token_expired` / `link_expired` do NOT clear the store); `src/auth/profile-gate.test.tsx` (2 cases asserting refresh-after-401 stays on `/dashboard` and a stale `profile_complete=false` snapshot still redirects to onboarding).
+1. **Responsive navigation** (CLAUDE.md §7.11 updated, mirrors PRD §10.1). The Stage-1 sidebar was `hidden lg:block`, leaving tablet + mobile users with no nav at all. Fix:
+   - New `<Sheet>` primitive in `src/components/ui/sheet.tsx` (Radix Dialog with side-anchored content).
+   - Extracted shared `<NavList>` (`src/components/layout/NavList.tsx`) — single source of truth, used by both the desktop sidebar and the mobile drawer; tap-target height `min-h-11` per CLAUDE.md §7.11.
+   - New `<MobileNavDrawer>` (`src/components/layout/MobileNavDrawer.tsx`) renders a hamburger button (`lg:hidden`) in the TopBar, opens a left-anchored sheet with the same `<NavList>`, and auto-closes when a link is clicked.
+   - `<Sidebar>` is now lg+ only and pulls from `<NavList>`; `<TopBar>` mounts the drawer; `<AppShell>` unchanged.
+   - 3 new tests in `src/components/layout/MobileNavDrawer.test.tsx` (button accessible name, full role-filtered nav rendered in dialog, admin items shown for admin role).
+   - **Rule baked into CLAUDE.md §7.11**: every viewport must surface nav, the desktop sidebar + mobile drawer share `<NavList>`, `<Sheet>` is the sanctioned drawer primitive, and PR review must test 375 / 768 / 1024 / 1440. This is now a hard rule for every future feature session.
 
-Previously-completed auth chassis is unchanged: 5 typed endpoints, 5 React Query hooks with tests, `/signin` phone→OTP flow, `/onboarding/profile` + `/onboarding/lp-profile` on `<ExecutionPanel>`, role-based post-signin routing (`lib/post-signin-navigate.ts`), `DevPhoneHelper` dev affordance, MSW handlers seeded from `DEV_SEED_USERS`.
+2. **Session-termination policy** (decisions.md [P-17], CLAUDE.md §15) — unchanged from previous turn but worth restating:
+   - JWT's `expiresAt` is the only gate; only sign-out / natural expiry / fresh-signin failure clear the store.
+   - `api/client.ts`, `auth/require-auth.tsx`, `auth/profile-gate.tsx` no longer clear on 401.
+   - MSW tokens encode the phone (`msw-jwt.<base64url(phone)>`) so dev refresh recovers the session.
+   - Regression tests in `src/api/client.test.ts` + `src/auth/profile-gate.test.tsx`.
 
-Four gates clean on this commit: `pnpm lint` (0 errors, 4 cosmetic react-refresh warnings), `pnpm typecheck` (0), `pnpm test` (34/34 across 12 files — +5 cases vs prior snapshot), `pnpm build` (exits 0; main chunk 284.16 KB gzip).
+Previously-completed auth chassis is unchanged: 5 typed endpoints, 5 React Query hooks with tests, `/signin` phone→OTP flow, `/onboarding/profile` + `/onboarding/lp-profile` on `<ExecutionPanel>`, role-based post-signin routing, `DevPhoneHelper` dev affordance.
+
+Four gates clean on this commit: `pnpm lint` (0 errors, 4 cosmetic react-refresh warnings), `pnpm typecheck` (0), `pnpm test` (37/37 across 13 files — +3 cases vs the P-17 commit), `pnpm build` (exits 0; main chunk ~285 KB gzip).
 
 Infra carryover (unchanged this turn): test runner is jsdom 24 (MSW 2.13 × happy-dom 14 TypedEvent incompat), `vite.config.ts` pins `test.env.VITE_*`, `auth-store.ts` has an in-memory storage fallback for tests.
 
 ### Next concrete step
 
-Wait for the human's Stage 2a + P-17 review (plan.md gate plus the refresh smoke: sign in as LP → `pnpm dev` refresh → should stay on `/search`, TopBar user chip intact). If approved, proceed to **Stage 2b — feature-search** (queue.md Stage 2 second row) using the prompt in `docs/plan.md § Stage 2b`. Next unchecked queue row: `feature-search` (POST /search §7.4.1 + POST /interactions/log §7.7.1).
+Wait for the human's Stage 2a review. Smoke checks: (a) sign in as LP at 375 / 768 / 1024 / 1440, hamburger appears below 1024px and the drawer renders the same nav as the desktop sidebar, link click dismisses the drawer; (b) refresh while signed in stays on the role home with the TopBar user chip intact; (c) wrong OTP inline-errors and clears the field; (d) `/expired` page renders when `expiresAt` elapses. If approved, proceed to **Stage 2b — feature-search** (queue.md Stage 2 second row).
 
 ### Open blockers
 
@@ -62,16 +70,17 @@ _(none)_
 
 ### Files touched this session
 
+- **Responsive nav rule (CLAUDE.md §7.11):** new `src/components/ui/sheet.tsx`, new `src/components/layout/NavList.tsx`, new `src/components/layout/MobileNavDrawer.tsx`, new `src/components/layout/MobileNavDrawer.test.tsx`; modified `src/components/layout/Sidebar.tsx`, `src/components/layout/TopBar.tsx`; updated `CLAUDE.md §7.11`.
 - **Policy change (decisions.md P-17):** modified `src/api/client.ts`, `src/auth/require-auth.tsx`, `src/auth/profile-gate.tsx`, `src/test/msw-fixtures/auth-handlers.ts`; added `src/api/client.test.ts`, `src/auth/profile-gate.test.tsx`; updated `CLAUDE.md §15` and `.claude/decisions.md § Resolved` with P-17.
-- **From prior turn (still in HEAD):** `src/features/auth/{schemas.ts, index.ts, hooks/*, lib/*, components/*, routes/*}`, `src/features/onboarding/{schemas.ts, index.ts, hooks/*, routes/*}`, `src/auth/profile-gate.tsx`, `src/test/{hook-utils.tsx, msw-fixtures/*}`, `src/api/{endpoints.ts, query-keys.ts}`, `src/auth/auth-store.ts`, `src/app/router.tsx`, `src/test/{msw-handlers.ts, setup.ts}`, `vite.config.ts`, `package.json`.
+- **From earlier in Stage 2a (still in HEAD):** `src/features/auth/{schemas.ts, index.ts, hooks/*, lib/*, components/*, routes/*}`, `src/features/onboarding/{schemas.ts, index.ts, hooks/*, routes/*}`, `src/auth/profile-gate.tsx`, `src/test/{hook-utils.tsx, msw-fixtures/*}`, `src/api/{endpoints.ts, query-keys.ts}`, `src/auth/auth-store.ts`, `src/app/router.tsx`, `src/test/{msw-handlers.ts, setup.ts}`, `vite.config.ts`, `package.json`.
 
 ### Tests green?
 
-Yes. All four gates exit 0. 34/34 tests across 12 files.
+Yes. All four gates exit 0. 37/37 tests across 13 files.
 
 ### Last updated
 
-2026-04-25T00:55:00+05:30
+2026-04-25T11:08:00+05:30
 
 ---
 
