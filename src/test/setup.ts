@@ -4,7 +4,9 @@ import { server } from './msw-node';
 import { resetMswAuthState } from './msw-fixtures/auth-handlers';
 import { resetMswSearchState } from './msw-fixtures/search-handlers';
 import { resetMswAdminState } from './msw-fixtures/admin-handlers';
+import { resetMswProfileState } from './msw-fixtures/profile-handlers';
 import { useAuthStore } from '@/auth/auth-store';
+import { resetInteractionDedup } from '@/lib/interaction-dedup';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }));
 afterEach(() => {
@@ -12,6 +14,8 @@ afterEach(() => {
   resetMswAuthState();
   resetMswSearchState();
   resetMswAdminState();
+  resetMswProfileState();
+  resetInteractionDedup();
   useAuthStore.getState().clear();
   if (typeof localStorage?.clear === 'function') localStorage.clear();
 });

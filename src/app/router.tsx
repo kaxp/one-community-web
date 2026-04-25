@@ -33,6 +33,9 @@ const AdminConnectionsPage = lazy(() =>
     default: m.AdminConnectionsPage,
   })),
 );
+const ProfilePage = lazy(() =>
+  import('@/features/profile/routes/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -76,6 +79,7 @@ export const router = createBrowserRouter(
                 {
                   // Partner is admitted with masked results (backend strips
                   // fields via _STARTUP_VISIBLE_FIELDS["partner"]). PRD §7.4.1.
+                  // Profile-view shares the same searcher allowlist (§7.5.1).
                   element: (
                     <RoleGuard
                       roles={[
@@ -95,6 +99,14 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <SearchPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      path: '/profile/:id',
+                      element: (
+                        <Susp>
+                          <ProfilePage />
                         </Susp>
                       ),
                     },

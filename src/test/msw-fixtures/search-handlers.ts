@@ -130,7 +130,10 @@ function maskLPForPartner(item: LPResultItem): LPResultItem {
 }
 
 function startupHaystack(item: StartupResultItem): string {
+  // user_id is included so the §13 G1 interim profile composer can locate a
+  // catalogue entry by passing the UUID as the search query.
   return [
+    item.user_id,
     item.name,
     item.organisation,
     item.company_name,
@@ -147,6 +150,7 @@ function startupHaystack(item: StartupResultItem): string {
 
 function lpHaystack(item: LPResultItem): string {
   return [
+    item.user_id,
     item.name,
     item.organisation,
     item.designation,

@@ -36,6 +36,9 @@ import {
   type AdminConnectionsResponse,
   type AdminConnectionStatus,
 } from '@/features/admin/schemas';
+import { zProfileView, type ProfileView } from '@/features/profile/schemas';
+import { env } from '@/lib/env';
+import { ProfileServiceInterim } from '@/api/interim/profile-service';
 
 function unwrap<T>(env: ApiEnvelope<T>, path: string): T {
   if (env.data === null) {
@@ -123,4 +126,15 @@ export async function adminActOnConnection(
     stripUndefined(body as unknown as Record<string, unknown>),
   );
   return zAdminActionResponse.parse(unwrap(resp.data, `/connections/${id}/admin`));
+}
+
+// PRD §7.5.1 — `GET /profile/{id}`. Gap-flagged via `VITE_PROFILE_V1_ENABLED`
+// (PRD §13.2 G1). When the backend ships, flip the flag to `true` and delete
+// `src/api/interim/profile-service.ts` — this function's signature is unchanged.
+export async function getProfileById(id: string): Promise<ProfileView> {
+  if (env.PROFILE_V1_ENABLED) {
+    const resp = await apiClient.get<ApiEnvelope<ProfileView>>(`/profile/${id}`);
+    return zProfileView.parse(unwrap(resp.data, `/profile/${id}`));
+  }
+  return ProfileServiceInterim.getById(id);
 }

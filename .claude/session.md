@@ -34,30 +34,29 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 2c feature-admin-connections complete; Stage 2 fully done; awaiting human review before unlocking Stage 3 autonomous mode)_
+_(none — Stage 3 first feature `profile-view` complete; next unchecked queue.md row is `connections`)_
 
 ### Last completed action
 
-Completed **Stage 2c — feature-admin-connections** (queue.md Stage 2 third row ticked, Stage 2 fully done). PRD §7.12.2 + §7.6.2 implemented end-to-end.
+Completed Stage 3 first feature **profile-view** end-to-end against the §13 G1 gap (`VITE_PROFILE_V1_ENABLED=false`). PRD §7.5.1 implemented; flip plan is a single env-var change.
 
-- **Endpoints**: `getAdminConnections({ status?, cursor? })` GETs `/admin/connections` with query params. `adminActOnConnection(id, body)` PATCHes `/connections/{id}/admin` with `{ action: 'approve'|'reject', note? }`. Both Zod-parsed at the boundary.
-- **Schemas**: `src/features/admin/schemas.ts` defines `zAdminConnectionStatus` (6-value enum), `ADMIN_TAB_STATUSES` (the 4 tab values: `pending_admin`, `pending_target`, `accepted`, `declined`), `zAdminConnection` row shape with `requester` + `target` `zPartyRef`, plus the action request/response shapes.
-- **Hooks**: `useAdminConnections({ status })` is a `useInfiniteQuery` keyed on `qk.admin.connections.list(status)`, paginating via `next_cursor`. `useAdminConnectionAction()` is a `useMutation` with **optimistic remove + rollback on error** — `onMutate` cancels in-flight queries, snapshots the cached page list, and filters out the row by `connection_id`; `onError` restores the snapshot; `onSettled` invalidates `qk.admin.connections.all`, `qk.admin.summary`, and `qk.connections.pendingAll` so the row reappears under its new status, the badge count refreshes, and the target's pending queue is fresh (PRD §7.6.2 transformation note).
-- **Query keys** (`src/api/query-keys.ts`): `qk.admin.connections` is now a `{ all, list(status) }` object; `qk.connections` gained `all` + `pendingAll` prefix constants for blanket invalidation.
-- **DataTable** (new shared primitive): `src/components/data-table/DataTable.tsx` is a TanStack Table v8 wrapper (`@tanstack/react-table` v8.21.3 added). Generic, accepts `columns`, `data`, `getRowId`, `onRowClick`, `emptyState`. Tailwinded to match shadcn aesthetic.
-- **Page**: `/admin/connections` (`src/features/admin/routes/AdminConnectionsPage.tsx`). URL-backed status tabs (`?status=<tab>`), 4 tab buttons mirroring `ADMIN_TAB_STATUSES` with `aria-selected` + visible active state. DataTable columns: Requester / Target / Message / Created / Status badge / Actions. The Actions column renders `<InlineExecutionButton>` Approve + Reject only on `pending_admin` rows; success toast "Approved"/"Rejected"; on 409 the toast surfaces "Already handled — refreshing" and the cache invalidation refetches the row. All 4 UI states ship: skeleton loading, error with retry, empty per-tab state with manual refresh, populated table.
-- **Routing**: `/admin/connections` is mounted as a sibling of `/admin` under `<RoleGuard roles={['admin','super_admin']}>` inside `AppShell` (`src/app/router.tsx`).
-- **MSW**: `src/test/msw-fixtures/admin-handlers.ts` ships 5 seeded rows across the four tab statuses + helpers `setMswAdminRows`, `queueAdminListError`, `queueAdminActionError`, `getMswAdminRowCount`, `resetMswAdminState`. The PATCH handler enforces `pending_admin` precondition (returns 409 otherwise) and mutates the in-memory store so a follow-up GET reflects the new status. Reset wired into `src/test/setup.ts`.
-- **Tests** (+11 cases vs prior commit, total 69):
-  - 3 `useAdminConnections` cases — status filter respected, pending_admin only returns pending_admin rows, accepted only returns accepted rows, 500 surfaces ApiError.
-  - 3 `useAdminConnectionAction` cases — approve invalidates the three documented keys (asserted via `vi.spyOn(queryClient.invalidateQueries)`), optimistic remove from cache during the request, full rollback on error.
-  - 5 `AdminConnectionsPage` smoke tests — default tab is `pending_admin`, tab click switches via URL + `aria-selected`, empty state renders when MSW rows are emptied, ErrorState renders on 500, approving a row removes it from the visible list.
+- **Schemas** (`src/features/profile/schemas.ts`): `zProfileView` + nested `zStartupBlock` / `zLPBlock` / `zVCBlock` / `zContact` / `zViewerInteraction`. Every nullable field is `.nullable().optional()` so the same parser handles all three viewer states (no-connection / pending / accepted-with-contact) plus partner-masked responses (PRD §8.12.3).
+- **Endpoint** (`src/api/endpoints.ts`): `getProfileById(id)` branches on `env.PROFILE_V1_ENABLED`. Flag on → real `GET /profile/{id}` + Zod parse. Flag off → `ProfileServiceInterim.getById(id)`. Public signature is identical so the flip is a one-line env change.
+- **Interim composer** (`src/api/interim/profile-service.ts`): runs `POST /search { query: targetUserId }` + `GET /connections` + `GET /connections/pending` in parallel; matches the target by `user_id` in the search hit (the connections lists derive `contact`, `has_connected`, `has_requested`); throws `ApiError(404)` when no source has the user. The search MSW haystack now includes `user_id` so the UUID-as-query strategy returns the matching catalogue item.
+- **Hook** (`src/features/profile/hooks/use-profile.ts`): thin `useQuery` keyed on `qk.profile.byId(id)` with `staleTime: 30_000`.
+- **Page** (`src/features/profile/routes/ProfilePage.tsx`): all four UI states — skeleton loading, EmptyState for missing id / 404, ErrorState for other errors, success body. Success body renders: back button, header card (avatar + name + role badge + organisation/designation), action area (Request to connect / Pending admin approval / Connected — driven by `viewer_interaction` + `can(role, 'connections.request')`), startup OR LP block based on target role, ContactCard ONLY when `contact !== null`. `useLogInteraction({ interaction_type: 'profile_view', target_id, target_type, source: 'profile_page' })` fires once on mount; the new module-level dedup absorbs StrictMode double-invokes and remounts within 10s. Partner viewers see `<LockedField>` blurred placeholders for missing rows via the new `<InfoRow>` primitive (mirrors the search-card mask UX from [P-21]).
+- **Routing** (`src/app/router.tsx`): `/profile/:id` mounted under `<RequireAuth><ProfileGate><AppShell>` inside the same searcher `<RoleGuard>` that wraps `/search` (`lp, potential_lp, vc, startup_funded, partner, admin, super_admin`). Page is `React.lazy`-imported at module scope per [P-19].
+- **Module-level interaction dedup** (`src/lib/interaction-dedup.ts`): hoisted out of `useLogInteraction`'s useRef into a module-scoped `Map` so a page mount → unmount → remount within 10s does NOT re-fire. `resetInteractionDedup()` wired into `src/test/setup.ts` afterEach to keep tests isolated.
+- **MSW** (`src/test/msw-fixtures/profile-handlers.ts`): three scenario fixtures (`no_connection`, `pending`, `accepted_with_contact`) + `forbidden` / `not_found` / `error_500` error scenarios, scenario-switchable via `setMswProfileScenario`. Owns `GET /profile/{id}` (for the flag=true path), `GET /connections`, and `GET /connections/pending` (for the §13 G1 interim composer). Registered in `msw-handlers.ts`; `resetMswProfileState()` wired into `setup.ts`.
+- **Tests** (+13 cases vs prior commit, total 82 across 21 files):
+  - 3 `useProfile` cases — composes no-connection / pending / accepted-with-contact viewer states correctly through the interim path.
+  - 5 `ProfilePage` smoke cases — renders Request-to-connect on no-connection, Pending status on pending, Contact card + Connected pill on accepted, "Profile not found" empty state on 404, and partner viewer renders without crashing.
 
-Four gates clean: `pnpm lint` (0 errors, 4 cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (69/69 across 19 files), `pnpm build` (exits 0).
+Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (82/82), `pnpm build` (exits 0). Bundle: ProfilePage chunk **2.66 KB gzip**, main chunk 285.77 → 287.09 KB gzip (+1.32 KB — well under the 30 KB-per-feature budget per CLAUDE.md §10).
 
 ### Next concrete step
 
-Wait for the human's Stage 2c review **plus** the Stage 2 calibration gate (queue.md says: "If patterns are right, unlock autonomous mode. Tag `v0.2-calibration`."). Smoke checks: (a) sign in as admin (`+918087464723`), visit `/admin/connections`, tabs render, default is `pending_admin`; (b) click Approve on a row → row disappears, toast "Approved", switch to `pending_target` tab → row reappears there; (c) URL persists tab via `?status=`; (d) try as LP → `/unauthorized`; (e) trigger 409 (server returns conflict) → row rolls back, "Already handled — refreshing" toast, list refetches. If approved, prompt the Stage 3 prompt (`docs/plan.md § Stage 3`) — first feature `profile-view` (`§7.5.1`, gap-flagged).
+Pick up the next unchecked feature in `queue.md § Stage 3` — **`connections`** (PRD §7.6.4 + §7.6.5 + §7.6.3 + §7.7.2). Two routes (`/connections` accepted list, `/connections/pending` incoming/outgoing tabs), with PATCH `/connections/{id}/respond` + POST `/interactions/feedback` mutations. Note: the profile interim composer already calls `GET /connections` + `GET /connections/pending` via MSW handlers in `profile-handlers.ts` — the connections feature will likely promote those handlers (or replicate them) into a dedicated `connections-handlers.ts` and add the missing fixtures (rejected_admin, declined). Smoke checks for the just-shipped profile-view: (a) sign in as LP `+911234567892`, navigate to `/profile/11111111-1111-4000-8000-000000000001` — startup card renders with Request-to-connect button; (b) sign in as partner `+911234567897` to confirm masked view via `<InfoRow>` placeholders; (c) hard-refresh the page within 10s and verify only one `POST /interactions/log` fires (Network tab) — confirms the module-level dedup.
 
 ### Open blockers
 
@@ -65,54 +64,16 @@ _(none)_
 
 ### Files touched this session
 
-- **Admin feature (new):** `src/features/admin/{schemas.ts, index.ts}`, `src/features/admin/hooks/{use-admin-connections.ts, use-admin-connections.test.ts, use-admin-connection-action.ts, use-admin-connection-action.test.tsx}`, `src/features/admin/lib/status-labels.ts`, `src/features/admin/routes/{AdminConnectionsPage.tsx, AdminConnectionsPage.test.tsx}`.
-- **Shared:** new `src/components/data-table/DataTable.tsx` (TanStack Table v8 wrapper).
-- **Cross-cutting:** modified `src/api/endpoints.ts` (`getAdminConnections`, `adminActOnConnection`), `src/api/query-keys.ts` (`qk.admin.connections.{all,list}`, `qk.connections.{all,listAll,pendingAll}`), `src/app/router.tsx` (`/admin/connections` route).
-- **MSW + tests:** new `src/test/msw-fixtures/admin-handlers.ts`; modified `src/test/{msw-handlers.ts, setup.ts}`.
-- **Deps:** `@tanstack/react-table` ^8.21.3 added to `package.json`.
-- **Prior turns (still in HEAD):** Stage 1 chassis, Stage 2a auth/onboarding, Stage 2b search, P-17 session-termination policy, P-18 dashboard-as-landing policy, responsive-nav rule.
-- `.claude/queue.md` (`feature-admin-connections` row ticked), `.claude/session.md` (this file).
+- **Profile feature (new):** `src/features/profile/{schemas.ts, index.ts}`, `src/features/profile/hooks/{use-profile.ts, use-profile.test.ts}`, `src/features/profile/components/{InfoRow.tsx, ProfileHeader.tsx, StartupBlock.tsx, LPBlock.tsx, ContactCard.tsx}`, `src/features/profile/routes/{ProfilePage.tsx, ProfilePage.test.tsx}`.
+- **Interim service (new):** `src/api/interim/profile-service.ts`.
+- **Cross-cutting:** `src/api/endpoints.ts` (`getProfileById`), `src/api/query-keys.ts` (`qk.profile.{all,byId}`), `src/app/router.tsx` (`/profile/:id` route + lazy import), `src/lib/interaction-dedup.ts` (new), `src/features/interactions/hooks/use-log-interaction.ts` (refactored to use module-level dedup).
+- **MSW + tests:** new `src/test/msw-fixtures/profile-handlers.ts`; modified `src/test/{msw-handlers.ts, setup.ts}`. `src/test/msw-fixtures/search-handlers.ts` haystacks now include `user_id` so the §13 G1 composer's UUID-as-query strategy works.
+- **Coordination:** `.claude/queue.md` (`profile-view` row ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 69/69 tests across 19 files.
+Yes. All four gates exit 0. 82/82 tests across 21 files.
 
 ### Last updated
 
-2026-04-25T12:12:00+05:30
-
----
-
-## Example — what this looks like mid-build
-
-<!--
-### Current feature
-feature-search
-
-### Last completed action
-Implemented `useSearch` hook with 400ms debounce + MSW handler for POST /search covering
-startup-results and empty-results fixtures. Unit tests pass.
-
-### Next concrete step
-Wire `useSearch` into `SearchPage.tsx`; build `<FilterChips>` component with URL-backed state
-(sector, stage, geography); add infinite-scroll via `next_cursor`.
-
-### Open blockers
-- [P-7] Partner role UX — should the "Request Connect" button be hidden or disabled?
-  (Non-blocking; I've hidden it for now per PRD §7.4.1 note.)
-
-### Files touched this session
-- src/features/search/schemas.ts (new)
-- src/features/search/hooks/use-search.ts (new)
-- src/api/endpoints.ts (added `search()` function)
-- src/api/query-keys.ts (added `qk.search.*`)
-- src/test/msw-handlers.ts (added POST /search handler)
-- src/test/msw-fixtures/search-startup-results.json (new)
-- src/features/search/hooks/use-search.test.ts (new)
-
-### Tests green?
-Yes. `pnpm lint && typecheck && test --run && build` all exit 0.
-
-### Last updated
-2026-04-25T14:47:00+05:30
--->
+2026-04-25T16:30:00+05:30

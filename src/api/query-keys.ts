@@ -20,6 +20,10 @@ export const qk = {
   search: {
     query: (body: unknown) => ['search', 'query', body] as const,
   },
+  profile: {
+    all: ['profile'] as const,
+    byId: (id: string) => ['profile', 'byId', id] as const,
+  },
   interactions: {
     log: ['interactions', 'log'] as const,
   },
