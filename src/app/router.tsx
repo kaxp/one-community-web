@@ -55,6 +55,9 @@ const MISPage = lazy(() =>
 const SchedulePage = lazy(() =>
   import('@/features/schedule/routes/SchedulePage').then((m) => ({ default: m.SchedulePage })),
 );
+const TravelPage = lazy(() =>
+  import('@/features/travel/routes/TravelPage').then((m) => ({ default: m.TravelPage })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -178,6 +181,16 @@ export const router = createBrowserRouter(
                   element: (
                     <Susp>
                       <SchedulePage />
+                    </Susp>
+                  ),
+                },
+                {
+                  // PRD §7.11 — travel is open to all authenticated users
+                  // (matches NAV_ITEMS.travel.roles = ['*']).
+                  path: '/travel',
+                  element: (
+                    <Susp>
+                      <TravelPage />
                     </Susp>
                   ),
                 },

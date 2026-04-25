@@ -82,6 +82,18 @@ import {
   type CancelResponse,
   type SlotsResponse,
 } from '@/features/schedule/schemas';
+import {
+  zHomeCityResponse,
+  zTravelPlan,
+  zTravelPlanCancelResponse,
+  zTravelPlansResponse,
+  type HomeCityRequest,
+  type HomeCityResponse,
+  type TravelPlan,
+  type TravelPlanCancelResponse,
+  type TravelPlanCreateRequest,
+  type TravelPlansResponse,
+} from '@/features/travel/schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
 
@@ -343,4 +355,39 @@ export async function deleteScheduleBooking(bookingId: string): Promise<CancelRe
   const url = `/schedule/book/${bookingId}`;
   const resp = await apiClient.delete<ApiEnvelope<CancelResponse>>(url);
   return zCancelResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.11.1 — `POST /travel/plans`. Server enforces travel_end >= travel_start;
+// the form schema also rejects client-side. `purpose` may be undefined and is
+// stripped from the wire body.
+export async function postTravelPlan(body: TravelPlanCreateRequest): Promise<TravelPlan> {
+  const payload = stripUndefined(body as unknown as Record<string, unknown>);
+  const resp = await apiClient.post<ApiEnvelope<TravelPlan>>('/travel/plans', payload);
+  return zTravelPlan.parse(unwrap(resp.data, '/travel/plans'));
+}
+
+// PRD §7.11.2 — `GET /travel/plans` returns `data: TravelPlan[]` (array IS
+// payload, not wrapped in `{ items }`). `active_only=true` is server default.
+export async function getTravelPlans(args?: {
+  active_only?: boolean;
+}): Promise<TravelPlansResponse> {
+  const params = new URLSearchParams();
+  if (args?.active_only !== undefined) params.set('active_only', String(args.active_only));
+  const qs = params.toString();
+  const url = `/travel/plans${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<TravelPlansResponse>>(url);
+  return zTravelPlansResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.11.3 — `DELETE /travel/plans/{id}`. Owner-only; 403 if not owner.
+export async function deleteTravelPlan(id: string): Promise<TravelPlanCancelResponse> {
+  const url = `/travel/plans/${id}`;
+  const resp = await apiClient.delete<ApiEnvelope<TravelPlanCancelResponse>>(url);
+  return zTravelPlanCancelResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.11.4 — `PUT /travel/home-city`. Trim handled at the form layer.
+export async function putHomeCity(body: HomeCityRequest): Promise<HomeCityResponse> {
+  const resp = await apiClient.put<ApiEnvelope<HomeCityResponse>>('/travel/home-city', body);
+  return zHomeCityResponse.parse(unwrap(resp.data, '/travel/home-city'));
 }

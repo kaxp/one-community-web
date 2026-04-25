@@ -49,6 +49,9 @@ export const zAuthMeResponse = z.object({
   designation: z.string().nullable(),
   avatar_url: z.string().nullable(),
   profile_complete: z.boolean(),
+  // §7.11.4 invalidation note — /auth/me carries home_city. Optional+nullable
+  // so older backends still parse cleanly.
+  home_city: z.string().nullable().optional(),
 });
 export type AuthMeResponse = z.infer<typeof zAuthMeResponse>;
 

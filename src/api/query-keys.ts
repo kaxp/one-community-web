@@ -46,6 +46,11 @@ export const qk = {
     bookings: (limit: number) => ['meetings', 'bookings', { limit }] as const,
     bookingsAll: ['meetings', 'bookings'] as const,
   },
+  travel: {
+    all: ['travel'] as const,
+    plansAll: ['travel', 'plans'] as const,
+    plans: (activeOnly: boolean) => ['travel', 'plans', { active_only: activeOnly }] as const,
+  },
   matchmaking: {
     suggestions: ['matchmaking', 'suggestions'] as const,
     pending: ['matchmaking', 'pending'] as const,

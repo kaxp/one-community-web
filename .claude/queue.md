@@ -51,7 +51,7 @@ _Spot-check gate after 2 features above_
 _Spot-check gate after 4 features total_
 
 - [x] **schedule** — GET /schedule/slots (§7.10.1) + POST /schedule/book (§7.10.2) + GET /schedule/bookings (§7.10.3) + DELETE /schedule/book/{id} (§7.10.4). Calendar grid UI, IST timezone.
-- [ ] **travel** — POST /travel/plans (§7.11.1) + GET /travel/plans (§7.11.2) + DELETE /travel/plans/{id} (§7.11.3) + PUT /travel/home-city (§7.11.4).
+- [x] **travel** — POST /travel/plans (§7.11.1) + GET /travel/plans (§7.11.2) + DELETE /travel/plans/{id} (§7.11.3) + PUT /travel/home-city (§7.11.4).
 - [ ] **matchmaking** — GET /matchmaking/suggestions (§7.8.5) + POST /matchmaking/suggestions/{id}/respond (§7.8.6). Card UI with "Interested / Skip / Not a fit" buttons.
 - [ ] **profile-viewers** — GET /interactions/profile-viewers (§7.7.3). **PII discipline per §13 G11** — never render viewer email/phone even if backend adds them.
 

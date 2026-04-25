@@ -10,6 +10,7 @@ export function profileFromMe(me: AuthMeResponse): UserProfile {
     email: me.email,
     organisation: me.organisation,
     profile_complete: me.profile_complete,
+    home_city: me.home_city ?? null,
   };
 }
 
@@ -22,6 +23,7 @@ export function seedProfileFromVerify(verify: OtpVerifyResponse, phone: string):
     email: null,
     organisation: null,
     profile_complete: false,
+    home_city: null,
   };
 }
 
