@@ -58,6 +58,11 @@ const SchedulePage = lazy(() =>
 const TravelPage = lazy(() =>
   import('@/features/travel/routes/TravelPage').then((m) => ({ default: m.TravelPage })),
 );
+const MatchmakingPage = lazy(() =>
+  import('@/features/matchmaking/routes/MatchmakingPage').then((m) => ({
+    default: m.MatchmakingPage,
+  })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -193,6 +198,27 @@ export const router = createBrowserRouter(
                       <TravelPage />
                     </Susp>
                   ),
+                },
+                {
+                  // PRD §7.8.5 — user-facing matchmaking. Roles match
+                  // NAV_ITEMS.matchmaking.roles (no `partner`, no `advisor`,
+                  // no startup_inprogress / startup_onboarded — they have no
+                  // pitch profile yet so the LP-side won't generate matches).
+                  element: (
+                    <RoleGuard
+                      roles={['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin']}
+                    />
+                  ),
+                  children: [
+                    {
+                      path: '/matchmaking',
+                      element: (
+                        <Susp>
+                          <MatchmakingPage />
+                        </Susp>
+                      ),
+                    },
+                  ],
                 },
                 {
                   path: '/connections',

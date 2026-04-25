@@ -94,6 +94,13 @@ import {
   type TravelPlanCreateRequest,
   type TravelPlansResponse,
 } from '@/features/travel/schemas';
+import {
+  zMatchSuggestionsResponse,
+  zRespondResult,
+  type MatchSuggestionsResponse,
+  type RespondRequest,
+  type RespondResult,
+} from '@/features/matchmaking/schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
 
@@ -390,4 +397,25 @@ export async function deleteTravelPlan(id: string): Promise<TravelPlanCancelResp
 export async function putHomeCity(body: HomeCityRequest): Promise<HomeCityResponse> {
   const resp = await apiClient.put<ApiEnvelope<HomeCityResponse>>('/travel/home-city', body);
   return zHomeCityResponse.parse(unwrap(resp.data, '/travel/home-city'));
+}
+
+// PRD §7.8.5 — `GET /matchmaking/suggestions` (user-facing list). Backend
+// returns `data: MatchSuggestion[]` (array IS payload, not wrapped).
+export async function getMatchSuggestions(): Promise<MatchSuggestionsResponse> {
+  const resp = await apiClient.get<ApiEnvelope<MatchSuggestionsResponse>>(
+    '/matchmaking/suggestions',
+  );
+  return zMatchSuggestionsResponse.parse(unwrap(resp.data, '/matchmaking/suggestions'));
+}
+
+// PRD §7.8.6 — `POST /matchmaking/suggestions/{id}/respond`. Mutual `accepted`
+// auto-creates a connection request (admin-gated) — surfaced via
+// `connection_created: true`.
+export async function respondToSuggestion(
+  id: string,
+  body: RespondRequest,
+): Promise<RespondResult> {
+  const url = `/matchmaking/suggestions/${id}/respond`;
+  const resp = await apiClient.post<ApiEnvelope<RespondResult>>(url, body);
+  return zRespondResult.parse(unwrap(resp.data, url));
 }
