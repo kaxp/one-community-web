@@ -68,7 +68,13 @@ export const qk = {
       all: ['admin', 'connections'] as const,
       list: (status: string) => ['admin', 'connections', { status }] as const,
     },
-    dlq: (offset: number) => ['admin', 'dlq', { offset }] as const,
+    quarterlyReports: (quarter: string | null) =>
+      ['admin', 'quarterly-reports', { quarter }] as const,
+    quarterlyReportsAll: ['admin', 'quarterly-reports'] as const,
+    dlq: (args: { retry_status: string; limit: number; offset: number }) =>
+      ['admin', 'dlq', args] as const,
+    dlqAll: ['admin', 'dlq'] as const,
+    lpFunnel: (userId: string) => ['admin', 'lp-funnel', userId] as const,
   },
   digest: {
     pending: ['digest', 'pending'] as const,

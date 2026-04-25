@@ -82,6 +82,26 @@ const AdminMatchmakingOpsPage = lazy(() =>
     default: m.AdminMatchmakingOpsPage,
   })),
 );
+const AdminQuarterlyReportsPage = lazy(() =>
+  import('@/features/admin/routes/AdminQuarterlyReportsPage').then((m) => ({
+    default: m.AdminQuarterlyReportsPage,
+  })),
+);
+const AdminDeadLetterJobsPage = lazy(() =>
+  import('@/features/admin/routes/AdminDeadLetterJobsPage').then((m) => ({
+    default: m.AdminDeadLetterJobsPage,
+  })),
+);
+const AdminLpFunnelPickerPage = lazy(() =>
+  import('@/features/admin/routes/AdminLpFunnelPickerPage').then((m) => ({
+    default: m.AdminLpFunnelPickerPage,
+  })),
+);
+const AdminLpFunnelPage = lazy(() =>
+  import('@/features/admin/routes/AdminLpFunnelPage').then((m) => ({
+    default: m.AdminLpFunnelPage,
+  })),
+);
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
 
@@ -336,6 +356,42 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminMatchmakingOpsPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // PRD §7.12.7 + §7.12.8 — quarterly reports console.
+                      path: '/admin/quarterly-reports',
+                      element: (
+                        <Susp>
+                          <AdminQuarterlyReportsPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // PRD §7.12.9 + §7.12.10 — dead-letter queue. The
+                      // ONLY endpoint that uses offset pagination (§13 G10).
+                      path: '/admin/dead-letter-jobs',
+                      element: (
+                        <Susp>
+                          <AdminDeadLetterJobsPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // PRD §7.12.5 — LP funnel. Picker + per-user detail.
+                      path: '/admin/lp-funnel',
+                      element: (
+                        <Susp>
+                          <AdminLpFunnelPickerPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      path: '/admin/lp-funnel/:user_id',
+                      element: (
+                        <Susp>
+                          <AdminLpFunnelPage />
                         </Susp>
                       ),
                     },

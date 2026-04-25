@@ -34,72 +34,70 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 4 Session 4.1 complete. Three admin features shipped: `admin-home`, `admin-digest`, `admin-matchmaking-ops`. **Please spot-check before authorising Stage 4.2.**)_
+_(none — Stage 4 Session 4.2 complete. Three admin features shipped: `admin-quarterly-reports`, `admin-dead-letter-jobs`, `admin-lp-funnel`. **Please spot-check before authorising Stage 4.3.**)_
 
 ### Last completed action
 
-Completed Stage 4.1 — three admin features in one batch.
+Completed Stage 4.2 — three admin features in one batch.
 
-**1. admin-home** (`/admin`, replaces the Stage 1 `<AdminHomePlaceholder>`):
-- `GET /admin/summary` (§7.12.1) drives a single-call KPI dashboard.
-- Schema: `zAdminSummaryResponse` in `src/features/admin/schemas.ts` — `pending_connection_count`, `mis_status[]`, `recent_digests[]`, `recent_actions[]`.
-- Hook: `useAdminSummary()` — 60s staleTime, refetchOnFocus per §7.12.1 transformation note.
-- Page: `<AdminHomePage>` renders three KPI cards (Pending connections + link to `/admin/connections?status=pending_admin`, MIS submitted-vs-pending list, Recent digests with relative time + link to `/admin/digest`) plus a "Recent admin actions" audit feed and a "Want to send a digest now?" CTA.
-- The orphaned `src/app/routes/AdminHomePlaceholder.tsx` is deleted.
+**1. admin-quarterly-reports** (`/admin/quarterly-reports`):
+- 2 endpoints: `GET /admin/quarterly-reports?quarter=` (§7.12.7) + `POST /admin/quarterly-reports/approve` (§7.12.8).
+- Schema in `src/features/admin/schemas.ts` — `zQuarterlyReport` with `status: 'pending' | 'approved' | 'sent'`, `drive_url`, optional `distributed_at`/`recipient_count`.
+- Hooks: `useQuarterlyReports({ quarter })` + `useQuarterlyReportApprove()` (invalidates `qk.admin.quarterlyReportsAll` + `qk.admin.summary`).
+- Page: filter input + DataTable. Drive links use `target="_blank" rel="noopener noreferrer"`. Approve button only on pending rows. `<QuarterlyReportApproveDialog>` warns about distribution and surfaces a 409 inline with copy "Report already approved" instead of toasting (so the dialog can stay open while the list refetches).
+- Status label: pending → "Pending", approved → "Approved, distributing…", sent → "Sent". Single source via `statusLabel(report)`.
 
-**2. admin-digest** (`/admin/digest`):
-- 6 endpoints wired: `GET /admin/digest` (§7.12.3), `POST /admin/digest/send` (§7.12.4 — `.passthrough()` Zod per §13 G4), `POST /digest/generate` (§7.13.1), `POST /digest/approve` (§7.13.2), `GET /digest/pending` (§7.13.3), `GET /digest/history?limit=...` (§7.13.4).
-- Schemas: `src/features/digest/schemas.ts` — workflow rows, content (with `html`/`plain`/`segment`/`interest_tags` `.passthrough()` for forward compat), three request/response pairs for send/generate/approve.
-- Hooks: `useAdminDigest`, `useDigestSend`, `useDigestPending`, `useDigestHistory`, `useDigestGenerate`, `useDigestApprove`. Approve has optimistic-remove + rollback + invalidates pending/history/admin.summary on settle (§8.12.4).
-- Page: `<AdminDigestPage>` with three URL-backed tabs (`?tab=workflows|pending|history`).
-  - Workflows tab: each card shows status + target_roles + schedule + last_send + per-row "Generate for {segment}" + "Send Now" `<InlineExecutionButton>`.
-  - Pending tab: each card surfaces subject + segment + interest_tags + plain-text snippet, with a "Preview" button opening `<DigestPreviewDrawer>` (a `<Sheet>` rendering `content.html` inside `<iframe sandbox="allow-same-origin" srcDoc={html}>`) and an "Approve & Send" `<InlineExecutionButton>`.
-  - History tab: read-only list with per-row Preview drawer (HTML body lazy-loaded by row expansion).
-- Sandbox discipline: never `dangerouslySetInnerHTML`. iframe `sandbox` attribute is `allow-same-origin` only — no scripts, no popups, no top-navigation.
-- Toasts: 409 on send → "A send is already in progress for this workflow"; 409 on approve → "Already approved or sent — refreshing"; 404 → "Workflow not found" / "Digest no longer exists".
+**2. admin-dead-letter-jobs** (`/admin/dead-letter-jobs`):
+- 2 endpoints: `GET /admin/dead-letter-jobs` (§7.12.9 — **OFFSET pagination, the only endpoint that uses it** per §13 G10) + `POST /admin/dead-letter-jobs/{id}/retry` (§7.12.10).
+- Schema: `zDeadLetterJob` with `args: unknown[]`, `kwargs: Record<string,unknown>`, `traceback: string|null`, `retry_status: 'pending'|'retried'|'succeeded'|'abandoned'`. The list endpoint returns a bare array; pagination metadata lives at envelope level (`pagination.limit/offset`). The endpoint helper exposes a typed `DLQListResult` `{ items, limit, offset }`.
+- New shared component: `<OffsetPaginator>` in `src/components/pagination/OffsetPaginator.tsx`. Renders prev/next + "Page N · showing X of up to Y per page". Infers `hasNext = itemCount === limit` (we don't have a server-side total; this is the best signal until backend exposes one).
+- Hooks: `useDeadLetterJobs({ retry_status, limit, offset })` (15s staleTime) + `useDeadLetterRetry()` (invalidates `qk.admin.dlqAll` on settle so all status buckets refetch).
+- Page: URL-backed `?retry_status=pending|retried|succeeded|abandoned` tabs + `?offset=` paginator state. Click a row → `<DlqDetailDrawer>` with the full traceback rendered inside `<pre overflow-x-auto whitespace-pre>` and `args`/`kwargs` rendered as `JSON.stringify(value, null, 2)` inside `<code>`. Retry button only on pending rows; toast "Retried — new task {new_task_id}" on success, refetch on 409.
 
-**3. admin-matchmaking-ops** (`/admin/matchmaking`):
-- 4 endpoints: `POST /matchmaking/generate` (§7.8.1, returns 202 + job_id), `GET /matchmaking/jobs/{id}` (§7.8.2), `GET /matchmaking/pending` (§7.8.4), `POST /matchmaking/approve` (§7.8.3).
-- Schemas added to `src/features/matchmaking/schemas.ts`: `zMatchGenerateRequest`, `zMatchGenerateAck`, `zMatchJobStatus`, `zMatchGenerateResult`, `zMatchApproveRequest`, `zMatchApproveResponse`, `zMatchPendingResponse`.
-- Hooks: `useMatchGenerate` (mutation), `useMatchPending` (query), `useMatchApprove` (mutation with optimistic-remove from pending + invalidate user-facing suggestions on settle).
-- Page: `<AdminMatchmakingOpsPage>` uses `<ExecutionPanel jobPoll>` (the same pattern as the pitch deck eval) for generate. The form has a `type="date"` picker that auto-clamps to Monday on change via `format(startOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd')`. `onJobAccepted` registers the job in the debug dock (`registerJob({ task_name: 'matchmaking.generate' })`). `renderResult` shows generated_count + "Refresh pending list" button.
-- Below the panel: pending suggestions grouped by `week_of` (§7.8.4 transformation note) in a DataTable with score badge, reason, and Approve action.
-- Reject is intentionally absent — the backend endpoint doesn't exist yet (§7.8.4 transformation note); a comment in the column definition flags the gap so a future session can wire it when /matchmaking/{id}/reject ships.
+**3. admin-lp-funnel** (`/admin/lp-funnel` picker + `/admin/lp-funnel/:user_id` detail):
+- 1 endpoint: `PUT /admin/lp/{user_id}/funnel-status` (§7.12.5).
+- Schema: `zLPFunnelStatus` enum + `zFunnelStatusRequest`/`Response`.
+- New lib: `src/features/admin/lib/funnel-labels.ts` — single source of truth for the 5 labels (`'1_new_lead'` → `"New Lead"`, `'2_first_reach_out'` → `"First reach-out"`, etc.) + a `FUNNEL_INDEX` map for client-side skip detection.
+- Hook: `useLpFunnelStatus()` — on success invalidates `qk.admin.lpFunnel(user_id)` + `qk.admin.summary`.
+- Picker page (`AdminLpFunnelPickerPage`): re-uses `useSearch` (POST /search) and filters to `target_type='lp'` results. Renders LP rows with an "Open funnel" link → `/admin/lp-funnel/:user_id`. Also has a "paste user_id directly" form for cases where the LP isn't in search.
+- Detail page (`AdminLpFunnelPage`): there is NO GET endpoint for current funnel status, so the page seeds `current` from the last-seen PUT response (or null on first load) and lets the admin pick a target stage. Buttons that would skip a stage are visually flagged "(needs override)" client-side via `FUNNEL_INDEX[target] - FUNNEL_INDEX[current] > 1`.
+- 409 surface: `FunnelOverrideDialog` opens when the backend rejects a forward skip, reading `current_status` + `attempted` from `err.detail`. Confirm re-PUTs with `override=true`. On success, the toast lists `auto_actions_triggered` (e.g. "Funnel set to In Conversation · deal_suggestions_enabled, meeting_scheduling_enabled").
 
 **Cross-cutting:**
-- `src/api/endpoints.ts`: added 9 typed endpoint functions (`getAdminSummary`, `getAdminDigest`, `postAdminDigestSend`, `postDigestGenerate`, `postDigestApprove`, `getDigestPending`, `getDigestHistory`, `postMatchGenerate`, `getMatchJob`, `postMatchApprove`, `getMatchPending`).
-- `src/api/query-keys.ts`: added `qk.admin.digest`, `qk.digest.pending`, `qk.digest.history(limit)`, `qk.digest.historyAll`, `qk.matchmaking.jobAll`.
-- `src/app/router.tsx`: lazy + `<RoleGuard roles={['admin','super_admin']}>` for all three new routes; replaced the `AdminHomePlaceholder` with the real page.
-- MSW: three new handler files — `admin-home-handlers.ts`, `admin-digest-handlers.ts`, `admin-matchmaking-ops-handlers.ts`. The matchmaking handler simulates the 202 → poll → SUCCESS transition with `pollsBeforeReady` (default 1 read) so tests can drive the polling loop deterministically.
+- `src/api/endpoints.ts` — added `getQuarterlyReports`, `postQuarterlyReportApprove`, `getDeadLetterJobs` (with the typed `DLQListResult` shape that surfaces the envelope's `pagination` metadata), `postDeadLetterRetry`, `putLpFunnelStatus`.
+- `src/api/query-keys.ts` — added `qk.admin.quarterlyReports(quarter)`, `qk.admin.quarterlyReportsAll`, `qk.admin.dlq({retry_status,limit,offset})`, `qk.admin.dlqAll`, `qk.admin.lpFunnel(userId)`. Reshaped the existing dlq key from `(offset)` → object form to support per-status caching.
+- `src/app/router.tsx` — 4 new lazy routes wrapped in the existing admin RoleGuard.
+- MSW: 3 new handler files — `admin-quarterly-reports-handlers.ts`, `admin-dlq-handlers.ts`, `admin-lp-funnel-handlers.ts`. The DLQ handler pre-seeds 60 pending rows so the offset paginator can be exercised end-to-end (page 1 of 50, page 2 of 10). The funnel handler tracks per-user state + enforces skip detection (returns 409 unless `override=true`).
 
-**Tests (+22 cases vs prior commit, total 271 across 70 files):**
-- `use-admin-summary.test.ts` (2): seeded payload / 500.
-- `AdminHomePage.test.tsx` (4): renders KPI cards with seed data / pending link goes to /admin/connections / 500 ErrorState / empty state for all-empty arrays.
-- `use-digest.test.tsx` (6): useAdminDigest seed / useDigestPending seed / useDigestApprove optimistic remove + invalidations / approve rollback on 409 / useDigestSend invalidations / useDigestSend 409 conflict.
-- `AdminDigestPage.test.tsx` (4): Workflows tab default with Send Now / Pending tab Preview opens sandboxed iframe (`sandbox="allow-same-origin"` + `srcdoc` contains `<html>`) / History tab lists sent / approving removes optimistically.
-- `use-match-pending.test.ts` (3): seeded list / empty / 500.
-- `AdminMatchmakingOpsPage.test.tsx` (3): renders Generate panel + grouped pending table / empty state / Approve removes optimistically and the MSW server-side counter increments.
+**Tests (+19 cases vs prior commit, total 290 across 76 files):**
+- `use-quarterly-reports.test.ts` (3): seeded list / quarter filter / 500.
+- `AdminQuarterlyReportsPage.test.tsx` (2): renders both rows with drive-link rel attributes / approve flow opens dialog + fires mutation.
+- `use-dead-letter-jobs.test.ts` (3): page 1 returns 50 / page 2 returns 10 / status filter respected.
+- `AdminDeadLetterJobsPage.test.tsx` (5): renders 50 rows + paginator / Next advances to page 2 / row click opens drawer with traceback + args + kwargs / Retry increments server count / tab switch shows different bucket.
+- `use-lp-funnel-status.test.tsx` (3): non-skip move success / 409 conflict on skip / override=true succeeds.
+- `AdminLpFunnelPage.test.tsx` (3): all 5 stage buttons render with labels / non-skip click fires PUT once / skip → override dialog → confirm fires successful PUT.
 
-Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (271/271 across 70 files), `pnpm build` (exits 0). Per-feature chunks: AdminHomePage **1.59 KB gzip**, AdminDigestPage **2.95 KB gzip**, AdminMatchmakingOpsPage **2.44 KB gzip** — all comfortably under the 80 KB admin-feature budget. Main chunk: 291.34 → 292.35 KB gzip (+1.01 KB across 3 admin features).
+Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (290/290 across 76 files), `pnpm build` (exits 0). Per-feature chunks: AdminQuarterlyReportsPage **2.12 KB gzip**, AdminDeadLetterJobsPage **2.70 KB gzip**, AdminLpFunnelPickerPage **1.46 KB gzip**, AdminLpFunnelPage **1.93 KB gzip** — all comfortably under the 80 KB admin-feature budget. Main chunk: 292.35 → 293.26 KB gzip (+0.91 KB across 4 lazy routes).
 
 ### Next concrete step
 
-**Stage 4.1 is complete.** Per `queue.md` Session 4.1 footer: `_Spot-check gate_`. Wait for the human to spot-check before continuing into Session 4.2.
+**Stage 4.2 is complete.** Per `queue.md` Session 4.2 footer: `_Spot-check gate_`. Wait for the human to spot-check before continuing into Session 4.3.
 
-Once authorised, the next features (Stage 4.2 — Reports + DLQ + LP funnel) are:
-- `admin-quarterly-reports` (§7.12.7 + §7.12.8)
-- `admin-dead-letter-jobs` (§7.12.9 + §7.12.10) — note: **offset pagination**, the only endpoint that uses it (PRD §13 G10).
-- `admin-lp-funnel` (§7.12.5)
+Once authorised, the next features (Stage 4.3 — Partner referral + Tracxn + Analytics) are:
+- `admin-partner-referral` (§7.12.6).
+- `admin-tracxn` (§7.15.1).
+- `admin-analytics` (all of §7.14.1–7.14.6 with Recharts; remember §13 G8 — Zod `.passthrough()` until backend publishes formal schemas).
 
-Smoke checks for the just-shipped Stage 4.1 features (manual):
-- (a) Sign in as `+911234567890` (admin) → sidebar "Admin home" → `/admin` → KPI cards render with seed data.
-- (b) Click the pending count link → routes to `/admin/connections?status=pending_admin`.
-- (c) Click sidebar "Digests" → `/admin/digest` → Workflows tab default. Click "Send Now" on lp_weekly → toast "Triggered — 87 messages queued".
-- (d) Click "Generate for lp" → toast "Generated 3 drafts for lp" → switch to Pending tab → 2 seed rows visible. Click Preview on the first → side drawer opens with sandboxed iframe rendering the HTML.
-- (e) Click "Approve & Send" → row disappears optimistically → toast "Approved — delivery queued" → switch to History tab → the just-approved row is on top.
-- (f) Sidebar "Matchmaking ops" → `/admin/matchmaking` → date picker shows next Monday → click Generate → progress indicator → toast "Generation queued — polling job…" → after a few seconds the job lands SUCCESS and the result panel says "47 new pending suggestions".
-- (g) Below the panel, two seed rows for week of 2026-04-28. Click Approve on Acme → row disappears → toast "Approved".
-- (h) Sign in as a non-admin (e.g. `+911234567892` LP) and try `/admin`, `/admin/digest`, `/admin/matchmaking` → all redirect to `/unauthorized`.
+Smoke checks for the just-shipped Stage 4.2 features (manual):
+- (a) Sign in as `+911234567890` (admin) → sidebar "Quarterly reports" → `/admin/quarterly-reports` → both seeded rows visible with status badges. The Q1-2026 row has an Approve button; Q4-2025 (sent) does not.
+- (b) Click Approve on Q1-2026 → confirm dialog warns about distribution → click Approve → row flips to "Approved, distributing…".
+- (c) Sidebar "Dead-letter jobs" → `/admin/dead-letter-jobs` → 50 pending rows + paginator. Click Next → 10 trailing rows. Click Previous → back to page 1.
+- (d) Click any task name → drawer opens with traceback in a horizontally-scrollable `<pre>`, args + kwargs as JSON. Close. Click Retry on a pending row → toast "Retried — new task celery-retry-1" → row moves to the Retried tab.
+- (e) Switch to the Retried tab via the tab bar → seed retried rows visible, no Retry button.
+- (f) Sidebar "LP funnel" → `/admin/lp-funnel` → search "Acme" or paste an LP user_id directly. Click "Open funnel" → detail page.
+- (g) On detail page, click "First reach-out" → toast "Funnel set to First reach-out · welcome_email_sent" → current badge updates.
+- (h) Click "In Conversation" → would skip → toast doesn't fire; the override dialog opens. Click "Enable override & continue" → toast lists `deal_suggestions_enabled, meeting_scheduling_enabled` + the badge advances.
+- (i) Sign in as a non-admin (LP) and try `/admin/quarterly-reports`, `/admin/dead-letter-jobs`, `/admin/lp-funnel/:id` → all redirect to `/unauthorized`.
 
 ### Open blockers
 
@@ -107,36 +105,36 @@ _(none)_
 
 ### Files touched this session
 
-- **admin-home (new):**
-  - `src/features/admin/schemas.ts` — extended with `zAdminSummaryResponse` + nested rows.
-  - `src/features/admin/hooks/use-admin-summary.{ts,test.ts}`.
-  - `src/features/admin/routes/AdminHomePage.{tsx,test.tsx}`.
-- **admin-digest (new):**
-  - `src/features/digest/schemas.ts` (rewrite — was stub).
-  - `src/features/digest/index.ts` (barrel).
-  - `src/features/digest/hooks/{use-admin-digest, use-digest-send, use-digest-generate, use-digest-pending, use-digest-history, use-digest-approve}.ts`.
-  - `src/features/digest/hooks/use-digest.test.tsx`.
-  - `src/features/digest/components/DigestPreviewDrawer.tsx`.
-  - `src/features/digest/routes/{AdminDigestPage.tsx, AdminDigestPage.test.tsx}`.
-- **admin-matchmaking-ops (new):**
-  - `src/features/matchmaking/schemas.ts` — extended with admin-side request/response types.
-  - `src/features/matchmaking/hooks/{use-match-generate, use-match-pending, use-match-approve}.ts`.
-  - `src/features/matchmaking/hooks/use-match-pending.test.ts`.
-  - `src/features/matchmaking/routes/{AdminMatchmakingOpsPage.tsx, AdminMatchmakingOpsPage.test.tsx}`.
+- **admin-quarterly-reports (new):**
+  - `src/features/admin/schemas.ts` — extended with `zQuarterlyReport`, request/response schemas, status enum.
+  - `src/features/admin/hooks/{use-quarterly-reports.ts, use-quarterly-report-approve.ts, use-quarterly-reports.test.ts}`.
+  - `src/features/admin/components/QuarterlyReportApproveDialog.tsx`.
+  - `src/features/admin/routes/{AdminQuarterlyReportsPage.tsx, AdminQuarterlyReportsPage.test.tsx}`.
+- **admin-dead-letter-jobs (new):**
+  - `src/features/admin/schemas.ts` — extended with DLQ enums + `zDeadLetterJob` + retry response.
+  - `src/components/pagination/OffsetPaginator.tsx` (new shared component — first reuse target for any future offset-paginated endpoint).
+  - `src/features/admin/hooks/{use-dead-letter-jobs.ts, use-dead-letter-retry.ts, use-dead-letter-jobs.test.ts}`.
+  - `src/features/admin/components/DlqDetailDrawer.tsx`.
+  - `src/features/admin/routes/{AdminDeadLetterJobsPage.tsx, AdminDeadLetterJobsPage.test.tsx}`.
+- **admin-lp-funnel (new):**
+  - `src/features/admin/schemas.ts` — extended with `zLPFunnelStatus` enum + request/response.
+  - `src/features/admin/lib/funnel-labels.ts` (new — single label map + `FUNNEL_INDEX`).
+  - `src/features/admin/hooks/{use-lp-funnel-status.ts, use-lp-funnel-status.test.tsx}`.
+  - `src/features/admin/components/FunnelOverrideDialog.tsx`.
+  - `src/features/admin/routes/{AdminLpFunnelPickerPage.tsx, AdminLpFunnelPage.tsx, AdminLpFunnelPage.test.tsx}`.
 - **Cross-cutting:**
-  - `src/api/endpoints.ts` — +11 typed endpoint functions (admin/summary + 6 digest + 4 matchmaking-ops).
-  - `src/api/query-keys.ts` — `qk.admin.digest`, `qk.digest.{pending, history(limit), historyAll}`, `qk.matchmaking.jobAll`.
-  - `src/app/router.tsx` — replaced AdminHomePlaceholder with AdminHomePage; added `/admin/digest` and `/admin/matchmaking` routes.
-  - **Deleted:** `src/app/routes/AdminHomePlaceholder.tsx` (orphaned after the real Admin Home shipped).
+  - `src/api/endpoints.ts` — added 5 typed endpoint functions (+ exported `DLQListResult` type).
+  - `src/api/query-keys.ts` — added quarterly-reports, dlq (object-keyed), lp-funnel keys.
+  - `src/app/router.tsx` — 4 new lazy routes under the admin RoleGuard.
 - **MSW + tests:**
-  - `src/test/msw-fixtures/{admin-home-handlers.ts, admin-digest-handlers.ts, admin-matchmaking-ops-handlers.ts}` (new).
+  - `src/test/msw-fixtures/{admin-quarterly-reports-handlers.ts, admin-dlq-handlers.ts, admin-lp-funnel-handlers.ts}` (new).
   - `src/test/{msw-handlers.ts, setup.ts}` — registered + wired reset.
 - **Coordination:** `.claude/queue.md` (3 rows ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 271/271 tests across 70 files (was 249/249 across 64 files — +22 new tests, +6 new test files: 1 hook + 1 page per feature).
+Yes. All four gates exit 0. 290/290 tests across 76 files (was 271/271 across 70 files — +19 new tests, +6 new test files: 1 hook + 1 page per feature).
 
 ### Last updated
 
-2026-04-26T00:20:00+05:30
+2026-04-26T01:08:00+05:30

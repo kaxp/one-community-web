@@ -75,9 +75,9 @@ _Spot-check gate_
 
 ### Session 4.2 — Reports + DLQ + LP funnel
 
-- [ ] **admin-quarterly-reports** — GET /admin/quarterly-reports (§7.12.7) + POST /admin/quarterly-reports/approve (§7.12.8).
-- [ ] **admin-dead-letter-jobs** — GET /admin/dead-letter-jobs (§7.12.9) + POST /admin/dead-letter-jobs/{id}/retry (§7.12.10). **Offset pagination** (the only endpoint that uses it — per §13 G10). Drawer with full traceback.
-- [ ] **admin-lp-funnel** — PUT /admin/lp/{user_id}/funnel-status (§7.12.5). Picker route `/admin/lp-funnel/:user_id` with 5-stage status buttons + override dialog on 409.
+- [x] **admin-quarterly-reports** — GET /admin/quarterly-reports (§7.12.7) + POST /admin/quarterly-reports/approve (§7.12.8).
+- [x] **admin-dead-letter-jobs** — GET /admin/dead-letter-jobs (§7.12.9) + POST /admin/dead-letter-jobs/{id}/retry (§7.12.10). **Offset pagination** (the only endpoint that uses it — per §13 G10). Drawer with full traceback.
+- [x] **admin-lp-funnel** — PUT /admin/lp/{user_id}/funnel-status (§7.12.5). Picker route `/admin/lp-funnel/:user_id` with 5-stage status buttons + override dialog on 409.
 
 _Spot-check gate_
 

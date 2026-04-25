@@ -14,6 +14,9 @@ import { onboardingHandlers } from './msw-fixtures/onboarding-handlers';
 import { adminHomeHandlers } from './msw-fixtures/admin-home-handlers';
 import { adminDigestHandlers } from './msw-fixtures/admin-digest-handlers';
 import { adminMatchmakingOpsHandlers } from './msw-fixtures/admin-matchmaking-ops-handlers';
+import { adminQuarterlyReportsHandlers } from './msw-fixtures/admin-quarterly-reports-handlers';
+import { adminDlqHandlers } from './msw-fixtures/admin-dlq-handlers';
+import { adminLpFunnelHandlers } from './msw-fixtures/admin-lp-funnel-handlers';
 
 // Order matters: admin-handlers register `PATCH /connections/:id/admin` and
 // connections-handlers register `PATCH /connections/:id/respond`. Both paths
@@ -34,5 +37,8 @@ export const handlers: HttpHandler[] = [
   ...adminHomeHandlers,
   ...adminDigestHandlers,
   ...adminMatchmakingOpsHandlers,
+  ...adminQuarterlyReportsHandlers,
+  ...adminDlqHandlers,
+  ...adminLpFunnelHandlers,
   ...profileHandlers,
 ];

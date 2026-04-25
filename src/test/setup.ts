@@ -16,6 +16,9 @@ import { resetMswOnboardingState } from './msw-fixtures/onboarding-handlers';
 import { resetMswAdminHomeState } from './msw-fixtures/admin-home-handlers';
 import { resetMswAdminDigestState } from './msw-fixtures/admin-digest-handlers';
 import { resetMswMatchmakingOpsState } from './msw-fixtures/admin-matchmaking-ops-handlers';
+import { resetMswQuarterlyReportsState } from './msw-fixtures/admin-quarterly-reports-handlers';
+import { resetMswDlqState } from './msw-fixtures/admin-dlq-handlers';
+import { resetMswLpFunnelState } from './msw-fixtures/admin-lp-funnel-handlers';
 import { useAuthStore } from '@/auth/auth-store';
 import { resetInteractionDedup } from '@/lib/interaction-dedup';
 
@@ -36,6 +39,9 @@ afterEach(() => {
   resetMswAdminHomeState();
   resetMswAdminDigestState();
   resetMswMatchmakingOpsState();
+  resetMswQuarterlyReportsState();
+  resetMswDlqState();
+  resetMswLpFunnelState();
   resetMswProfileState();
   resetInteractionDedup();
   useAuthStore.getState().clear();

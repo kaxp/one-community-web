@@ -37,11 +37,24 @@ import {
   zAdminActionResponse,
   zAdminConnectionsResponse,
   zAdminSummaryResponse,
+  zDeadLetterJobsResponse,
+  zDeadLetterRetryResponse,
+  zFunnelStatusResponse,
+  zQuarterlyReportApproveResponse,
+  zQuarterlyReportsResponse,
   type AdminActionRequest,
   type AdminActionResponse,
   type AdminConnectionsResponse,
   type AdminConnectionStatus,
   type AdminSummaryResponse,
+  type DeadLetterJobsResponse,
+  type DeadLetterRetryResponse,
+  type DLQRetryStatus,
+  type FunnelStatusRequest,
+  type FunnelStatusResponse,
+  type QuarterlyReportApproveRequest,
+  type QuarterlyReportApproveResponse,
+  type QuarterlyReportsResponse,
 } from '@/features/admin/schemas';
 import {
   zAdminDigestResponse,
@@ -596,4 +609,74 @@ export async function postMatchApprove(body: MatchApproveRequest): Promise<Match
 export async function getMatchPending(): Promise<MatchPendingResponse> {
   const resp = await apiClient.get<ApiEnvelope<MatchPendingResponse>>('/matchmaking/pending');
   return zMatchPendingResponse.parse(unwrap(resp.data, '/matchmaking/pending'));
+}
+
+// PRD §7.12.7 — `GET /admin/quarterly-reports?quarter=...`. Bare array data.
+export async function getQuarterlyReports(args: {
+  quarter?: string;
+}): Promise<QuarterlyReportsResponse> {
+  const params = new URLSearchParams();
+  if (args.quarter) params.set('quarter', args.quarter);
+  const qs = params.toString();
+  const url = `/admin/quarterly-reports${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<QuarterlyReportsResponse>>(url);
+  return zQuarterlyReportsResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.12.8 — `POST /admin/quarterly-reports/approve`.
+export async function postQuarterlyReportApprove(
+  body: QuarterlyReportApproveRequest,
+): Promise<QuarterlyReportApproveResponse> {
+  const resp = await apiClient.post<ApiEnvelope<QuarterlyReportApproveResponse>>(
+    '/admin/quarterly-reports/approve',
+    body,
+  );
+  return zQuarterlyReportApproveResponse.parse(
+    unwrap(resp.data, '/admin/quarterly-reports/approve'),
+  );
+}
+
+// PRD §7.12.9 — `GET /admin/dead-letter-jobs`. OFFSET pagination — the only
+// endpoint that uses it (§13 G10). Caller should also read `pagination.limit`
+// and `pagination.offset` from the envelope; we return both.
+export interface DLQListResult {
+  items: DeadLetterJobsResponse;
+  limit: number;
+  offset: number;
+}
+export async function getDeadLetterJobs(args: {
+  retry_status?: DLQRetryStatus;
+  limit?: number;
+  offset?: number;
+}): Promise<DLQListResult> {
+  const params = new URLSearchParams();
+  if (args.retry_status) params.set('retry_status', args.retry_status);
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.offset !== undefined) params.set('offset', String(args.offset));
+  const qs = params.toString();
+  const url = `/admin/dead-letter-jobs${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<DeadLetterJobsResponse>>(url);
+  const items = zDeadLetterJobsResponse.parse(unwrap(resp.data, url));
+  const limit = resp.data.pagination?.limit ?? args.limit ?? 50;
+  const offset = resp.data.pagination?.offset ?? args.offset ?? 0;
+  return { items, limit, offset };
+}
+
+// PRD §7.12.10 — `POST /admin/dead-letter-jobs/{id}/retry`.
+export async function postDeadLetterRetry(id: string): Promise<DeadLetterRetryResponse> {
+  const url = `/admin/dead-letter-jobs/${id}/retry`;
+  const resp = await apiClient.post<ApiEnvelope<DeadLetterRetryResponse>>(url, {});
+  return zDeadLetterRetryResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.12.5 — `PUT /admin/lp/{user_id}/funnel-status`. 409 on skip without
+// override; the page surfaces an "Enable override?" dialog and re-PUTs.
+export async function putLpFunnelStatus(
+  userId: string,
+  body: FunnelStatusRequest,
+): Promise<FunnelStatusResponse> {
+  const url = `/admin/lp/${userId}/funnel-status`;
+  const payload = body.override === undefined ? { status: body.status } : body;
+  const resp = await apiClient.put<ApiEnvelope<FunnelStatusResponse>>(url, payload);
+  return zFunnelStatusResponse.parse(unwrap(resp.data, url));
 }
