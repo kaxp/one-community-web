@@ -4,6 +4,7 @@ import { searchHandlers } from './msw-fixtures/search-handlers';
 import { adminConnectionsHandlers } from './msw-fixtures/admin-handlers';
 import { profileHandlers } from './msw-fixtures/profile-handlers';
 import { connectionsHandlers } from './msw-fixtures/connections-handlers';
+import { pitchHandlers } from './msw-fixtures/pitch-handlers';
 
 // Order matters: admin-handlers register `PATCH /connections/:id/admin` and
 // connections-handlers register `PATCH /connections/:id/respond`. Both paths
@@ -14,5 +15,6 @@ export const handlers: HttpHandler[] = [
   ...searchHandlers,
   ...adminConnectionsHandlers,
   ...connectionsHandlers,
+  ...pitchHandlers,
   ...profileHandlers,
 ];

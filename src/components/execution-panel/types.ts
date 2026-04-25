@@ -33,18 +33,29 @@ export interface JobPollConfig<TOutput> {
   intervalMs?: number;
 }
 
-export interface ExecutionPanelProps<TInput extends Record<string, unknown>, TOutput> {
+// `TAck` is the synchronous mutation response (e.g. a 202 ack with `job_id`).
+// `TOutput` is the user-visible result type passed to `renderResult` — for a
+// non-job panel `TAck === TOutput`; for a job panel `TOutput` is the final
+// payload polled out of `JobPollResult.result`. PRD §6.7.2.
+export interface ExecutionPanelProps<
+  TInput extends Record<string, unknown>,
+  TOutput,
+  TAck = TOutput,
+> {
   title: string;
   description?: string;
   schema: ZodSchema<TInput>;
   defaultValues: Partial<TInput>;
   renderForm: (rhf: FormRenderProps<TInput>) => ReactNode;
-  mutation: UseMutationResult<TOutput, ApiError, TInput, unknown>;
+  mutation: UseMutationResult<TAck, ApiError, TInput, unknown>;
   renderResult?: (data: TOutput) => ReactNode;
   onSuccessToast?: (data: TOutput) => string;
   renderError?: (err: ApiError, retry: () => void) => ReactNode;
   submitLabel?: string;
   secondaryActions?: ReactNode;
-  jobPoll?: JobPollConfig<TOutput>;
-  debug?: boolean;
+  jobPoll?: JobPollConfig<TOutput> | undefined;
+  /** Called when a 202 ack returns a job_id — used to register the job in the
+   *  debug dock (PRD §6.8). Receives both the ack and the extracted job_id. */
+  onJobAccepted?: ((ack: TAck, jobId: string) => void) | undefined;
+  debug?: boolean | undefined;
 }

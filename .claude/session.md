@@ -34,57 +34,52 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — Stage 3 second feature `connections` complete; next unchecked queue.md row is `pitch`)_
+_(none — Stage 3 third feature `pitch` complete; next unchecked queue.md row is `mis`)_
 
 ### Last completed action
 
-Completed Stage 3 second feature **connections** end-to-end. All four PRD endpoints (§7.6.1, §7.6.3, §7.6.4, §7.6.5) plus the §7.7.2 feedback flow ship behind two new routes plus the canonical "Request to connect" dialog reused by the Profile page and the partner-masked search footer.
+Completed Stage 3 third feature **pitch** end-to-end. All four PRD endpoints (§7.3.1–§7.3.4) ship behind a single `/pitch` route with three URL-tabs. Also wired the long-deferred `<ExecutionPanel jobPoll>` branch — types existed, the runtime didn't.
 
-- **Schemas** (`src/features/connections/schemas.ts`): full set — `zAcceptedConnection` / `zPendingConnection` (with discriminator `direction`) / `zConnectionRequestBody` (200-char `message`) / `zRespondBody` (`accept|decline`) / `zFeedbackBody` (`yes|no`) plus matching response schemas. Optional `intro_id` + `feedback_submitted` on the accepted shape so the §7.7.2 prompt can render off the same row.
-- **Endpoint functions** (`src/api/endpoints.ts`): `requestConnection`, `respondToConnection`, `listConnections`, `listPendingConnections`, `submitFeedback` — all with Zod parse on the response and `stripUndefined` on the request payload.
-- **Query keys** (`src/api/query-keys.ts`): `qk.connections.list(limit)` + `qk.connections.pending(limit)` reshaped to drop the cursor parameter (cursor flows via `useInfiniteQuery`'s `pageParam`); the broad-prefix `qk.connections.listAll` / `qk.connections.pendingAll` keys remain for invalidation. Existing `qk.connections.pending(50)` call sites in admin tests continue to work after the signature change (still takes `limit`).
-- **Hooks** (`src/features/connections/hooks/`):
-  - `useConnections({limit=50})` — `useInfiniteQuery` against `qk.connections.list(50)`.
-  - `useConnectionsPending({limit=50})` — `useInfiniteQuery` against `qk.connections.pending(50)`. Direction filtering happens client-side per PRD §7.6.5 transformation note.
-  - `useRespondToConnection()` — optimistic remove from `qk.connections.pending(50)`, rollback on error. On accept, also invalidates `qk.connections.listAll` + `qk.profile.byId(counterpart_id)` (PRD §7.6.3 transformation note + §8.12.4 row).
-  - `useRequestConnection()` — invalidates `qk.connections.pendingAll` + `qk.profile.byId(target_id)` so the profile button flips to "Pending admin approval" (PRD §8.12.4).
-  - `useFeedback()` — thin `useMutation` against `POST /interactions/feedback`. Hides the prompt on 200 / 409 / 404 (the 409 + 404 paths collapse silently so users aren't told their already-recorded feedback failed).
-- **Routes** (`src/app/router.tsx`): `/connections` and `/connections/pending` mounted under `<RequireAuth><ProfileGate><AppShell>`. No `<RoleGuard>` wrapping — both routes are "any authenticated" per PRD §7.6.4 / §7.6.5. Both are `React.lazy`-imported at module scope per [P-19].
-- **Pages**:
-  - `routes/ConnectionsPage.tsx` — accepted list with skeleton / empty / error / success states. `<AcceptedConnectionCard>` renders counterpart link to `/profile/:id` + role badge + `<ContactStrip>` ONLY when `contact !== null` (never with a `?? '—'` placeholder for the whole block per the prompt's gotcha). The 48h `<FeedbackPrompt>` renders below the card when `intro_id` is present and `feedback_submitted !== true`.
-  - `routes/PendingConnectionsPage.tsx` — two URL-tabs (`?direction=incoming|outgoing`). Incoming `pending_target` rows get `<InlineExecutionButton>` Accept/Decline (one mutation hook per row → per-row isPending + per-call toasts). Outgoing rows render a status pill (Awaiting admin / Awaiting target / Rejected / Declined) and **never** show Accept/Decline. Filter is client-side; both directions fetch from the same `useInfiniteQuery`.
-- **Request-to-Connect dialog** (`components/RequestConnectDialog.tsx`): `<Dialog>` + RHF + Zod (200-char optional message). 200 → toast + close + invalidate. 409 → "already exists" toast + close. 404 → "user not found" toast + close. 422/other → inline `<ErrorState compact>`.
-- **Dialog wiring**:
-  - `src/features/profile/routes/ProfilePage.tsx` — Request-to-connect button now opens the dialog (replaces the previous Stage-2 toast-only stub).
-  - `src/features/search/components/MaskedCardFooter.tsx` — partner-mask "Request to connect" button now opens the dialog (replaces the previous toast-only stub). `<ResultCard>` passes `targetName = company_name ?? name` (startup) / `fund_name ?? name` (LP) so the dialog shows the right counterpart name.
-- **Components** (`src/features/connections/components/`):
-  - `ContactStrip.tsx` — three chips (email / phone / linkedin) for accepted connections. Renders `null` when no contact channel is present so the card never shows an empty strip.
-  - `FeedbackPrompt.tsx` — Yes/No prompt with internal `hidden` state; collapses on 200, 409, or 404.
-  - `AcceptedConnectionCard.tsx` — accepted row + optional feedback prompt.
-  - `PendingConnectionCard.tsx` — pending row with row-local `<Actions>` + `<StatusPill>` sub-components.
-  - `RequestConnectDialog.tsx` — see above.
-- **MSW** (`src/test/msw-fixtures/connections-handlers.ts`): canonical owner of `GET /connections`, `GET /connections/pending`, `POST /connections/request`, `PATCH /connections/:id/respond`, `POST /interactions/feedback`. Module-scoped fixture stores with helpers `setMswConnectionsRows`, `setMswPendingRows`, `queueRespondError`, `queueRequestError`, `queueFeedbackError`, `queueConnectionsListError`, `queuePendingListError`. Counter-based UUID generator avoids the malformed-UUID Zod-parse failures that an earlier draft hit. Profile-handlers no longer registers `GET /connections` / `GET /connections/pending`; `setMswProfileScenario` now seeds the connections-handlers store directly so the existing profile §13 G1 interim tests continue to pass with no test-file changes.
-- **Test setup** (`src/test/setup.ts` + `src/test/msw-handlers.ts`): registered the new handlers (after admin, before profile so admin's more-specific `/connections/:id/admin` matches before `/connections/:id/respond`); reset wired into `afterEach`.
-- **Tests** (+21 cases vs prior commit, total 103 across 28 files):
-  - `useConnections` (2): success + 500 error.
-  - `useConnectionsPending` (2): mixed direction + 500 error.
-  - `useRespondToConnection` (4): accept invalidates the right keys; decline does NOT invalidate listAll/profile; optimistic remove from cached pending; rollback on 409.
-  - `useRequestConnection` (2): success invalidates pendingAll + profile.byId; 409 surfaces ApiError.
-  - `useFeedback` (2): records yes; 409 surfaces ApiError.
-  - `ConnectionsPage` (4): renders seeded rows + email; empty state; ErrorState on 500; 48h feedback prompt visible when `intro_id` is set + `feedback_submitted=false`.
-  - `PendingConnectionsPage` (5): default Incoming tab with Accept/Decline; switching to Outgoing hides Accept/Decline + shows status pill; Accept optimistically removes the row; 409 conflict surfaces a single toast; empty-state message when active direction has no rows.
+- **`<ExecutionPanel jobPoll>` branch (cross-cutting)** — `src/components/execution-panel/ExecutionPanel.tsx` now owns the polling state machine described in PRD §6.7.3. Submit returns a 202 ack with `job_id`; the panel extracts the id, registers the job in the debug dock via `registerJob()` (PRD §6.8), and drives a `useQuery` with `refetchInterval: (q) => q.state.data?.ready ? false : intervalMs` capped at `maxPolls` (defaults 3000ms / 30 polls). Renders a polling banner during `STARTED`, the `renderResult` block on SUCCESS, an "Evaluation failed" panel on FAILURE with a retry button that resets the mutation, and a "Still running" timeout panel with manual refresh after the cap. Types refactored: `ExecutionPanelProps<TInput, TOutput, TAck = TOutput>` so the mutation can return a 202 ack while `renderResult` consumes the polled `TOutput`. `onJobAccepted?(ack, jobId)` is the seam for the debug-dock registration.
+- **Job registry** — new `src/lib/debug/use-job-registry.ts` writes `localStorage['oc.debug.jobs']` (FIFO cap 100). Pure module (no React) so the dock can read it without importing the panel.
+- **Pitch schemas** (`src/features/pitch/schemas.ts`): `zStartupProfileRequest` / `zStartupProfileResponse` matching §7.3.1, `zDeckUploadRequest` / `zDeckUploadAck` matching §7.3.3 (ack carries `job_id` + `status: 'queued'`), `zAIEvaluationResult` matching §7.3.4 SUCCESS payload (signal + summary + strengths/concerns/recommended_lp_types), `zDeckJobStatus` for the poll endpoint. Discriminated `StartupProfileResult = { status: 'missing' } | { status: 'present', data }` so the page branches off the 404 domain signal cleanly. `STARTUP_STAGES` re-exported from onboarding for convenience. Optional number fields use a NaN-tolerant pattern (`refine + .optional() + .transform(NaN→undefined)`) — no `z.preprocess` because that erases the input type and breaks the form's `Partial<TInput>` inference under `exactOptionalPropertyTypes`.
+- **Stage label helper** — `src/features/pitch/lib/stage-label.ts` exposes `stageLabel(stage)` (`pre_seed → "Pre-Seed"` etc.) and `formatCrore(value)` (PRD §8.12.2 — `₹ 10 Cr` via `toLocaleString('en-IN')`).
+- **Endpoint functions** (`src/api/endpoints.ts`): `getStartupProfile`, `postStartupProfile`, `postDeck`, `getDeckJob` — all Zod-parsed. Profile save uses `stripUndefined` per CLAUDE.md §5.10 (backend has no clear-field allowlist).
+- **Query keys** (`src/api/query-keys.ts`): `qk.pitch.profile`, plus `qk.pitch.deckJobAll` (broad-prefix invalidation per §8.12.4) AND `qk.pitch.deckJob(id)` (per-job, used as the panel's `jobPoll.queryKey` prefix that gets the id appended).
+- **Hooks** (`src/features/pitch/hooks/`):
+  - `useStartupProfile` — catches the 404 ApiError and folds it into `{ status: 'missing' }`. Re-throws every other error as ApiError so `<ErrorState>` can surface it.
+  - `useUpsertStartupProfile` — mutation. On success invalidates `qk.pitch.profile` AND `qk.pitch.deckJobAll` (clears stale eval state per PRD §7.3.1 transformation note).
+  - `useSubmitDeck` — mutation returning the 202 ack `DeckUploadAck`. On success invalidates `qk.pitch.profile` so `deck_url` flips from null to the submitted URL (per §8.12.4).
+  - `useDeckJobStatus(jobId)` — standalone polling hook (used in tests; the route consumes `getDeckJob` via `<ExecutionPanel jobPoll.queryFn>`).
+- **Route** (`src/app/router.tsx`): `/pitch` mounted under a `<RoleGuard roles={['startup_inprogress','startup_onboarded','startup_funded','admin','super_admin']}>`. Lazy-imported per [P-19].
+- **Page** (`src/features/pitch/routes/PitchPage.tsx`): three URL-tabs (`?tab=profile|deck|evaluation`).
+  - **Profile** (always) — `useStartupProfile` → either empty `<StartupProfileForm>` (404) or prefilled (200).
+  - **Deck** (visible iff profile present) — `<CurrentDeckSummary>` + `<DeckUploadPanel>`. The deck panel is the canonical `<ExecutionPanel jobPoll>` consumer: 202 → poll every 3s → SUCCESS renders `<AIEvaluationCard>` inline; FAILURE/timeout handled by the panel itself.
+  - **AI Evaluation** (visible iff a successful eval has happened) — re-renders the latest result via the `onEvaluation` callback bubbled up from `<DeckUploadPanel>`.
+  - On 404 from POST /pitch/deck, the panel auto-navigates to `?tab=profile` (the user has no startup row yet — PRD §7.3.3).
+- **Components** (`src/features/pitch/components/`):
+  - `StartupProfileForm.tsx` — full §7.3.1 schema. `ExecutionPanel<StartupProfileRequest, StartupProfileResponse>` with stage select + ask amount + URLs.
+  - `DeckUploadPanel.tsx` — `ExecutionPanel<DeckUploadRequest, AIEvaluationResult, DeckUploadAck>`. Wires the `jobPoll` config + `onJobAccepted` (registers in debug dock) + `onEvaluation` upward callback. Mirrors the panel's polling cache (read-only, `enabled: false`) so the latest SUCCESS result can be lifted to the parent without extra network calls.
+  - `AIEvaluationCard.tsx` — green/yellow/red badge keyed off `result.signal` (`strong | moderate | weak`), summary, strengths/concerns bullet lists, opaque LP-type chips. Concerns get a tinted background when signal === 'weak' per PRD §7.3.4 transformation note.
+- **MSW** (`src/test/msw-fixtures/pitch-handlers.ts`): canonical owner of `GET /pitch/profile`, `POST /pitch/profile`, `POST /pitch/deck`, `GET /pitch/deck/jobs/:jobId`. Module-scoped fixture stores with helpers `setMswProfileScenario`, `setMswPitchProfileFixture`, `queuePitchProfileError`, `queuePitchProfileSaveError`, `queuePitchDeckError`, `setMswDeckOutcome` (success / failure / timeout, configurable `pollsBeforeReady`), `setMswPitchAIResult`. Per-job counter map keyed by job_id so the deck-job poll handler is genuinely stateful across multiple ticks. UUID generator hand-shaped to satisfy Zod's RFC-4122 v4 regex (8-4-4-4-12 with version-4 + variant nibbles in the right places).
+- **Tests** (+15 cases vs prior commit, total 118 across 34 files):
+  - `useStartupProfile` (3): present, missing (404 → status='missing', not ApiError), 500 surfaces ApiError.
+  - `useUpsertStartupProfile` (2): success + 422 ApiError.
+  - `useSubmitDeck` (2): 202 ack + 404 ApiError.
+  - `useDeckJobStatus` (2): STARTED while polls remaining, SUCCESS once `pollsBeforeReady=0`.
+  - `ExecutionPanel.jobpoll.test.tsx` (3): polls until SUCCESS triggers renderResult; FAILURE renders the failure block; `onJobAccepted` fires exactly once with the extracted job_id.
+  - `PitchPage` (3): 404 renders Create form (no Deck/Evaluation tabs); existing profile renders Edit form (Deck tab visible); Deck tab + successful poll renders the `<AIEvaluationCard>` with strengths.
 
-Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (103/103), `pnpm build` (exits 0). Per-feature chunks: ConnectionsPage **1.95 KB gzip**, PendingConnectionsPage **2.31 KB gzip**, RequestConnectDialog **1.94 KB gzip**. Main chunk: 287.09 → 287.65 KB gzip (+0.56 KB — well under the 30 KB-per-feature budget).
+Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (118/118 across 34 files), `pnpm build` (exits 0). Per-feature chunk: PitchPage **11.48 KB / 3.95 KB gzip**. Main chunk: 287.65 → 288.39 KB gzip (+0.74 KB — well under the 30 KB-per-feature budget).
 
 ### Next concrete step
 
-Pick up the next unchecked feature in `queue.md § Stage 3` — **`pitch`** (PRD §7.3.1 GET / POST profile, §7.3.3 POST deck, §7.3.4 GET deck job poll). Use `<ExecutionPanel jobPoll={...}>` for the deck-eval flow per PRD §6.7. Smoke checks for the just-shipped connections feature:
-- (a) Sign in as LP `+911234567892`, navigate to `/connections` — accepted Kapil row renders with email/phone/LinkedIn chips and the 48h feedback prompt.
-- (b) Click Yes on the prompt → toast "Thanks for the feedback" + prompt collapses.
-- (c) Navigate to `/connections/pending` — Incoming tab default, Priya Rao Accept/Decline visible. Click Accept → row vanishes optimistically, toast "Connection accepted — contact details unlocked", `/connections` refetch surfaces the new accepted row.
-- (d) Switch to Outgoing tab via URL `?direction=outgoing` — Aryan Mehta + Rhea Iyer rows show status pills only (no Accept/Decline buttons; gotcha #3 from the prompt).
-- (e) On `/profile/<startup-id>` (no_connection scenario), click Request to connect → modal opens, 200-char counter live; submit → admin-approval toast + dialog closes.
-- (f) Sign in as partner `+911234567897`, run a search, click Request to connect on a result card → same dialog opens.
+Pick up the next unchecked feature in `queue.md § Stage 3` — **`mis`** (PRD §7.9.1 GET, §7.9.2 POST, §7.9.3 GET prefill). Wrap the submit in `<ExecutionPanel>` (no jobPoll this time). Strict `raw_data` keys per §7.9.2 — reject any key not in the allowlist before submit. 409 on `mis_already_submitted` opens an override dialog. Smoke checks for the just-shipped pitch feature:
+- (a) Sign in as startup_funded `+911234567894`, navigate to `/pitch` → Profile tab default, prefilled with Acme. Edit and Save → toast "Profile saved" + cache refetch.
+- (b) Sign in as a fresh startup with no profile (use MSW `setMswProfileScenario('missing')` in dev tooling) → empty Create form, only Profile tab visible.
+- (c) Click Deck tab → paste any URL → submit. Polling banner appears; ~6s later (2 polls × 3s) AI evaluation card appears with green "Strong signal" badge + strengths/concerns bullets.
+- (d) Force a failure via debug tooling (or temp `setMswDeckOutcome('failure')`) → "Evaluation failed" block with Retry; click Retry → the form re-enables for resubmit.
+- (e) Confirm the AI Evaluation tab now appears in the tab bar after the first SUCCESS, and re-renders the latest eval block when clicked.
 
 ### Open blockers
 
@@ -92,29 +87,30 @@ _(none)_
 
 ### Files touched this session
 
-- **Connections feature (new):**
-  - `src/features/connections/{schemas.ts, index.ts}`.
-  - `src/features/connections/hooks/{use-connections,use-connections-pending,use-respond-to-connection,use-request-connection,use-feedback}.ts` (+ matching `.test.{ts,tsx}` files).
-  - `src/features/connections/components/{ContactStrip,FeedbackPrompt,AcceptedConnectionCard,PendingConnectionCard,RequestConnectDialog}.tsx`.
-  - `src/features/connections/routes/{ConnectionsPage,PendingConnectionsPage}.{tsx,test.tsx}`.
+- **ExecutionPanel jobPoll wiring (cross-cutting):**
+  - `src/components/execution-panel/ExecutionPanel.tsx` — full polling state machine.
+  - `src/components/execution-panel/types.ts` — `<TInput, TOutput, TAck = TOutput>` split + `onJobAccepted` prop.
+  - `src/components/execution-panel/ExecutionPanel.jobpoll.test.tsx` (new — 3 cases).
+  - `src/lib/debug/use-job-registry.ts` (new — `localStorage['oc.debug.jobs']`, FIFO cap 100).
+- **Pitch feature (new):**
+  - `src/features/pitch/{schemas.ts, index.ts}`.
+  - `src/features/pitch/lib/stage-label.ts` (new — `stageLabel` + `formatCrore`).
+  - `src/features/pitch/hooks/{use-startup-profile,use-upsert-startup-profile,use-submit-deck,use-deck-job-status}.ts` (+ matching `.test.ts` files).
+  - `src/features/pitch/components/{StartupProfileForm,DeckUploadPanel,AIEvaluationCard}.tsx`.
+  - `src/features/pitch/routes/{PitchPage.tsx, PitchPage.test.tsx}`.
 - **Cross-cutting:**
-  - `src/api/endpoints.ts` — added `requestConnection`, `respondToConnection`, `listConnections`, `listPendingConnections`, `submitFeedback`.
-  - `src/api/query-keys.ts` — `qk.connections.list(limit)` and `qk.connections.pending(limit)` reshaped (cursor dropped from key; flows via pageParam).
-  - `src/app/router.tsx` — `/connections` + `/connections/pending` lazy-imported routes.
-- **Dialog wiring:**
-  - `src/features/profile/routes/ProfilePage.tsx` — Request-to-connect button opens `<RequestConnectDialog>` (replaces prior toast stub).
-  - `src/features/search/components/MaskedCardFooter.tsx` — partner-mask "Request to connect" opens `<RequestConnectDialog>` (replaces prior toast stub).
-  - `src/features/search/components/ResultCard.tsx` — passes `targetName` to `<MaskedCardFooter>`.
+  - `src/api/endpoints.ts` — added `getStartupProfile`, `postStartupProfile`, `postDeck`, `getDeckJob`.
+  - `src/api/query-keys.ts` — added `qk.pitch.deckJobAll` (broad-prefix invalidation).
+  - `src/app/router.tsx` — `/pitch` lazy-imported under startup-roles `<RoleGuard>`.
 - **MSW + tests:**
-  - `src/test/msw-fixtures/connections-handlers.ts` (new — canonical owner).
-  - `src/test/msw-fixtures/profile-handlers.ts` — removed `GET /connections` + `GET /connections/pending` handlers; `setMswProfileScenario` now delegates seeding into the connections-handlers store.
+  - `src/test/msw-fixtures/pitch-handlers.ts` (new — canonical owner with per-job counter map).
   - `src/test/{msw-handlers.ts, setup.ts}` — registered + wired reset.
-- **Coordination:** `.claude/queue.md` (`connections` row ticked), `.claude/session.md` (this file).
+- **Coordination:** `.claude/queue.md` (`pitch` row ticked), `.claude/session.md` (this file).
 
 ### Tests green?
 
-Yes. All four gates exit 0. 103/103 tests across 28 files.
+Yes. All four gates exit 0. 118/118 tests across 34 files.
 
 ### Last updated
 
-2026-04-25T17:05:00+05:30
+2026-04-25T18:05:00+05:30

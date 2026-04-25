@@ -31,6 +31,7 @@ export const qk = {
   },
   pitch: {
     profile: ['pitch', 'profile'] as const,
+    deckJobAll: ['pitch', 'deckJob'] as const,
     deckJob: (id: string) => ['pitch', 'deckJob', id] as const,
   },
   matchmaking: {

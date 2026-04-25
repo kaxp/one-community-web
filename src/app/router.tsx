@@ -46,6 +46,9 @@ const PendingConnectionsPage = lazy(() =>
     default: m.PendingConnectionsPage,
   })),
 );
+const PitchPage = lazy(() =>
+  import('@/features/pitch/routes/PitchPage').then((m) => ({ default: m.PitchPage })),
+);
 const AdminHomePlaceholder = lazy(() => import('./routes/AdminHomePlaceholder'));
 
 const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
@@ -117,6 +120,30 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <ProfilePage />
+                        </Susp>
+                      ),
+                    },
+                  ],
+                },
+                {
+                  // PRD §7.3 — pitch is gated to startup roles + admin / super_admin.
+                  element: (
+                    <RoleGuard
+                      roles={[
+                        'startup_inprogress',
+                        'startup_onboarded',
+                        'startup_funded',
+                        'admin',
+                        'super_admin',
+                      ]}
+                    />
+                  ),
+                  children: [
+                    {
+                      path: '/pitch',
+                      element: (
+                        <Susp>
+                          <PitchPage />
                         </Susp>
                       ),
                     },

@@ -45,7 +45,7 @@ When a whole stage's boxes are ticked, pause and await human review before start
 
 _Spot-check gate after 2 features above_
 
-- [ ] **pitch** — GET + POST /pitch/profile (§7.3.1–7.3.2) + POST /pitch/deck (§7.3.3) + poll GET /pitch/deck/jobs/{id} (§7.3.4). `<ExecutionPanel jobPoll={...}>`.
+- [x] **pitch** — GET + POST /pitch/profile (§7.3.1–7.3.2) + POST /pitch/deck (§7.3.3) + poll GET /pitch/deck/jobs/{id} (§7.3.4). `<ExecutionPanel jobPoll={...}>`.
 - [ ] **mis** — GET /portfolio/mis (§7.9.1) + GET /portfolio/mis/prefill (§7.9.3) + POST /portfolio/mis (§7.9.2). Strict `raw_data` keys. 409 conflict handling.
 
 _Spot-check gate after 4 features total_

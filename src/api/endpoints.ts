@@ -52,6 +52,16 @@ import {
   type RespondBody,
   type RespondResponse,
 } from '@/features/connections/schemas';
+import {
+  zDeckJobStatus,
+  zDeckUploadAck,
+  zStartupProfileResponse,
+  type DeckJobStatus,
+  type DeckUploadAck,
+  type DeckUploadRequest,
+  type StartupProfileRequest,
+  type StartupProfileResponse,
+} from '@/features/pitch/schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
 
@@ -206,4 +216,38 @@ export async function listPendingConnections(args: {
 export async function submitFeedback(body: FeedbackBody): Promise<FeedbackResponse> {
   const resp = await apiClient.post<ApiEnvelope<FeedbackResponse>>('/interactions/feedback', body);
   return zFeedbackResponse.parse(unwrap(resp.data, '/interactions/feedback'));
+}
+
+// PRD §7.3.1 — `POST /pitch/profile` (create/update startup profile).
+export async function postStartupProfile(
+  body: StartupProfileRequest,
+): Promise<StartupProfileResponse> {
+  const resp = await apiClient.post<ApiEnvelope<StartupProfileResponse>>(
+    '/pitch/profile',
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return zStartupProfileResponse.parse(unwrap(resp.data, '/pitch/profile'));
+}
+
+// PRD §7.3.2 — `GET /pitch/profile`. The 404 path is handled in
+// `useStartupProfile` (it's a domain signal: "no profile yet, show create
+// form"); here we surface only the success body.
+export async function getStartupProfile(): Promise<StartupProfileResponse> {
+  const resp = await apiClient.get<ApiEnvelope<StartupProfileResponse>>('/pitch/profile');
+  return zStartupProfileResponse.parse(unwrap(resp.data, '/pitch/profile'));
+}
+
+// PRD §7.3.3 — `POST /pitch/deck`. Returns 202 + job_id; the client polls
+// `getDeckJob(job_id)` via the ExecutionPanel `jobPoll` config.
+export async function postDeck(body: DeckUploadRequest): Promise<DeckUploadAck> {
+  const resp = await apiClient.post<ApiEnvelope<DeckUploadAck>>('/pitch/deck', body);
+  return zDeckUploadAck.parse(unwrap(resp.data, '/pitch/deck'));
+}
+
+// PRD §7.3.4 — `GET /pitch/deck/jobs/{job_id}`. Polled every 3s, capped at
+// 30 polls in the panel layer.
+export async function getDeckJob(jobId: string): Promise<DeckJobStatus> {
+  const url = `/pitch/deck/jobs/${jobId}`;
+  const resp = await apiClient.get<ApiEnvelope<DeckJobStatus>>(url);
+  return zDeckJobStatus.parse(unwrap(resp.data, url));
 }

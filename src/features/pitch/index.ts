@@ -1,2 +1,13 @@
-// pitch feature barrel. Populated in its Stage 2/3/4 session.
-export {};
+// Pitch feature barrel — public surface only. Internal hooks/components
+// stay private to the feature folder.
+export { PitchPage } from './routes/PitchPage';
+export type {
+  AIEvaluationResult,
+  AISignal,
+  DeckJobStatus,
+  DeckUploadAck,
+  DeckUploadRequest,
+  StartupProfileRequest,
+  StartupProfileResponse,
+  StartupProfileResult,
+} from './schemas';
