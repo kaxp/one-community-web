@@ -21,6 +21,7 @@ import { searchUnified } from '@/api/endpoints';
 import { qk } from '@/api/query-keys';
 import type { ApiError } from '@/api/errors';
 import type { SearchResponse } from '@/features/search/schemas';
+import { useRole } from '@/auth/use-auth';
 
 const DEBOUNCE_MS = 400;
 
@@ -30,6 +31,11 @@ export function SearchPage() {
   const filters = useMemo(() => filtersFromSearchParams(params), [params]);
   const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS);
   const qc = useQueryClient();
+  // Partners see Crunchbase-style locked cards (decisions.md [P-20] / [P-21]).
+  // The backend strips fields from the response; the UI renders the full card
+  // structure with blurred placeholders for the withheld values.
+  const role = useRole();
+  const isMasked = role === 'partner';
 
   // Update the URL when the debounced query stabilises.
   useEffect(() => {
@@ -113,6 +119,7 @@ export function SearchPage() {
         query={debouncedQuery.trim()}
         filters={filters}
         onClearFilters={() => onFiltersChange({})}
+        isMasked={isMasked}
       />
     </div>
   );
@@ -125,6 +132,7 @@ interface SearchResultsProps {
   query: string;
   filters: SearchFilters;
   onClearFilters: () => void;
+  isMasked: boolean;
 }
 
 function SearchResults({
@@ -134,6 +142,7 @@ function SearchResults({
   query,
   filters,
   onClearFilters,
+  isMasked,
 }: SearchResultsProps) {
   if (query.length === 0) {
     return (
@@ -210,6 +219,7 @@ function SearchResults({
               item={item}
               targetType={page.target_type}
               query={query}
+              isMasked={isMasked}
             />
           )),
         )}

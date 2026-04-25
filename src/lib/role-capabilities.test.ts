@@ -29,8 +29,12 @@ describe('role-capabilities', () => {
     expect(keys).toContain('admin-connections');
   });
 
-  it('partner role is excluded from connections.request per PRD §7.4.1', () => {
-    expect(can('partner', 'connections.request')).toBe(false);
+  it('partner role can request connections — the only escalation path off masked cards (P-20 / P-21)', () => {
+    expect(can('partner', 'connections.request')).toBe(true);
+  });
+
+  it('advisor role cannot request connections (passive role)', () => {
+    expect(can('advisor', 'connections.request')).toBe(false);
   });
 
   it('partner role is admitted to search.use with masked results per decisions.md [P-20]', () => {

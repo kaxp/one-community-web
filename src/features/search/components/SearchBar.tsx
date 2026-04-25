@@ -36,7 +36,7 @@ export function SearchBar({ value, onChange, onSubmit, isPending, disabled, clas
           id="search-query"
           type="search"
           autoComplete="off"
-          placeholder="e.g. fintech seed-stage startups in Bangalore"
+          placeholder="Ask me about Warmup Ventures data"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}

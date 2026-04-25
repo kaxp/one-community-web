@@ -650,6 +650,29 @@ maxWidth: {
 - **Verification:** Sign in as the partner seed user (`+911234567897`), navigate to `/search`, submit any query, and observe the result cards rendering only `name`, `company_name`, `sector`, `stage`, `one_liner`. The "Request to Connect" button remains visible — that is the intended escalation path.
 - **Future-session rule:** Any new endpoint that returns startup or LP profile data for partners MUST be reviewed against the same off-platform-outreach test: do any returned fields enable email / LinkedIn / phone / website lookup outside the platform? If yes, withhold them.
 
+### [P-21] Crunchbase-style masking UX + partner-monetisation hook  ✅ resolved 2026-04-25
+
+- **Decision:** Replace the original "hide rows for missing fields" UX (the default partner experience after P-20 landed) with a Crunchbase-style locked-card UX. Partner viewers see the FULL card layout — every withheld field renders a `<LockedField>` placeholder (label + blurred bars at the position the real value would occupy), and every masked card ends with a `<MaskedCardFooter>` panel offering two CTAs: **Request to connect** (the canonical in-platform escalation path) and **Upgrade for full access** (placeholder for the partner-monetisation flow). The backend allowlists from P-20 are unchanged — the data on the wire stays minimal; only the rendering behaviour changes.
+
+  **Why:** Hide-on-missing made the partner experience feel broken — sparse cards with no signal that data was withheld vs genuinely missing. Crunchbase-style masking communicates "the structure exists, the data is gated" and surfaces a path to unlock. It also gives us a place to plug the partner-monetisation flow when product is ready.
+
+  **What changed in code:**
+  - New: `src/features/search/components/LockedField.tsx` — generic blurred-placeholder primitive with `lines` and optional `label` + `tone` props.
+  - New: `src/features/search/components/MaskedCardFooter.tsx` — escalation panel rendered at the bottom of each masked card. "Request to connect" calls `useLogInteraction` + a TODO toast for now; will wire to `POST /connections/request` when Stage 3 connections lands. "Upgrade for full access" is a placeholder that toasts "Partner upgrade coming soon".
+  - Modified: `src/features/search/components/ResultCard.tsx` — accepts an `isMasked` prop. New `<FieldOrLocked>` helper picks between rendering the real value (when present), a `<LockedField>` (when masked + missing), or `null` (when not masked + missing). Footer renders only when `isMasked === true`.
+  - Modified: `src/features/search/routes/SearchPage.tsx` — derives `isMasked = role === 'partner'` via `useRole()` and passes through to every `<ResultCard>`.
+  - Modified: `src/lib/role-capabilities.ts` — added `'partner'` to `CAPABILITIES['connections.request']` because P-20's "only escalation path is connection-request" needs the capability map to agree. The frontend now matches backend behaviour for partner→`POST /connections/request`. (The actual connections feature ships in Stage 3; the capability is registered ahead of time so the masked-footer button can call `can('partner', 'connections.request')` correctly.)
+  - Modified: `src/lib/role-capabilities.test.ts` — inverted the partner-excluded-from-connections.request regression to assert the inverse + added an advisor-cannot-request-connections regression so the new permission set is locked in.
+  - Modified: `src/features/search/routes/SearchPage.test.tsx` — added a partner viewer smoke test asserting the locked-footer (`Connect to unlock` + Request to connect + Upgrade buttons) renders + withheld values (`3 pilot banks`, `Strong match on sector`) do NOT leak into the DOM.
+  - Modified: `src/features/search/components/SearchBar.tsx` — placeholder copy updated from "e.g. fintech seed-stage startups in Bangalore" to **"Ask me about Warmup Ventures data"** per human direction (mirrors the Crunchbase ask-me-anything pattern).
+  - Modified: `CLAUDE.md` §3.5 (Role-masked fields) and §15 (Auth & data model — Partner role line) — both rewritten to reflect the blur-not-hide rule, the escalation + monetisation paths, and the `<ResultCard isMasked>` plumbing.
+
+- **Rationale:** Human direction (2026-04-25): "for partner search or any future masked search let's implement it like crunchbase has done. We display the full content, but mask/blur the important metadata from the partner which can result in them contacting the startup outside our platform. For partners, we will have monetisation if they need the full results later."
+
+- **Touches:** `src/features/search/components/{LockedField,MaskedCardFooter,ResultCard,SearchBar}.tsx`, `src/features/search/routes/SearchPage.{tsx,test.tsx}`, `src/lib/role-capabilities.{ts,test.ts}`, `CLAUDE.md` §§ 3.5 and 15. All four gates green.
+
+- **Future-session rule:** Every NEW surface that renders partner-visible profile data (profile-view, suggestion cards, digest summaries, anywhere) MUST follow the same `isMasked` plumbing — the page derives `role === 'partner'`, and the rendering component swaps `null`-on-missing for `<LockedField>` + `<MaskedCardFooter>`. The "Request to connect" CTA must remain visible on every masked surface, since it's the canonical escalation path. Until the partner-monetisation flow is built, the "Upgrade" button toasts "Partner upgrade coming soon" — when product is ready, wire it to the upgrade route in a single place (`<MaskedCardFooter>`).
+
 _(Further P-N items added below as mid-build decisions are made. Keep sequential order.)_
 
 <!--

@@ -8,7 +8,17 @@ export const CAPABILITIES = {
   // Connection request (admin-gated) is the only escalation path.
   'search.use': ['lp', 'potential_lp', 'vc', 'startup_funded', 'partner', 'admin', 'super_admin'],
   'search.see_contact': [],
-  'connections.request': ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin'],
+  // Partner is admitted (decisions.md [P-20] / [P-21]) — request-to-connect is
+  // the only escalation path partners have to unlock contact data.
+  'connections.request': [
+    'lp',
+    'potential_lp',
+    'vc',
+    'startup_funded',
+    'partner',
+    'admin',
+    'super_admin',
+  ],
   'connections.respond': [
     'lp',
     'potential_lp',
