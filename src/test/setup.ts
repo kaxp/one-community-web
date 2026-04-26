@@ -22,6 +22,7 @@ import { resetMswLpFunnelState } from './msw-fixtures/admin-lp-funnel-handlers';
 import { resetMswPartnerReferralState } from './msw-fixtures/admin-partner-referral-handlers';
 import { resetMswTracxnState } from './msw-fixtures/admin-tracxn-handlers';
 import { resetMswAnalyticsState } from './msw-fixtures/admin-analytics-handlers';
+import { resetMswDigestMeState } from './msw-fixtures/digest-me-handlers';
 import { useAuthStore } from '@/auth/auth-store';
 import { resetInteractionDedup } from '@/lib/interaction-dedup';
 
@@ -48,6 +49,7 @@ afterEach(() => {
   resetMswPartnerReferralState();
   resetMswTracxnState();
   resetMswAnalyticsState();
+  resetMswDigestMeState();
   resetMswProfileState();
   resetInteractionDedup();
   useAuthStore.getState().clear();

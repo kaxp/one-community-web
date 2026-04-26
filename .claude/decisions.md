@@ -673,6 +673,28 @@ maxWidth: {
 
 - **Future-session rule:** Every NEW surface that renders partner-visible profile data (profile-view, suggestion cards, digest summaries, anywhere) MUST follow the same `isMasked` plumbing — the page derives `role === 'partner'`, and the rendering component swaps `null`-on-missing for `<LockedField>` + `<MaskedCardFooter>`. The "Request to connect" CTA must remain visible on every masked surface, since it's the canonical escalation path. Until the partner-monetisation flow is built, the "Upgrade" button toasts "Partner upgrade coming soon" — when product is ready, wire it to the upgrade route in a single place (`<MaskedCardFooter>`).
 
+### [P-22] User-facing `/me/digest/*` backend shipped — `/digest` blocker page can be replaced  ✅ resolved 2026-04-26
+
+- **Decision:** Backend now exposes three user-facing endpoints under `/api/v1/me/digest/*` (PRD §7.13.5–7.13.7). The `/digest` placeholder/blocker page in the frontend can now be replaced with the real Recent + Preferences UI — the Phase-4 banner stays only for the WhatsApp delivery channel, not for the data layer.
+- **What's in the backend (one-community-1, this commit):**
+  - `db/migrations/versions/0002_users.py` — added two columns to `users`: `digest_frequency TEXT NOT NULL DEFAULT 'weekly' CHECK (...)` and `interest_tags JSONB NOT NULL DEFAULT '[]'::jsonb`. Pre-prod policy = edit migration in place; existing dev DBs need a rebuild OR a one-off `ALTER TABLE` (see Migration Notes below).
+  - `db/repositories/user_repo.py` — added `digest_frequency` + `interest_tags` to `ALLOWED_UPDATE_FIELDS`; introduced `JSONB_UPDATE_FIELDS` for safe `::jsonb` casts.
+  - `db/repositories/audit_repo.py` — new `get_user_digests(user_id, limit, cursor_sent_at)` — cursor by `sent_at`, fetches `limit + 1` for next-page detection, filters out non-`sent` rows.
+  - `modules/digest/me_service.py` — three callables: `list_my_digests`, `get_my_preferences`, `update_my_preferences`. Tag normalisation = trim + lowercase + dedupe + sort. For LP / potential_lp roles, `interest_tags` is mirrored to `lp_profile.interest_tags` via `lp_repo.upsert()` so the existing weekly digest generator (`modules/digest/service.py:50`) continues to honour them.
+  - `modules/digest/me_router.py` — three FastAPI routes; uses `require_role(...)` with all 10 roles (every authenticated user owns their preferences).
+  - `modules/digest/me_schemas.py` — Pydantic models with `Literal['weekly','monthly','paused']` for frequency and `ConfigDict(extra='forbid')` on the PUT body.
+  - `main.py` — wired `digest_me_router` under `/api/v1`.
+  - Tests: 16 new in `tests/digest/test_me_service.py` + 12 new in `tests/digest/test_me_router.py`. Full digest suite: **50/50 pass**, ruff clean.
+- **What stays Phase-4:** the WhatsApp / email delivery channel that consumes `frequency` and the new digest-fan-out worker. The frontend can persist `monthly` / `paused` today; the backend cron will start honouring those values when the channel ships. Show a subtle hint under the radio: *"Active when WhatsApp delivery launches."*
+- **Migration notes (read before running locally):**
+  - The dev DB already exists from earlier work, so `make migrate-dev` would normally error on the column-already-exists path if the migration body had been re-run. The pre-prod migration policy (CLAUDE.md) edits `0002_users.py` in place, so the safe path is **either** (a) drop + recreate the dev DB once (`scripts/seed_data.py` re-seeds in seconds), **or** (b) run a one-off `ALTER TABLE users ADD COLUMN digest_frequency TEXT NOT NULL DEFAULT 'weekly' CHECK (digest_frequency IN ('weekly','monthly','paused')); ALTER TABLE users ADD COLUMN interest_tags JSONB NOT NULL DEFAULT '[]'::jsonb;` directly. Production rebuild from-scratch picks up the columns automatically.
+  - Pre-existing environment quirk: `make migrate-dev` currently errors on a SQLAlchemy / Python 3.13 incompatibility that affects alembic boot. This is **not** caused by my migration edit — same error reproduces on `git stash`. The unit tests don't need alembic to run; the alembic blocker can be addressed separately.
+- **Frontend follow-up (next session — see Stage 5.3 prompt added to plan.md):** wire 3 typed endpoint functions in `src/api/endpoints.ts`, 2 React Query hooks, replace `/digest` page with Recent list + Preferences form. The blocker card and Phase-4 channel banner can be removed once the real UI ships; only the small "Active when WhatsApp delivery launches" hint stays under the frequency radio.
+- **Touches (frontend):**
+  - `docs/frontend_prd.md` — §7.13.5 / §7.13.6 / §7.13.7 added with full contracts.
+  - To be touched in the next session: `src/api/endpoints.ts`, `src/api/query-keys.ts`, `src/features/digest/{schemas,hooks,components,routes}/*`, `src/test/msw-fixtures/digest-handlers.ts`.
+- **Why this got a P-N instead of being treated as a routine new feature:** Stage 4 was already declared complete; the `/digest` user-facing page was deliberately deferred behind a placeholder. Shipping the backend + replacing the placeholder is a deliberate Stage-4-fix (not a Stage 5 polish item) because the placeholder UX leaks an internal "Phase 4 — blocked" framing to end users.
+
 _(Further P-N items added below as mid-build decisions are made. Keep sequential order.)_
 
 <!--

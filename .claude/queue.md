@@ -70,6 +70,7 @@ _Spot-check gate after 4 features above (8 total)_
 - [x] **admin-home** — GET /admin/summary (§7.12.1). KPI cards + recent actions feed.
 - [x] **admin-digest** — GET /admin/digest (§7.12.3) + POST /admin/digest/send (§7.12.4) + POST /digest/generate (§7.13.1) + POST /digest/approve (§7.13.2) + GET /digest/pending (§7.13.3) + GET /digest/history (§7.13.4). Tabs: Workflows / Pending / History.
 - [x] **admin-matchmaking-ops** — POST /matchmaking/generate (§7.8.1) + GET /matchmaking/jobs/{id} (§7.8.2) + GET /matchmaking/pending (§7.8.4) + POST /matchmaking/approve (§7.8.3). `<ExecutionPanel jobPoll>` for generate.
+- [x] **user-digest-page** _(post-Stage-4-fix, per decisions.md [P-22])_ — GET /me/digest/recent (§7.13.5) + GET /me/digest/preferences (§7.13.6) + PUT /me/digest/preferences (§7.13.7). Replaced the /digest blocker with the real Recent list + Preferences form.
 
 _Spot-check gate_
 

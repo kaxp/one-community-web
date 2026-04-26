@@ -90,4 +90,13 @@ export const qk = {
     cohortAll: ['analytics', 'cohort'] as const,
     matchSuccess: ['analytics', 'match-success'] as const,
   },
+  me: {
+    digest: {
+      // §7.13.5 — cursor-paginated recent digests.
+      recent: (limit: number) => ['me', 'digest', 'recent', { limit }] as const,
+      recentAll: ['me', 'digest', 'recent'] as const,
+      // §7.13.6 / §7.13.7 — user digest preferences.
+      preferences: ['me', 'digest', 'preferences'] as const,
+    },
+  },
 } as const;

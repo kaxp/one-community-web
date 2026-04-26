@@ -174,6 +174,13 @@ import {
   zProfileViewersResponse,
   type ProfileViewersResponse,
 } from '@/features/profile-viewers/schemas';
+import {
+  zMyDigestPreferences,
+  zMyDigestsResponse,
+  type MyDigestPreferences,
+  type MyDigestPreferencesUpdate,
+  type MyDigestsResponse,
+} from '@/features/digest/me-schemas';
 import { env } from '@/lib/env';
 import { ProfileServiceInterim } from '@/api/interim/profile-service';
 import { OCRServiceInterim, type OCRProgress, type OCRResult } from '@/api/interim/ocr-client';
@@ -766,4 +773,38 @@ export async function getAnalyticsCohort(args: { months?: number }): Promise<Ana
 export async function getAnalyticsMatchSuccess(): Promise<AnalyticsMatchSuccess> {
   const resp = await apiClient.get<ApiEnvelope<AnalyticsMatchSuccess>>('/analytics/match-success');
   return zAnalyticsMatchSuccess.parse(unwrap(resp.data, '/analytics/match-success'));
+}
+
+// PRD §7.13.5 — `GET /me/digest/recent`. Cursor-paginated; cursor = sent_at
+// of the previous page's last item. Returns only `status='sent'` rows.
+export async function listMyDigests(args: {
+  limit?: number;
+  cursor?: string | null;
+}): Promise<MyDigestsResponse> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.cursor) params.set('cursor', args.cursor);
+  const qs = params.toString();
+  const url = `/me/digest/recent${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<MyDigestsResponse>>(url);
+  return zMyDigestsResponse.parse(unwrap(resp.data, url));
+}
+
+// PRD §7.13.6 — `GET /me/digest/preferences`.
+export async function getMyDigestPreferences(): Promise<MyDigestPreferences> {
+  const resp = await apiClient.get<ApiEnvelope<MyDigestPreferences>>('/me/digest/preferences');
+  return zMyDigestPreferences.parse(unwrap(resp.data, '/me/digest/preferences'));
+}
+
+// PRD §7.13.7 — `PUT /me/digest/preferences`. PATCH-style; `extra='forbid'`
+// on the backend — strip any undefined keys so the wire body stays clean.
+export async function updateMyDigestPreferences(
+  body: MyDigestPreferencesUpdate,
+): Promise<MyDigestPreferences> {
+  const payload = stripUndefined(body as unknown as Record<string, unknown>);
+  const resp = await apiClient.put<ApiEnvelope<MyDigestPreferences>>(
+    '/me/digest/preferences',
+    payload,
+  );
+  return zMyDigestPreferences.parse(unwrap(resp.data, '/me/digest/preferences'));
 }

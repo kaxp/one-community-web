@@ -9,7 +9,6 @@ import { DashboardPage } from './routes/DashboardPage';
 import { ExpiredPage } from './routes/ExpiredPage';
 import { UnauthorizedPage } from './routes/UnauthorizedPage';
 import { NotFoundPage } from './routes/NotFoundPage';
-import { ComingSoonPage } from './routes/ComingSoonPage';
 import { SignInPage } from '@/features/auth/routes/SignInPage';
 
 // Per decisions.md [P-19]: every new feature route is lazy-split. Hoisted to module
@@ -115,6 +114,16 @@ const AdminTracxnPage = lazy(() =>
 const AdminAnalyticsPage = lazy(() =>
   import('@/features/analytics/routes/AdminAnalyticsPage').then((m) => ({
     default: m.AdminAnalyticsPage,
+  })),
+);
+const DocumentsPage = lazy(() =>
+  import('@/features/documents/routes/DocumentsPage').then((m) => ({
+    default: m.DocumentsPage,
+  })),
+);
+const MyDigestPage = lazy(() =>
+  import('@/features/digest/routes/MyDigestPage').then((m) => ({
+    default: m.MyDigestPage,
   })),
 );
 
@@ -319,22 +328,27 @@ export const router = createBrowserRouter(
                   ),
                 },
                 {
+                  // PRD §13 G3 — `/documents` is Phase-4 gated; this page
+                  // renders the full UI shell with disabled actions + a
+                  // backend-blockers summary card. Flip to a real list when
+                  // POST /documents/upload + GET /documents land.
                   path: '/documents',
                   element: (
-                    <ComingSoonPage
-                      title="Documents"
-                      description="Document vault activates in Phase 4 (see PRD §13 G3). Until then, please share docs via the existing channel."
-                    />
+                    <Susp>
+                      <DocumentsPage />
+                    </Susp>
                   ),
                 },
                 {
+                  // PRD §10.5 — user-facing digest preview is Phase-4 gated
+                  // pending the WhatsApp/email channel + the three /me/digest
+                  // endpoints. Admin digest workflows already work today
+                  // under /admin/digest.
                   path: '/digest',
                   element: (
-                    <ComingSoonPage
-                      title="My digest"
-                      description="User-side digest preview is a Phase 4 screen (see PRD §10.5). Admin digest workflows are available from the admin area."
-                      backTo="/dashboard"
-                    />
+                    <Susp>
+                      <MyDigestPage />
+                    </Susp>
                   ),
                 },
                 {

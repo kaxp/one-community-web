@@ -5752,6 +5752,186 @@ Authorization: Bearer <jwt>
 
 ---
 
+### 7.13.5 `GET /me/digest/recent`
+
+**Purpose:** User-facing list of digests delivered to the caller. Cursor-paginated; only `status='sent'` rows are returned (drafts/pending are admin-only). Powers the `/digest` page "Recent digests" panel.
+
+**Required roles:** Any authenticated (all 10 roles can read their own digest history).
+
+**Rate limit:** 30 per minute.
+
+**Headers:**
+
+```
+Authorization: Bearer <jwt>
+```
+
+**Query parameters:**
+
+- `limit` (int, optional, 1–100, default 20).
+- `cursor` (string, optional, nullable) — ISO `sent_at` of the previous page's last item.
+
+**Success 200:**
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "digest_type": "lp_weekly",
+        "subject": "Your Weekly Warmup Update",
+        "segment": "lp",
+        "html_snippet": "Hi Abhinav, here's your defence sector digest…",
+        "sent_at": "2026-04-21T07:00:00+00:00"
+      }
+    ],
+    "next_cursor": null
+  },
+  "error": null
+}
+```
+
+**Response field rules:**
+
+- `subject`, `segment` — nullable.
+- `html_snippet` — first ~280 chars of the rendered body. Full HTML is **not** returned in the list call (deliberate — list payload stays small). Open the row's preview drawer (Phase 4) to fetch the full HTML; for now reuse the admin `<DigestPreviewDrawer>` if needed.
+- `sent_at` — ISO-8601 with timezone, nullable.
+- `next_cursor` — `null` when no more pages; otherwise pass it back as `cursor` on the next call.
+
+**Error 401 / 429 / 500:** see §7.0.4.
+
+**UI flow:**
+
+1. `/digest` mount → `useMyDigests({ limit: 20 })` (`useInfiniteQuery`).
+2. Render rows with `subject` (fallback to `digest_type` label), date via `formatDistanceToNow`, snippet preview.
+3. Empty state: "Your first digest will land Monday morning."
+4. Click row → opens read-only preview (use the existing `<DigestPreviewDrawer>` from `src/features/digest/components/`).
+
+**Data transformation notes:**
+
+- Cache 60s; refetch on focus.
+- Cursor is opaque to the UI — pass through as a string.
+- Invalidate `qk.me.digest.recent` after `PUT /me/digest/preferences` if the user toggles `paused` (visually nothing changes immediately, but it keeps the list reactive).
+
+---
+
+### 7.13.6 `GET /me/digest/preferences`
+
+**Purpose:** Returns the caller's digest preferences. Drives the `/digest` Preferences panel.
+
+**Required roles:** Any authenticated.
+
+**Rate limit:** 30 per minute.
+
+**Headers:**
+
+```
+Authorization: Bearer <jwt>
+```
+
+**Success 200:**
+
+```json
+{
+  "data": {
+    "frequency": "weekly",
+    "interest_tags": ["defence", "fintech"],
+    "opted_in_wa": true
+  },
+  "error": null
+}
+```
+
+**Response field rules:**
+
+- `frequency` — `"weekly" | "monthly" | "paused"`. Default `"weekly"` for any user who hasn't set a preference.
+- `interest_tags` — lowercase, sorted, deduped. May be empty.
+- `opted_in_wa` — mirrors `users.opted_in_wa`. Defaults to `true`.
+
+**Error 401 / 404 (user not found) / 429 / 500:** see §7.0.4.
+
+**UI flow:**
+
+1. `/digest` mount → `useMyDigestPreferences()` in parallel with `useMyDigests`.
+2. Hydrate the `<PreferencesForm>` (frequency radio + tag chips + WA opt-in toggle).
+3. Empty `interest_tags` → render the chip list with no selections active; the user can pick from a sanctioned vocabulary (suggested chips: `fintech`, `defence`, `saas`, `deep_tech`, `ai`, `climate`).
+
+**Data transformation notes:**
+
+- Cache 5 min; refetch on focus + after `PUT /me/digest/preferences` mutation.
+- Server normalises tags (trim + lowercase + dedupe + sort) so render-time normalisation isn't needed.
+
+---
+
+### 7.13.7 `PUT /me/digest/preferences`
+
+**Purpose:** PATCH-style partial update — any subset of `frequency`, `interest_tags`, `opted_in_wa` may be supplied. Returns the canonical preferences shape (same as `GET`). For LP / potential_lp users, `interest_tags` is also mirrored to `lp_profile.interest_tags` so the weekly generator picks them up.
+
+**Required roles:** Any authenticated.
+
+**Rate limit:** 10 per minute.
+
+**Headers:**
+
+```
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
+
+**Request body (all fields optional):**
+
+```json
+{
+  "frequency": "monthly",
+  "interest_tags": ["fintech", "defence"],
+  "opted_in_wa": true
+}
+```
+
+**Request field rules:**
+
+- `frequency` (string, optional) — must be `"weekly" | "monthly" | "paused"`.
+- `interest_tags` (string[], optional) — server normalises (trim + lowercase + dedupe + sort). Sending `[]` clears all tags.
+- `opted_in_wa` (boolean, optional) — controls all WhatsApp delivery, not just digests.
+- **Strict — extra keys rejected** with 422 (same `ConfigDict(extra='forbid')` discipline as MIS `raw_data`).
+- Empty body `{}` is a valid no-op — returns current state.
+
+**Success 200:** Same shape as §7.13.6 — the freshly persisted state.
+
+**Error 400 / 422 — validation_error:**
+
+```json
+HTTP 422
+{
+  "data": null,
+  "error": {
+    "code": "validation_error",
+    "message": "Validation failed",
+    "detail": [
+      { "loc": ["body","frequency"], "msg": "Input should be 'weekly', 'monthly' or 'paused'", "type": "literal_error" }
+    ]
+  }
+}
+```
+
+**Error 401 / 404 / 429 / 500:** see §7.0.4.
+
+**UI flow:**
+
+1. User edits the `<PreferencesForm>` (radio change, chip toggle, WA toggle).
+2. Submit → `PUT /me/digest/preferences` with only the changed fields (or the full state — both work).
+3. On 200 → toast "Preferences saved"; invalidate `qk.me.digest.preferences` and (optionally) `qk.me.digest.recent`.
+4. On 422 → inline field error.
+
+**Data transformation notes:**
+
+- Until the WhatsApp delivery channel ships (Phase 4), `frequency: "monthly" | "paused"` is **persisted but not enforced** by the weekly cron. Show a subtle hint ("active when WhatsApp delivery launches") under the radio. The setting still has value because admins use it for opt-out audits.
+- For LP / potential_lp roles, the server transparently mirrors `interest_tags` into `lp_profile.interest_tags`. No client-side coordination needed.
+- After a successful update, invalidate both `qk.me.digest.preferences` (always) and `qk.me.digest.recent` (only if the user paused — pauses won't show new rows so the list view should reflect the empty-projection visually). The PRD §8.12.4 invalidation matrix is updated to reflect this.
+
+---
+
 ## 7.14 Analytics (admin)
 
 All under `/analytics/*`. Admin-only. Rate limit 30/min each.

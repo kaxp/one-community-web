@@ -1006,6 +1006,76 @@ git push --tags
 
 ---
 
+## Stage 4-fix — User-side `/digest` (1 session, ~1.5 hr)
+
+> **Why this exists.** The original `/digest` route was wired as a Phase-4 placeholder ("blocked on backend channel"). Backend now ships three user-facing endpoints under `/api/v1/me/digest/*` (decisions.md `[P-22]`, PRD §7.13.5–7.13.7). This session replaces the placeholder with the real Recent + Preferences UI. The Phase-4 framing stays only as a small hint under the frequency radio — the data layer is no longer blocked.
+
+**Prompt:**
+
+```
+Replace the /digest blocker page with the real user-side digest UI per PRD §7.13.5–7.13.7 and decisions.md [P-22].
+
+PRD context to load FIRST:
+- §7.13.5 — GET /me/digest/recent (cursor-paginated)
+- §7.13.6 — GET /me/digest/preferences
+- §7.13.7 — PUT /me/digest/preferences (PATCH-style; ConfigDict extra='forbid')
+- §8.12.4 — invalidation matrix row for the new mutation
+- decisions.md [P-22] — backend changes summary + future-session rule
+
+Read for pattern reference:
+- src/features/admin/routes/AdminConnectionsPage.tsx — list pattern (clone for Recent panel)
+- src/features/onboarding/routes/CompleteProfilePage.tsx — ExecutionPanel pattern (clone for Preferences form)
+- src/features/digest/components/DigestPreviewDrawer.tsx — already exists; reuse for "open row" preview if you decide to add it
+- decisions.md [P-21] — masking discipline (NOT applied here — every authenticated user sees their OWN preferences in full)
+
+Implementation:
+- Endpoint functions in src/api/endpoints.ts: listMyDigests, getMyDigestPreferences, updateMyDigestPreferences. Each uses the standard envelope unwrap + Zod parse pattern.
+- Zod schemas in src/features/digest/me-schemas.ts mirroring the §7.13.5–7.13.7 contracts. Use z.literal union for frequency (not z.enum, easier to subtype).
+- Stable query keys: qk.me.digest.recent (with limit) and qk.me.digest.preferences.
+- Hooks in src/features/digest/hooks/:
+  - useMyDigests({ limit }) — useInfiniteQuery on qk.me.digest.recent; cursor via getNextPageParam
+  - useMyDigestPreferences() — useQuery, staleTime 5 min, refetchOnFocus
+  - useUpdateMyDigestPreferences() — useMutation, on success: invalidate qk.me.digest.preferences (always) and qk.me.digest.recent (only if frequency === 'paused' was set, since paused users won't see new rows)
+- Replace src/features/digest/routes/UserDigestPage.tsx (or whatever the placeholder file is named — find via grep for "What needs to ship before this goes live"):
+  - Remove the entire blocker card and the Phase-4 banner at the top
+  - Two-column layout matching the screenshot:
+    - Left: Recent digests list using <Card> rows. Each row shows subject (or digest_type if subject is null), formatDistanceToNow(sent_at), html_snippet truncated to 280 chars. Empty state: "Your first digest will land Monday morning."
+    - Right: Preferences form inside <ExecutionPanel<MyDigestPreferencesUpdate, MyDigestPreferencesResponse>>:
+      - Frequency radio: Weekly / Monthly / Paused
+      - Subtle hint under radio: "Active when WhatsApp delivery launches." — keeps Phase-4 honesty without showing a blocker
+      - Topic-of-interest chip selector (sanctioned vocab from P-22 / the existing screenshot: fintech, defence, saas, deep_tech, ai, climate). Multi-select toggle; persists in form state.
+      - WhatsApp opt-in toggle (calls through opted_in_wa)
+      - Save button (the panel's default Submit)
+- MSW handlers in src/test/msw-fixtures/digest-me-handlers.ts: scenario-switchable for empty / populated / 422-bad-frequency / 422-extra-key. Wire into msw-handlers.ts.
+- Tests:
+  - useMyDigests: pagination test (3 fixtures, asserts next_cursor stops)
+  - useMyDigestPreferences: hydrate from MSW + caches 5 min
+  - useUpdateMyDigestPreferences: optimistic + rollback on 422
+  - UserDigestPage smoke: renders Recent list + Preferences form; submit flips frequency
+- Lazy-import the page route per [P-19] (it should already be lazy from Stage 1 — verify, don't duplicate)
+
+Specific gotchas:
+- The blocker card on the existing page also references /admin/digest as the "open admin console" CTA — keep that link only when role is admin / super_admin (use can('admin.any', role)).
+- For non-LP roles (vc, partner, advisor, startup_*), the LP-mirror logic on the backend is a no-op; don't render anything special on the frontend, the form behaves identically.
+- The "Topics of interest" chip vocabulary (fintech / defence / saas / deep_tech / ai / climate) is a frontend-suggested list, not a server-enforced enum. Allow free-form additions via a small "+" affordance if you want, but the v1 default ships with the 6 chips visible and clickable.
+- Server normalises tags (trim + lowercase + dedupe + sort) — DO NOT pre-normalise on the client. Submit what the user picked; trust the server response.
+
+DoD per CLAUDE.md §10. Run all four gates — must exit 0.
+
+At the end:
+- Tick a new "user-digest-page" row in queue.md § Stage 4 (add it under Session 4.1 since it conceptually belongs with the digest workflow, but mark "(post-Stage-4-fix)")
+- Update session.md (next=Stage 5.1 qa-report)
+- Commit: feat(digest): replace /digest blocker with real /me/digest UI (P-22)
+- Say "User-side digest done. /digest no longer shows a blocker. Ready for Stage 5.1 qa-report. Stopping."
+- Stop.
+
+If blocked, use decisions.md P-N protocol (CLAUDE.md §0.1).
+```
+
+🟡 **After this session:** sign in as the LP seed user (+911234567892) and visit `/digest` — should show the Recent list (probably empty unless you've seeded historical digests) + the Preferences form. Toggle the frequency between Weekly / Monthly / Paused and confirm the value persists across refresh. Toggle a topic chip and reload — same.
+
+---
+
 ## Stage 5 — Polish + QA (5 sessions, ~3 days)
 
 Five distinct sessions. Run them in order — `qa-report` (read-only) writes findings; `qa-fixes` (write) addresses them; the last three are independent polish passes.
