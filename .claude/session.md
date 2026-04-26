@@ -25,76 +25,74 @@ Overwrite the template below with the CURRENT state. Don't append history — th
 
 ### Current feature
 
-_(none — `user-digest-page` (post-Stage-4-fix per [P-22]) complete. `/digest` no longer shows a blocker. **Ready for Stage 5.1 qa-report.**)_
+`qa-report` (Stage 5.1) — complete. Awaiting human triage of `.claude/issues.md § Active` before `qa-fixes` begins.
 
 ### Last completed action
 
-Replaced the `/digest` Phase-4 blocker placeholder with the real user-side digest UI per PRD §7.13.5–7.13.7 + decisions.md [P-22].
+Stage 5.1 QA pass over all 22 features in queue.md § Stage 2 / 3 / 4. No code changes; only `.claude/issues.md` was written.
 
-**What shipped:**
+**What was checked (per CLAUDE.md §0.1 / plan.md QA prompt):**
 
-- **`src/features/digest/me-schemas.ts`** (new) — Zod schemas mirroring the three new endpoints. Uses `z.literal union` for `DigestFrequency` (not `z.enum`) per the prompt. `zMyDigestPreferencesUpdate.strict()` mirrors the backend's `ConfigDict(extra='forbid')` discipline so any accidental extra key produces a Zod error client-side before the wire call.
+1. **Four UI states** — loading skeleton, empty state, ApiError-coded error state, success — verified per route via the two parallel Explore audits.
+2. **`<RoleGuard>` correctness** — cross-checked router.tsx vs PRD §4 vs `role-capabilities.ts` `NAV_ITEMS`. **Found:** `/admin/partner-referral` is in router.tsx + PRD §4 row 27 but missing from `NAV_ITEMS` → admin sidebar discoverability gap (I-7).
+3. **Mobile (375px)** — read-only audit; no live browser run. Treated as best-effort code review (no horizontal-overflow patterns observed in route files; tap-target `min-h-11` use is consistent across shadcn primitives).
+4. **Keyboard nav** — every dialog/sheet uses shadcn primitives (Esc/focus-trap built in); forms submit on Enter via `<form>` defaults; no findings.
+5. **`<ExecutionPanel>` discipline** — found one violation: `SearchPage.tsx:59` declares `useMutation` inline (I-8). Author justified in code comments but rule allows no exceptions outside `SignInPage`.
+6. **Code grep:**
+   - `as any` outside tests: 0
+   - inline `role === 'xxx'` comparisons: 5 sites — already tracked in I-3, no NEW ones found.
+   - `axios.create` / `axios.post` outside `api/client.ts`: 0
+   - `dangerouslySetInnerHTML`: 0 (only one comment reference in `DigestPreviewDrawer.tsx:11` explaining why it's NOT used)
+   - hardcoded test data in route components: 0
+   - `target="_blank"` without `rel`: 0 (all 6 sites have `rel="noopener noreferrer"`)
+   - `console.log`: 0 in non-test code
+   - raw `fetch(`: 0
+7. **Tests** — every page route has a smoke test. **9 hooks lack explicit unit tests**: 5 mutation hooks (I-10, severity M) + 4 query hooks (I-11, severity L). MSW handlers cover happy + at least one error variant for every audited endpoint.
+8. **Bundle observability:**
+   - Main chunk: 295.59 KB gzip (under 300 KB target — I-6 watchpoint).
+   - `AdminAnalyticsPage-*.js`: 113.82 KB gzip (over the 30 KB / 50–80 KB feature-chunk targets — I-1 already tracked; I-9 documents the root cause + fix).
+   - All other feature chunks ≤ 21 KB gzip; AddUserPage 20.57 KB (tesseract.js OCR), MISPage 6.21 KB, SearchPage 4.22 KB.
+   - Vite Rollup emits a "chunks > 500 KB raw" warning driven by the analytics chunk + main chunk (I-14).
+9. **Gates** — `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all exit 0.
+   - Lint: 0 errors, 4 warnings (all 4 are I-5).
+   - Typecheck: 0 errors.
+   - Test: 324/324 pass across 84 files. **One stderr warning:** `act(...)` not wrapped in `use-me.test.ts` (I-12).
+   - Build: 0 errors. Warning noted in I-14.
 
-- **`src/api/query-keys.ts`** — added `qk.me.digest.{recent(limit), recentAll, preferences}`.
+**Issues report:** `.claude/issues.md § Active` now has rows I-1, I-3, I-4, I-5, I-6 (pre-existing) plus I-7 through I-14 (new in this pass). Summary: **14 issues — H: 2, M: 5, L: 7.** I-2 remains in `§ Deferred`.
 
-- **`src/api/endpoints.ts`** — added `listMyDigests`, `getMyDigestPreferences`, `updateMyDigestPreferences`. The PUT helper strips undefined keys via `stripUndefined` before sending, consistent with all other mutation endpoints.
-
-- **Hooks** (`src/features/digest/hooks/`):
-  - `use-my-digests.ts` — `useInfiniteQuery`; cursor-paginated by `sent_at`; staleTime 60s + refetchOnFocus.
-  - `use-my-digest-preferences.ts` — `useQuery`; staleTime 5 min per §7.13.6.
-  - `use-update-my-digest-preferences.ts` — `useMutation` with optimistic update of the cached preferences + rollback on error. `onSuccess` invalidates `qk.me.digest.preferences` always and `qk.me.digest.recentAll` only when `frequency === 'paused'` (§7.13.7 invalidation note).
-
-- **MSW** (`src/test/msw-fixtures/digest-me-handlers.ts`):
-  - 3-row seed + cursor-paginated list (cursor = row index as a string).
-  - GET /me/digest/preferences returns `{ frequency:'weekly', interest_tags:['defence','fintech'], opted_in_wa:true }`.
-  - PUT validates `extra='forbid'` (returns 422 on extra keys) and `frequency` literals. On success: mutates the in-memory preferences + increments counter.
-
-- **Page** (`src/features/digest/routes/MyDigestPage.tsx`, replacing the blocker stub):
-  - **Removed:** the Phase-4 banner, the "What needs to ship before this goes live" blocker card, and the "Phase 4 — coming soon" warning. The only remaining Phase-4 hint is the subtle "Active when WhatsApp delivery launches." copy under the frequency radio (per [P-22] decision).
-  - **Layout:** two-column grid (`lg:grid-cols-2`). Left: Recent Digests card; Right: Preferences form.
-  - **Recent Digests:** infinite-scroll list of `<DigestRowCard>` buttons. Each shows subject (fallback to `digest_type.replace(/_/g,' ')`), sent-at as `formatDistanceToNow`, and `html_snippet` truncated to 280 chars. Empty state: "Your first digest will land Monday morning." Click opens `<DigestSnippetSheet>` — a `<Sheet>` that renders the snippet (full HTML preview is Phase 4).
-  - **Preferences form** via `<ExecutionPanel>`:
-    - Frequency radio: Weekly / Monthly / Paused.
-    - Topics chip selector: 6 preset chips (fintech, defence, saas, deep_tech, ai, climate) as toggles + a "+" input to add custom tags. Custom tags show with an × to remove. Server normalisation is trusted (client does NOT pre-normalise per [P-22]).
-    - WhatsApp opt-in checkbox.
-    - "Save preferences" submit button.
-  - **Admin shortcut:** "Admin digest console" link to `/admin/digest` rendered only for admin / super_admin (`can(role, 'admin.any')`).
-
-- **Tests (+16 cases vs prior commit, total 324 across 84 files):**
-  - `use-my-digest.test.tsx` (9): pagination 3 rows / next_cursor null when fits on one page / 2-rows-per-page paginates across 2 pages / empty list / 500 ApiError / preferences hydrate from MSW / optimistic update + persists on success + paused invalidates recentAll / 422 rollback.
-  - `MyDigestPage.test.tsx` (7): renders 3 seed rows / empty state / preferences form fields / submit flips frequency + toasts / click row opens sheet with snippet / admin sees console link / non-admin does not.
-
-Four gates clean: `pnpm lint` (0 errors, 4 pre-existing cosmetic warnings), `pnpm typecheck` (0), `pnpm test` (324/324 across 84 files), `pnpm build` (exits 0). Per-feature chunk: MyDigestPage **9.21 KB / 3.37 KB gzip**. Main chunk: 294.06 → 295.59 KB gzip (+1.53 KB).
+**Top ship blockers** (in priority order, from issues.md tail):
+1. I-2 (deferred H) — broken WhatsApp link.
+2. I-7 (H) — `/admin/partner-referral` unreachable from sidebar; ~5 min fix.
+3. I-8 (M) — SearchPage inline `useMutation`.
+4. I-9 (M) — eager Recharts import (root cause of I-1).
+5. I-10 (M) — five mutation hooks untested.
+6. I-3 (M) — inline role comparisons.
+7. I-4 (M) — partner-upgrade dead-end button.
 
 ### Next concrete step
 
-**Stage 5.1 qa-report** — Opus in QA mode reads every feature end-to-end and writes new rows to `issues.md § Active`. No code changes in this session. Existing active issues:
-- `[I-1]` — AdminAnalyticsPage chunk 113 KB gzip (over the 50–80 KB target); defer or fix in Stage 5.
-- `[I-2]` — Placeholder WhatsApp support link `+91XXXXXXXXXX` visible in every ErrorState.
-- `[I-3]` — Inline role-string comparisons across 5 call-sites.
-- `[I-4]` — `MaskedCardFooter` "Upgrade" dead-end button.
+**Human triage of `.claude/issues.md § Active`.** Each row needs a triage decision:
+- **Accept and queue for `qa-fixes` (Stage 5.2)** — most rows (I-3, I-4, I-7, I-8, I-9, I-10, I-12, I-13).
+- **Defer to a later milestone** — likely I-1 (now superseded by I-9), I-5, I-6, I-11, I-14.
+- **Reject / out-of-scope** — none expected, but human's call.
+
+Once triaged, Claude resumes with `qa-fixes` per queue.md § Stage 5 row 2 — fix every accepted issue, move to `§ Resolved`.
 
 ### Open blockers
 
-_(none)_
+_(none. The QA pass itself is complete; the next step requires human triage input on issues.md, which is the normal Stage 5.1 → 5.2 hand-off, NOT a 🟡 HUMAN INPUT NEEDED blocker.)_
 
 ### Files touched this session
 
-- `src/features/digest/me-schemas.ts` (new).
-- `src/features/digest/hooks/{use-my-digests, use-my-digest-preferences, use-update-my-digest-preferences}.ts` (new).
-- `src/features/digest/hooks/use-my-digest.test.tsx` (new).
-- `src/features/digest/routes/MyDigestPage.tsx` (rewritten — removed blocker, added real UI).
-- `src/features/digest/routes/MyDigestPage.test.tsx` (new).
-- `src/api/endpoints.ts` — added 3 endpoint functions + import for me-schemas.
-- `src/api/query-keys.ts` — added `qk.me.digest.*`.
-- `src/test/msw-fixtures/digest-me-handlers.ts` (new).
-- `src/test/{msw-handlers.ts, setup.ts}` — registered + wired reset.
-- `.claude/queue.md` — added `user-digest-page` row (ticked).
+- `.claude/issues.md` — appended I-7 through I-14 plus the Stage 5.1 summary block at the tail.
+- `.claude/session.md` — overwritten (this file).
+- No source files modified. No tests modified. Gates re-run only.
 
 ### Tests green?
 
-Yes. All four gates exit 0. 324/324 tests across 84 files.
+Yes. All four gates exit 0. 324/324 tests across 84 files. One stderr `act()` warning (I-12) and four lint warnings (I-5) — all pre-existing or now logged as issues.
 
 ### Last updated
 
-2026-04-26T12:38:00+05:30
+2026-04-26T17:00:00+05:30
