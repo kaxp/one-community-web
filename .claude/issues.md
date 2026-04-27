@@ -165,6 +165,19 @@ QA fixes complete. **1 active issue (I-6 watchpoint) — H: 0, M: 0, L: 1.** All
 
 ---
 
+## Bundle size verification (Stage 5.4)
+
+- **Initial chunk:** `index-VNOhyUhM.js` 1,259.56 KB raw / **295.68 KB gzip** (target < 300 ✓ — 4.32 KB headroom; the [I-6] watchpoint).
+- **Largest feature route chunk:** `MISPage` **7.13 KB gzip** (target < 80 ✓; every per-route chunk is ≤ 7.13 KB gzip — PitchPage 4.07, SearchPage 4.28, AddUserPage 3.69, AdminAnalyticsPage 3.24, etc.).
+- **Largest shared lazy chunk:** `CartesianChart` (Recharts) **101.15 KB gzip** — vendor chunk loaded ONLY when an admin clicks the Funnel / Match Success tab on `/admin/analytics`. Already isolated by the [I-9] / [I-1] split shipped in Stage 5.2; not a route chunk.
+- **Other notable lazy chunks:** `FileDropzone` 17.44 KB gzip (loaded by AddUserPage + MISPage on demand), `DataTable` 13.69 KB gzip (admin tables), `MatchSuccessChart` 6.93 KB gzip, `FunnelBarChart` 6.36 KB gzip.
+- **tesseract.js:** dynamically imported inside `OCRServiceInterim.recognize()` ([src/api/interim/ocr-client.ts:29](src/api/interim/ocr-client.ts#L29)). Confirmed not in any static chunk — its core/worker assets load from CDN at runtime when the user actually drops a card image. Main bundle stays at 295.68 KB gzip rather than the multi-MB it would balloon to if statically imported.
+- **Lazy-route audit:** `src/app/router.tsx` declares **24 lazy page imports** (every Stage 2+ feature route). Eager imports are limited to the 6-route allowlist per [P-19]: `HomePage`, `DashboardPage`, `ExpiredPage`, `UnauthorizedPage`, `NotFoundPage`, `SignInPage`. The seventh allowlist slot (`ComingSoonPage`) is intentionally unused — `/documents` is a 226-line gated page (not a tiny stub) and `/digest` was rebuilt into the real `<MyDigestPage>` per [P-22], so both are correctly lazy-loaded.
+- **Vite chunk-size warning:** Rollup still emits the "chunks > 500 KB raw" warning for the main chunk (1,259 KB raw) and the CartesianChart chunk (338 KB raw). Both are within their gzip targets; raw size is the surface Vite warns on. Tracked as deferred [I-14] — full clearance needs a `manualChunks` design call.
+- **Status:** ✅ **all targets met — no code change needed.** Gate "initial chunk < 300 KB gzip" + "any feature chunk < 80 KB gzip" both satisfied. Watchpoint [I-6] still applies — main chunk has only 4.32 KB headroom, so any new shared dep added in Stage 5.5 (Playwright e2e helper, new modal lib) could push past 300 KB.
+
+---
+
 ## § Resolved (last 30)
 
 ### [I-16] Monthly MIS — fields move to pitch + MIS becomes file-upload  ✅ resolved 2026-04-27
