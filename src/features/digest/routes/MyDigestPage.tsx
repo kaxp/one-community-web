@@ -74,11 +74,14 @@ function DigestSnippetSheet({ row, onClose }: { row: MyDigestRow | null; onClose
 
   return (
     <Sheet open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
-      <SheetContent className="flex w-full flex-col gap-4 sm:max-w-2xl">
+      {/* SheetContent ships with no padding by default (issues.md [I-18]); add
+          a generous responsive pad + scroll so the digest body is readable
+          and never edge-to-edge. The right close button needs the right pad. */}
+      <SheetContent className="flex w-full flex-col gap-4 overflow-y-auto p-5 pt-12 sm:max-w-2xl sm:p-8 sm:pt-12">
         <div className="flex flex-col gap-2 border-b border-border pb-3">
-          <SheetTitle>{subject}</SheetTitle>
+          <SheetTitle className="pr-6 text-base sm:text-lg">{subject}</SheetTitle>
           <SheetDescription>
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex flex-wrap items-center gap-2">
               {row?.digest_type ? <Badge variant="secondary">{row.digest_type}</Badge> : null}
               {row?.segment ? <Badge variant="outline">{row.segment}</Badge> : null}
             </span>
@@ -86,7 +89,9 @@ function DigestSnippetSheet({ row, onClose }: { row: MyDigestRow | null; onClose
         </div>
         {row?.html_snippet ? (
           <>
-            <p className="whitespace-pre-line text-sm text-ink-body">{row.html_snippet}</p>
+            <p className="whitespace-pre-line break-words text-sm leading-relaxed text-ink-body">
+              {row.html_snippet}
+            </p>
             <p className="text-xs text-ink-muted">
               Full digest preview becomes available once WhatsApp/email delivery is active.
             </p>

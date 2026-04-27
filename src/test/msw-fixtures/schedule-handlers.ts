@@ -246,6 +246,32 @@ export const scheduleHandlers: HttpHandler[] = [
     }
     const cancelledAt = '2026-04-23T16:00:00.000Z';
     bookingsFixture[idx] = { ...row, status: 'cancelled' };
+    // issues.md [I-17] — restore the slot to the pool so the calendar shows it
+    // free again. We reconstruct end-time from `duration_minutes` since the
+    // booking row doesn't carry the original slot.end.
+    const start = new Date(row.scheduled_at);
+    const end = new Date(start.getTime() + row.duration_minutes * 60_000);
+    const isoOffset = row.scheduled_at.match(/(Z|[+-]\d{2}:?\d{2})$/)?.[0] ?? 'Z';
+    const fmt = (d: Date) => {
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      // Normalise back to "YYYY-MM-DDTHH:mm:ss<offset>" against the original tz
+      // so equality checks in the book handler keep working for re-booking.
+      const yyyy = d.getUTCFullYear();
+      const mm = pad(d.getUTCMonth() + 1);
+      const dd = pad(d.getUTCDate());
+      const hh = pad(d.getUTCHours());
+      const mi = pad(d.getUTCMinutes());
+      const ss = pad(d.getUTCSeconds());
+      return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}${isoOffset}`;
+    };
+    if (!slotsFixture.find((s) => s.start === row.scheduled_at)) {
+      slotsFixture.push({
+        date: row.scheduled_at.slice(0, 10),
+        start: row.scheduled_at,
+        end: fmt(end),
+      });
+      slotsFixture.sort((a, b) => a.start.localeCompare(b.start));
+    }
     return HttpResponse.json({
       data: {
         booking_id: id,

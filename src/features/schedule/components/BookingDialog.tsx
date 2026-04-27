@@ -179,19 +179,30 @@ export function BookingDialog({ slot, onClose }: Props) {
             <fieldset className="flex flex-col gap-2">
               <legend className="text-sm font-medium text-ink-heading">Duration</legend>
               <div className="flex gap-2">
-                {DURATION_OPTIONS.map((d) => (
-                  <Label
-                    key={d}
-                    className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-muted"
-                  >
-                    <input
-                      type="radio"
-                      value={d}
-                      {...form.register('duration_minutes', { valueAsNumber: true })}
-                    />
-                    {d} min
-                  </Label>
-                ))}
+                {DURATION_OPTIONS.map((d) => {
+                  // Controlled `checked` binding so 30-min stays visually
+                  // selected on first render — RHF's register() compared the
+                  // numeric form value against the string DOM value and the
+                  // radios rendered un-checked (issues.md [I-17]).
+                  const checked = form.watch('duration_minutes') === d;
+                  return (
+                    <Label
+                      key={d}
+                      className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-muted"
+                    >
+                      <input
+                        type="radio"
+                        name="duration_minutes"
+                        value={d}
+                        checked={checked}
+                        onChange={() =>
+                          form.setValue('duration_minutes', d, { shouldValidate: true })
+                        }
+                      />
+                      {d} min
+                    </Label>
+                  );
+                })}
               </div>
               {form.formState.errors.duration_minutes ? (
                 <p className="text-xs text-error" role="alert">

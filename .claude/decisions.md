@@ -72,7 +72,23 @@
 
 ## § Pending
 
-_(No pending items. Claude appends here when human input is needed.)_
+### [P-23] MIS / pitch reshape — backend contract change required (issues.md [I-16])
+
+- **Feature:** mis + pitch
+- **Blocking:** yes (any frontend code change here would silently break against the current PRD §7.3 / §7.9 contracts)
+- **Added:** 2026-04-27
+- **Context:** issues.md [I-16] requests two product changes that span both features:
+  1. Move the current quantitative MIS fields (`runway_months`, `monthly_burn`, `headcount`, `revenue_mtd`, etc.) **into the pitch profile** so the startup fills them once at the pitch stage alongside their existing pitch data.
+  2. Change `/portfolio/mis` from a structured JSON form to a **file upload** (Excel / Tally / CSV / PDF) plus an optional comment. The structured form would be retired.
+  - Frontend impact: rewrite `<MISPage>` as an upload form, remove `zMISCreate.raw_data` strict-keyed fields, extend `zStartupBlock` + `<PitchPage>` form with the financial fields, update §8 types in PRD, update tests + MSW handlers.
+  - **But** the contracts are owned by the backend (PRD §7.3.1, §7.3.2 for pitch and §7.9.1, §7.9.2, §7.9.3 for MIS). The backend currently REQUIRES the structured `raw_data` keys on MIS submit and does NOT accept multipart upload there. The pitch endpoint similarly does not yet accept the financial fields. Frontend-only changes would silently 422 against any real backend.
+- **Question:** How do you want to sequence this change?
+- **Options:**
+  - (a) **Block on backend first.** I open a backend ticket / PRD diff with the new contract, the backend ships the changes, we update PRD §7.3/§7.9, then I do the frontend work. Cleanest, but adds a wait.
+  - (b) **Frontend-first stub behind a flag.** I gate the new UI behind `VITE_MIS_UPLOAD_ENABLED=false` (off in dev / prod), build the new pitch fields + MIS upload form against an MSW interim service per CLAUDE.md §13.2 G3 pattern, and ship it dark. When the backend lands, flip the flag.
+  - (c) **Defer to v1.1 / Phase-5 polish.** The current MIS form works against today's backend; the proposed shape is a bigger product call. Add an issue stub and revisit after Stage 5 ships.
+- **My recommendation:** (b) — it lets the frontend make progress while the backend catches up, mirrors the §13.2 pattern we already use for `/profile`, `/ocr`, `/documents/upload`, and avoids the deferred-then-forgotten failure mode of (c). But I want explicit confirmation because the rewrite touches 2 features + ~6 PRD sections.
+- **Answer:** _(human fills this)_
 
 <!-- ARCHIVED-PENDING-START — Stage 0 P-3..P-16 originals kept here for audit. Each has a resolved counterpart below in § Resolved.
 

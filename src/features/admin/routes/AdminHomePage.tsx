@@ -3,6 +3,8 @@ import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import {
   ArrowRight,
   CheckCircle2,
+  ExternalLink,
+  FileCheck,
   Inbox,
   Mail,
   Newspaper,
@@ -12,15 +14,23 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { useAdminSummary } from '@/features/admin/hooks/use-admin-summary';
+import { useQuarterlyReports } from '@/features/admin/hooks/use-quarterly-reports';
 
 // PRD §7.12.1 — admin/summary KPI dashboard. Single GET fans out into KPI
 // cards: pending connections (links to /admin/connections?status=pending_admin),
 // MIS submission status, recent digests, recent admin actions.
 export function AdminHomePage() {
   const summary = useAdminSummary();
+  // issues.md [I-20] — surface the most recent quarterly reports on the
+  // admin home so the "View report" path is one click away. The query
+  // refetches in the background; no loading skeleton needed (the card
+  // hides until there's at least one report).
+  const reports = useQuarterlyReports({ quarter: null });
+  const recentReports = (reports.data ?? []).slice(0, 3);
 
   return (
     <div className="flex flex-col gap-6">
@@ -182,6 +192,57 @@ export function AdminHomePage() {
               )}
             </CardContent>
           </Card>
+
+          {recentReports.length > 0 ? (
+            <Card data-testid="kpi-quarterly-reports">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle className="text-sm">Recent quarterly reports</CardTitle>
+                  <CardDescription>
+                    Latest 3 — click View report to open the Drive doc.
+                  </CardDescription>
+                </div>
+                <FileCheck className="h-4 w-4 text-ink-muted" aria-hidden />
+              </CardHeader>
+              <CardContent>
+                <ul className="flex flex-col gap-3">
+                  {recentReports.map((r) => (
+                    <li
+                      key={r.report_id}
+                      className="flex flex-wrap items-center justify-between gap-3 text-sm"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-ink-heading">{r.quarter}</span>
+                        <span className="text-xs text-ink-muted">
+                          {r.status === 'sent'
+                            ? 'Sent'
+                            : r.status === 'approved'
+                              ? 'Approved, distributing…'
+                              : 'Pending'}
+                          {r.generated_at ? ` · ${format(parseISO(r.generated_at), 'PP')}` : ''}
+                        </span>
+                      </div>
+                      {r.drive_url ? (
+                        <Button asChild size="sm" variant="outline">
+                          <a href={r.drive_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                            <span>View report</span>
+                          </a>
+                        </Button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/admin/quarterly-reports"
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+                >
+                  Manage quarterly reports
+                  <ArrowRight className="h-3 w-3" aria-hidden />
+                </Link>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">

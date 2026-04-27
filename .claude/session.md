@@ -1,8 +1,6 @@
 # `.claude/session.md`
 
 > **Session continuity file.** Claude overwrites this at the END of every session; reads it at the START of the next.
->
-> **Purpose:** survive context resets. A fresh Opus instance should be able to resume work correctly by reading this file alone (plus `queue.md`, `decisions.md`, `frontend_claude.md`, and the relevant `frontend_prd.md §7.X`).
 
 ---
 
@@ -10,107 +8,62 @@
 
 ### Current feature
 
-`qa-fixes` (Stage 5.2) — complete. Both `qa-report` and `qa-fixes` boxes ticked in `queue.md`. **Ready for Stage 5.3 a11y-audit.**
+Stage 5.2 follow-up — resolved 6 of 7 new human-reported H issues (I-15, I-17, I-18, I-19, I-20, I-21). I-16 escalated to `decisions.md [P-23]` because the requested change is a backend contract change (CLAUDE.md §0.1.4 STOP rule).
 
 ### Last completed action
 
-Stage 5.2 fixes: resolved 10 non-deferred issues from `.claude/issues.md § Active` in severity order.
+**Fixes applied this batch (all under one commit):**
 
-**What shipped:**
+- **I-15 (H)** — `<AddUserPage>` now exposes a "Take photo with camera" button alongside the dropzone. Wired to a hidden `<input type="file" accept="image/*" capture="environment">` so mobile devices open the rear camera; desktops fall through to the file picker. Card title updated to "Upload or capture card image"; existing test updated to match.
 
-- **I-7 (H)** — Added `admin-partner-referral` entry to `NAV_ITEMS` in `src/lib/role-capabilities.ts` (Megaphone icon, admin / super_admin roles). Sidebar now exposes the route. New unit test in `role-capabilities.test.ts` asserts the entry shape.
+- **I-17 (H)** — Two fixes inside `Schedule a meeting`:
+  - **Slot freed on cancel:** `src/test/msw-fixtures/schedule-handlers.ts` DELETE handler now restores the cancelled booking's slot to `slotsFixture` (sorted by start) so the calendar reflects the freed time.
+  - **30-min radio selected by default:** `<BookingDialog>` switched the duration radios from RHF `register({ valueAsNumber: true })` (which compared a numeric form value against a string DOM value and rendered un-checked) to a controlled `checked={form.watch('duration_minutes') === d}` binding. The default of 30 now stays visually selected on first render.
 
-- **I-3 (M)** — Added 3 display-mode predicates (`isStartupRole`, `isLpRole`, `isMaskedSearchRole`) to `src/lib/role-capabilities.ts`. Updated 5 call-sites: `post-signin-navigate.ts`, `SearchPage.tsx`, `profile/schemas.ts`, `ProfilePage.tsx` (×3 internal references). 3 new unit tests cover the predicates.
+- **I-18 (H)** — `<DigestSnippetSheet>` now has responsive padding (`p-5 pt-12 sm:p-8`), `overflow-y-auto`, `pr-6` on the title to clear the close button, and `break-words leading-relaxed` on the body. No more edge-to-edge text in the digest detail view.
 
-- **I-4 (M)** — Added `VITE_PARTNER_UPGRADE_ENABLED` env flag (default `false` everywhere). Gated the `<MaskedCardFooter>` "Upgrade for full access" `<Button>` behind `env.PARTNER_UPGRADE_ENABLED`. Touched: `src/lib/env.ts`, `src/vite-env.d.ts`, `.env.{example,development,production}`, `MaskedCardFooter.tsx`, `SearchPage.test.tsx` (test now asserts the button is HIDDEN by default).
+- **I-19 (H)** — Already fixed in Stage 5.2 commit `a2c9515` (the `padStart(8) → padStart(4)` UUID side-fix in `admin-matchmaking-ops-handlers.ts`). The error the human saw was on a pre-Stage-5.2 build; pulling latest master clears it.
 
-- **I-8 (M)** — Extracted `submitMutation` from `SearchPage.tsx` into `src/features/search/hooks/use-search-submit.ts`. Route file now imports `useSearchSubmit({ query, filters })` — no `useMutation` / `useQueryClient` / `searchUnified` / `qk` references in the route. New `use-search-submit.test.tsx` covers happy + empty-query rejection.
+- **I-20 (H)** — Two fixes:
+  - **AdminQuarterlyReportsPage** now renders a clear "View report" outline-button per row (was a small "Open" link).
+  - **AdminHomePage** gained a "Recent quarterly reports" KPI card showing the latest 3 reports with their own "View report" buttons + a "Manage quarterly reports" deep link. Card is hidden until at least one report exists.
 
-- **I-9 (M)** — Replaced eager imports of `FunnelBarChart` + `MatchSuccessChart` in `AdminAnalyticsPage.tsx` with `React.lazy()` + `<Suspense fallback={<ChartSkeleton />}>`. Result: analytics chunk **3.24 KB gzip** (was 113.82 KB). New `CartesianChart-*.js` chunk (101.15 KB gzip) loads only when the Funnel / Match tabs are clicked. **Implicitly resolves I-1.**
+- **I-21 (H)** — Two-layer UUID validation:
+  - Added `isUuid(value)` helper to `src/lib/zod-helpers.ts`.
+  - `<AdminLpFunnelPickerPage>` validates the "Open by user id" input before navigation — disabled CTA + `aria-invalid` hint when not a UUID.
+  - `<AdminLpFunnelPage>` short-circuits on bad params with an EmptyState ("Invalid user id") + Back-to-picker CTA. Confusing 500 toast is gone.
 
-- **I-10 (M)** — Added 4 new mutation-hook test files (`use-dead-letter-retry.test.tsx`, `use-quarterly-report-approve.test.tsx`, `use-match-approve.test.tsx`, `use-match-generate.test.tsx`) + 2 new cases in the consolidated `use-digest.test.tsx` covering `useDigestGenerate`. `use-match-approve.test.tsx` specifically asserts the `RollbackContext` branch (optimistic remove → 4xx → cache restored). Side-fix: corrected a UUID-shape bug in `admin-matchmaking-ops-handlers.ts` (`padStart(8) → padStart(4)`) that surfaced when `use-match-generate` got its first unit test.
+- **I-16 (H, BLOCKED)** — STOP per CLAUDE.md §0.1.4. The request (move quantitative MIS fields to pitch + change MIS to file upload) crosses backend contract boundaries (PRD §7.3 / §7.9). Logged as `decisions.md § Pending [P-23]` with three options for the human (backend-first / frontend-stub-behind-flag / defer). No code change today on this one.
 
-- **I-11 (L)** — Extended `use-analytics.test.ts` with 3 funnel-sub-hook tests (`useAnalyticsFunnelLp`, `useAnalyticsFunnelStartup`, `useAnalyticsFunnelConnections`). Extended `use-digest.test.tsx` with a `useDigestHistory` happy-path test.
-
-- **I-5 (L)** — Cleared all 4 `react-refresh/only-export-components` lint warnings. Extracted `PageLoader` + `Susp` from `router.tsx` into new `src/app/route-suspense.tsx`. Extracted `buttonVariants` + `ButtonVariants` type from `button.tsx` into new `src/components/ui/button-variants.ts`. `test-utils.tsx` is test-only (never enters the Vite dev HMR path) so the `export *` carries a targeted `// eslint-disable-next-line` with a one-line rationale. **Lint now reports 0 errors, 0 warnings.**
-
-- **I-13 (L)** — Updated `docs/frontend_prd.md` §4 row 18 to reflect the post-[P-22] reality: primary APIs now list the three real `/me/digest/*` endpoints; allowed-roles cell changed from the narrow LP/Potential LP/VC/Startup Funded/Partner list to "All authenticated (most useful to LP / Potential LP / VC / Startup Funded / Partner) — per [P-22]".
-
-- **I-1 (L)** — Resolved as a side-effect of I-9. Analytics chunk dropped from 113.82 KB gzip to 3.24 KB gzip. Recharts moved to its own lazy chunk that fetches only when a chart tab is active.
-
-**Deferred (3 rows in `§ Deferred`):**
-
-- **I-2 (H)** — broken WhatsApp support link. Awaiting a real number from the human; revisit in v1.0 / Stage 5.5 polish.
-- **I-12 (L)** — `useMe` test `act(...)` warning. Fix is a project-wide test-helper refactor (the same warning appears in AddUserPage, SearchPage, DuplicateContactDialog tests); two attempts during Stage 5.2 either left the warning in place or expanded scope beyond the issue. Revisit in Stage 5.5.
-- **I-14 (L)** — Vite "chunks > 500 KB raw" warning. After I-9, only the main chunk (1,260 KB raw / 295.56 KB gzip) and the new Recharts chunk (338 KB raw / 101 KB gzip) trip it; both are within gzip targets. Full clearance needs a `build.rollupOptions.output.manualChunks` design call — Stage 5.4 bundle-size pass.
-
-**Active after this session:** **1 row — I-6 (L), bundle-size watchpoint.** No code fix needed today.
-
-**Gates green:** `pnpm lint` (0 errors, 0 warnings — down from 4), `pnpm typecheck` (0 errors), `pnpm test` (344 / 344 across 89 files — up from 324 / 324 across 84 files), `pnpm build` (exits 0; analytics chunk 3.24 KB gzip; main chunk 295.56 KB gzip).
+**Gates green:** `pnpm lint` (0 / 0), `pnpm typecheck` (0 errors), `pnpm test` (344 / 344 across 89 files), `pnpm build` (clean; analytics chunk still 3.24 KB gzip; main 295.66 KB gzip).
 
 ### Next concrete step
 
-**Stage 5.3 a11y-audit** per `queue.md` — Lighthouse run + keyboard-nav smoke on top 10 screens. Fix any score < 90.
+Awaiting human triage on `decisions.md § Pending [P-23]` for [I-16]. Independent of that, the queue says **Stage 5.3 a11y-audit** is next. Either path is fine — no code blockers.
 
 ### Open blockers
 
-_(none. The only deferred items in issues.md need product input or are scoped to later stages — they don't block 5.3.)_
+- `[P-23]` — backend contract change for MIS / pitch reshape (issues.md [I-16]). Blocking the [I-16] frontend rewrite; not blocking other Stage 5 work.
 
 ### Files touched this session
 
-**Source files (10):**
-
-- `src/lib/role-capabilities.ts` — 3 predicates + 1 NAV_ITEMS entry.
-- `src/lib/env.ts` — added `PARTNER_UPGRADE_ENABLED`.
-- `src/vite-env.d.ts` — added `VITE_PARTNER_UPGRADE_ENABLED`.
-- `src/features/auth/lib/post-signin-navigate.ts` — `isLpRole` import + call-site update.
-- `src/features/profile/schemas.ts` — `isStartupRole` import + call-site update.
-- `src/features/profile/routes/ProfilePage.tsx` — predicates import + 3 inline-comparison replacements.
-- `src/features/search/routes/SearchPage.tsx` — `isMaskedSearchRole` + extracted mutation to hook.
-- `src/features/search/components/MaskedCardFooter.tsx` — env-flag gate around upgrade button.
-- `src/features/analytics/routes/AdminAnalyticsPage.tsx` — `React.lazy()` for chart components + `<Suspense>` boundaries.
-- `src/components/ui/button.tsx` — re-import `buttonVariants` from new sibling file.
-
-**New files (8):**
-
-- `src/app/route-suspense.tsx` (PageLoader + Susp moved here).
-- `src/components/ui/button-variants.ts` (buttonVariants + ButtonVariants type moved here).
-- `src/features/search/hooks/use-search-submit.ts` (extracted from SearchPage).
-- `src/features/search/hooks/use-search-submit.test.tsx`.
-- `src/features/admin/hooks/use-dead-letter-retry.test.tsx`.
-- `src/features/admin/hooks/use-quarterly-report-approve.test.tsx`.
-- `src/features/matchmaking/hooks/use-match-approve.test.tsx`.
-- `src/features/matchmaking/hooks/use-match-generate.test.tsx`.
-
-**Modified files (8):**
-
-- `src/app/router.tsx` — import Susp/PageLoader from new file; removed inline definitions.
-- `src/test/test-utils.tsx` — targeted eslint-disable on `export *` line.
-- `src/lib/role-capabilities.test.ts` — 4 new test cases.
-- `src/features/digest/hooks/use-digest.test.tsx` — added useDigestGenerate × 2 + useDigestHistory cases.
-- `src/features/analytics/hooks/use-analytics.test.ts` — added 3 funnel-sub-hook cases.
-- `src/features/auth/hooks/use-me.test.ts` — reverted to pre-fix form (I-12 deferred).
-- `src/features/search/routes/SearchPage.test.tsx` — assert upgrade button is hidden by default.
-- `src/test/msw-fixtures/admin-matchmaking-ops-handlers.ts` — UUID padStart(8 → 4) side-fix.
-
-**Coordination files (3):**
-
-- `.claude/issues.md` — moved 10 rows to § Resolved + 3 rows to § Deferred + final summary.
-- `.claude/queue.md` — ticked qa-report and qa-fixes boxes.
+- `src/features/onboarding/routes/AddUserPage.tsx` (+test) — I-15 camera capture.
+- `src/features/schedule/components/BookingDialog.tsx` — I-17 controlled duration radios.
+- `src/test/msw-fixtures/schedule-handlers.ts` — I-17 cancel-frees-slot.
+- `src/features/digest/routes/MyDigestPage.tsx` — I-18 sheet padding.
+- `src/features/admin/routes/AdminQuarterlyReportsPage.tsx` — I-20 View report button.
+- `src/features/admin/routes/AdminHomePage.tsx` — I-20 dashboard widget.
+- `src/lib/zod-helpers.ts` — I-21 isUuid helper.
+- `src/features/admin/routes/AdminLpFunnelPickerPage.tsx` — I-21 input validation.
+- `src/features/admin/routes/AdminLpFunnelPage.tsx` — I-21 detail-page guard + EmptyState.
+- `.claude/issues.md` — moved I-15/17/18/19/20/21 to § Resolved; I-16 stays Active flagged BLOCKED on [P-23]; stale I-1/I-3-fix block trimmed.
+- `.claude/decisions.md` — appended `[P-23]` for I-16.
 - `.claude/session.md` — overwritten (this file).
-
-**Docs (1):**
-
-- `docs/frontend_prd.md` — §4 row 18 updated for I-13.
-
-**Env (3):**
-
-- `.env.example`, `.env.development`, `.env.production` — `VITE_PARTNER_UPGRADE_ENABLED=false` line.
 
 ### Tests green?
 
-Yes. **89 test files / 344 tests, all passing.** Lint clean (0 / 0). Typecheck clean (0 errors). Build clean.
+Yes. All four gates exit 0. **89 test files / 344 tests, all passing.** Lint 0/0. Typecheck 0. Build clean.
 
 ### Last updated
 
-2026-04-27T16:15:00+05:30
+2026-04-27T17:20:00+05:30

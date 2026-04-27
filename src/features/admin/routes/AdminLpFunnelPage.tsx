@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/error-state/ErrorState';
+import { EmptyState } from '@/components/empty-state/EmptyState';
 import { useLpFunnelStatus } from '@/features/admin/hooks/use-lp-funnel-status';
 import { FunnelOverrideDialog } from '@/features/admin/components/FunnelOverrideDialog';
 import { FUNNEL_INDEX, FUNNEL_LABEL } from '@/features/admin/lib/funnel-labels';
 import { LP_FUNNEL_STATUSES, type LPFunnelStatus } from '@/features/admin/schemas';
 import type { ApiError } from '@/api/errors';
+import { isUuid } from '@/lib/zod-helpers';
 
 interface ConflictState {
   attempted: LPFunnelStatus;
@@ -27,9 +29,38 @@ interface ConflictState {
 export function AdminLpFunnelPage() {
   const { user_id } = useParams<{ user_id: string }>();
   const userId = user_id ?? '';
+  const userIdValid = isUuid(userId);
   const mutation = useLpFunnelStatus();
   const [current, setCurrent] = useState<LPFunnelStatus | null>(null);
   const [conflict, setConflict] = useState<ConflictState | null>(null);
+
+  // issues.md [I-21] — guard against navigation with a non-UUID param so we
+  // never PUT a malformed user_id and surface a confusing Zod parse failure.
+  if (!userIdValid) {
+    return (
+      <div className="flex flex-col gap-6">
+        <header className="flex flex-col gap-2">
+          <Link
+            to="/admin/lp-funnel"
+            className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Back to picker
+          </Link>
+          <h1 className="text-3xl font-semibold text-ink-heading">LP funnel</h1>
+        </header>
+        <EmptyState
+          title="Invalid user id"
+          description={`"${userId}" is not a valid UUID. Pick an LP from the search picker, or paste a real user_id (8-4-4-4-12 hex).`}
+          action={
+            <Button asChild variant="outline">
+              <Link to="/admin/lp-funnel">Back to picker</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   const submit = (target: LPFunnelStatus, override = false) => {
     mutation.mutate(

@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { useSearch } from '@/features/search/hooks/use-search';
 import type { LPResultItem, SearchResultItem } from '@/features/search/schemas';
+import { isUuid } from '@/lib/zod-helpers';
 
 function isLpItem(item: SearchResultItem, targetType: 'startup' | 'lp'): item is LPResultItem {
   return targetType === 'lp';
@@ -152,24 +153,41 @@ export function AdminLpFunnelPickerPage() {
           <CardDescription>Paste an LP user_id to jump straight to their funnel.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="lp-funnel-direct">User ID</Label>
-              <Input
-                id="lp-funnel-direct"
-                value={directId}
-                onChange={(e) => setDirectId(e.target.value)}
-                placeholder="00000000-0000-4000-8000-…"
-                className="w-96 font-mono text-xs"
-              />
+          {/* issues.md [I-21] — validate the UUID client-side before
+              navigating so the detail page never sends a malformed user_id
+              up to the backend. Disable the button + show a hint when the
+              input isn't a UUID. */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="lp-funnel-direct">User ID</Label>
+                <Input
+                  id="lp-funnel-direct"
+                  value={directId}
+                  onChange={(e) => setDirectId(e.target.value)}
+                  placeholder="00000000-0000-4000-8000-…"
+                  className="w-96 font-mono text-xs"
+                  aria-invalid={directId.trim().length > 0 && !isUuid(directId.trim())}
+                  aria-describedby="lp-funnel-direct-hint"
+                />
+              </div>
+              <Button
+                asChild={isUuid(directId.trim())}
+                disabled={!isUuid(directId.trim())}
+                data-testid="lp-funnel-direct-go"
+              >
+                {isUuid(directId.trim()) ? (
+                  <Link to={`/admin/lp-funnel/${directId.trim()}`}>Open funnel</Link>
+                ) : (
+                  <span>Open funnel</span>
+                )}
+              </Button>
             </div>
-            <Button
-              asChild
-              disabled={directId.trim().length === 0}
-              data-testid="lp-funnel-direct-go"
-            >
-              <Link to={`/admin/lp-funnel/${directId.trim()}`}>Open funnel</Link>
-            </Button>
+            {directId.trim().length > 0 && !isUuid(directId.trim()) ? (
+              <p id="lp-funnel-direct-hint" className="text-xs text-error" role="alert">
+                Not a valid UUID — paste the user_id exactly as it appears (8-4-4-4-12 hex format).
+              </p>
+            ) : null}
           </div>
         </CardContent>
       </Card>

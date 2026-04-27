@@ -86,13 +86,54 @@ If the human defers an issue:
 - **Fix:** None right now. Treat as a watchpoint for Stage 5.4. Likely follow-up: add a `manualChunks` config splitting the React + TanStack Query vendor bundle.
 - **Found at:** 2026-04-26 (Stage 5 regression — build output)
 
+### [I-16] Monthly MIS — fields move to pitch + MIS becomes file-upload
+
+- **Severity:** H
+- **Feature:** mis + pitch
+- **Status:** **Blocked on backend contract change** — see `.claude/decisions.md § Pending [P-23]`.
+- **Observed:** Today, Monthly MIS captures structured fields (runway, burn, headcount, …); the human wants those fields moved to **pitch** and the MIS endpoint to become a **file upload** (Excel / Tally / CSV / PDF) plus an optional comment.
+- **Expected:** Frontend rewrite of `<MISPage>` as upload form; pitch profile gains the financial fields. PRD §7.3 / §7.9 contracts AND the backend itself must change first — they currently 422 for any of these payload shapes.
+- **Why this is blocked:** `/portfolio/mis` only accepts the structured `raw_data` JSON today (per CLAUDE.md §7.9 + the existing zMISCreate strict schema). Frontend-only changes would silently fail against any real backend. Per CLAUDE.md §0.1.4, an issue that requires architectural change MUST stop and use the P-N protocol.
+- **Action:** Awaiting human decision on `[P-23]` (backend-first vs. frontend-stub-behind-flag vs. defer).
+- **Found at:** 2026-04-27 (Human) · escalated 2026-04-27.
+
 ---
 
-QA fixes complete. **1 active issue remains — L: 1.** All H + M items from the Stage 5.1 audit are resolved (or deferred where noted). I-6 is a watchpoint, not a defect.
+QA fixes complete. **2 active issues remain — H: 1 (I-16, blocked on [P-23]) · L: 1 (I-6 watchpoint).** Eight Stage 5.1 / Stage 5.2.5.x items resolved this session. I-2, I-12, I-14 stay deferred per Stage 5.2.
 
 ---
 
 ## § Resolved (last 30)
+
+### [I-15] Add a contact — capture image with camera ✅ resolved 2026-04-27 (Stage 5.2 follow-up)
+
+- **Original file:** `src/features/onboarding/routes/AddUserPage.tsx`
+- **Fix applied:** Added a "Take photo with camera" button next to the existing dropzone. Wired to a hidden `<input type="file" accept="image/*" capture="environment">` so mobile devices open the rear camera; desktops fall through to the file picker. Card title updated to "Upload or capture card image"; test updated.
+
+### [I-17] Schedule a meeting — cancel restores slot + default 30-min radio not visually checked ✅ resolved 2026-04-27 (Stage 5.2 follow-up)
+
+- **Original files:** `src/test/msw-fixtures/schedule-handlers.ts:220-260`, `src/features/schedule/components/BookingDialog.tsx:179-201`
+- **Fix applied:** (1) MSW `DELETE /schedule/book/:id` handler now pushes the cancelled booking's slot back into `slotsFixture` (sorted by start) so the calendar grid reflects the freed time. (2) BookingDialog duration radios now use a controlled `checked={form.watch('duration_minutes') === d}` binding instead of `register({ valueAsNumber: true })` — the form's default of 30 now stays visually selected on first render (RHF compared the numeric form value against the string DOM value and rendered un-checked).
+
+### [I-18] My digest — detail view edge-to-edge text ✅ resolved 2026-04-27 (Stage 5.2 follow-up)
+
+- **Original file:** `src/features/digest/routes/MyDigestPage.tsx` (DigestSnippetSheet)
+- **Fix applied:** Added responsive padding (`p-5 pt-12 sm:p-8`) to the SheetContent so the digest body breathes; `overflow-y-auto` for long snippets; `pr-6` on the title so the close button doesn't overlap; `break-words leading-relaxed` on the body so long lines wrap nicely.
+
+### [I-19] Matchmaking ops generate — Invalid uuid for job_id ✅ resolved 2026-04-27 (carried over from Stage 5.2 commit `a2c9515`)
+
+- **Original file:** `src/test/msw-fixtures/admin-matchmaking-ops-handlers.ts:136`
+- **Fix applied:** The MSW fixture generated a job_id with shape `8-8-4-4-12` instead of `8-4-4-4-12`. Stage 5.2 commit `a2c9515` (the `padStart(8) → padStart(4)` side-fix shipped with [I-10]) already corrects this. The error the user reported was on the pre-Stage-5.2 build; pulling the latest master clears it.
+
+### [I-20] Quarterly reports — View report button + dashboard widget ✅ resolved 2026-04-27 (Stage 5.2 follow-up)
+
+- **Original files:** `src/features/admin/routes/AdminQuarterlyReportsPage.tsx`, `src/features/admin/routes/AdminHomePage.tsx`
+- **Fix applied:** (1) Renamed the table's "Drive link / Open" cell to a clear "View report" outline-button (per-row CTA). (2) Added a "Recent quarterly reports" KPI card to the admin home (latest 3 reports, each with a "View report" button + a "Manage quarterly reports" deep link). The card is hidden until at least one report exists.
+
+### [I-21] LP funnel — Invalid uuid for user_id ✅ resolved 2026-04-27 (Stage 5.2 follow-up)
+
+- **Original files:** `src/lib/zod-helpers.ts`, `src/features/admin/routes/AdminLpFunnelPickerPage.tsx`, `src/features/admin/routes/AdminLpFunnelPage.tsx`
+- **Fix applied:** Added a sync `isUuid(value)` helper to `zod-helpers.ts`. The picker's "Open by user id" input now validates client-side: the "Open funnel" button is disabled and an `aria-invalid` hint shows below the input until the value matches the UUID regex. The detail page additionally guards against direct-link navigation with a non-UUID by rendering an EmptyState ("Invalid user id") + a "Back to picker" CTA. The mutation fires only with a real UUID — the confusing 500-toast surface is gone.
 
 ### [I-1] AdminAnalyticsPage chunk is 113 KB gzip ✅ resolved 2026-04-27 (Stage 5.2 fixes)
 
@@ -199,3 +240,7 @@ Example rows (for reference only):
 ### [I-3] PitchPage shows no empty state when profile is 404  ✅ resolved 2026-05-03, commit `a1b2c3d`
 - **Fix applied:** Added `status` enum to PitchProfileResult; /pitch route renders `<CreatePitchForm>` when missing.
 -->
+
+
+
+

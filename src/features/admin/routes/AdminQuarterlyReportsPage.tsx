@@ -62,19 +62,22 @@ export function AdminQuarterlyReportsPage() {
       },
       {
         id: 'drive_url',
-        header: 'Drive link',
+        header: 'Report',
         cell: ({ row }) =>
           row.original.drive_url ? (
-            <a
-              className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-              href={row.original.drive_url}
-              target="_blank"
-              rel="noopener noreferrer"
+            // issues.md [I-20] — promote the small "Open" link to a clear
+            // "View report" button so it's discoverable on every row.
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
               data-testid={`drive-link-${row.original.report_id}`}
             >
-              Open
-              <ExternalLink className="h-3 w-3" aria-hidden />
-            </a>
+              <a href={row.original.drive_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                <span>View report</span>
+              </a>
+            </Button>
           ) : (
             <span className="text-xs text-ink-muted">—</span>
           ),

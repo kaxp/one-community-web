@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Camera, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -88,6 +88,10 @@ export function AddUserPage() {
   const [rawText, setRawText] = useState('');
   const [duplicateUserId, setDuplicateUserId] = useState<string | null>(null);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  // Hidden <input capture="environment"> trigger for the "Take photo" button
+  // (issues.md [I-15]). On mobile the device opens the rear camera; on
+  // desktop the browser falls through to its file picker, which is fine.
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const ocr = useOCR();
   const cardScan = useCardScan();
@@ -204,8 +208,10 @@ export function AddUserPage() {
       {step === 'upload' ? (
         <Card>
           <CardHeader>
-            <CardTitle>Upload card image</CardTitle>
-            <CardDescription>JPG, PNG, or HEIC. Single side; well-lit photo.</CardDescription>
+            <CardTitle>Upload or capture card image</CardTitle>
+            <CardDescription>
+              Drop / pick a JPG / PNG / HEIC, or use your camera. Single side; well-lit photo.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <FileDropzone
@@ -220,6 +226,44 @@ export function AddUserPage() {
               disabled={ocr.isRunning || cardScan.isPending}
               label="Drop a card image or click to upload"
             />
+
+            <div className="flex items-center gap-3 text-xs text-ink-muted">
+              <span className="h-px flex-1 bg-border" aria-hidden />
+              <span>or</span>
+              <span className="h-px flex-1 bg-border" aria-hidden />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                aria-hidden
+                tabIndex={-1}
+                data-testid="add-user-camera-input"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void onFiles([file]);
+                  // Allow re-picking the same file
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={ocr.isRunning || cardScan.isPending}
+                onClick={() => cameraInputRef.current?.click()}
+                data-testid="add-user-camera-button"
+              >
+                <Camera className="h-4 w-4" aria-hidden />
+                <span>Take photo with camera</span>
+              </Button>
+              <p className="text-xs text-ink-muted">
+                Opens your phone camera. Falls back to a file picker on desktop.
+              </p>
+            </div>
 
             {ocr.isRunning ? (
               <div

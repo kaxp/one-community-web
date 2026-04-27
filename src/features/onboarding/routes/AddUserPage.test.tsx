@@ -135,7 +135,10 @@ describe('AddUserPage', () => {
       expect(successSpy).toHaveBeenCalledWith(expect.stringContaining('user created')),
     );
     // Page returns to the upload step.
-    await waitFor(() => expect(screen.getByText(/Upload card image/i)).toBeInTheDocument());
+    // After [I-15] the upload card title also covers camera capture.
+    await waitFor(() =>
+      expect(screen.getByText(/Upload or capture card image/i)).toBeInTheDocument(),
+    );
   });
 
   it('submit success when user_created=false: toasts the admin-followup copy', async () => {
