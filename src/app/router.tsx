@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom';
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy } from 'react';
 import { RequireAuth } from '@/auth/require-auth';
 import { RoleGuard } from '@/auth/role-guard';
 import { ProfileGate } from '@/auth/profile-gate';
@@ -9,6 +9,7 @@ import { DashboardPage } from './routes/DashboardPage';
 import { ExpiredPage } from './routes/ExpiredPage';
 import { UnauthorizedPage } from './routes/UnauthorizedPage';
 import { NotFoundPage } from './routes/NotFoundPage';
+import { Susp } from './route-suspense';
 import { SignInPage } from '@/features/auth/routes/SignInPage';
 
 // Per decisions.md [P-19]: every new feature route is lazy-split. Hoisted to module
@@ -126,12 +127,6 @@ const MyDigestPage = lazy(() =>
     default: m.MyDigestPage,
   })),
 );
-
-const PageLoader = () => <div className="p-8 text-sm text-ink-muted">Loading…</div>;
-
-function Susp({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
-}
 
 export const router = createBrowserRouter(
   [

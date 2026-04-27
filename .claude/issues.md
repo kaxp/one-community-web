@@ -21,6 +21,7 @@
 ### When to add a row
 
 A finding belongs here if it is ONE of:
+
 - Bug (wrong behaviour vs PRD §7)
 - Violation of a `CLAUDE.md` rule (`any`, inline axios, missing RoleGuard, etc.)
 - Missing UI state (loading / empty / error / success)
@@ -29,6 +30,7 @@ A finding belongs here if it is ONE of:
 - Security concern (logging sensitive data, unsafe HTML rendering, missing CORS check)
 
 A finding does NOT belong here if it is:
+
 - An architectural choice → `decisions.md`
 - A backend gap → already in `frontend_prd.md §13.2`
 - A "nice to have" that the human didn't request → discard
@@ -73,234 +75,74 @@ If the human defers an issue:
 
 ## § Active
 
-### [I-1] AdminAnalyticsPage chunk is 113 KB gzip (target was 50–80 KB)
-
-- **Severity:** L
-- **File:** `src/features/analytics/routes/AdminAnalyticsPage.tsx` + the 4 chart components in `src/features/analytics/components/`
-- **Feature:** admin-analytics
-- **Rule violated:** Stage 4.3 prompt — "analytics chunk should appear separately ~50–80KB"
-- **Observed:** Recharts v3.8.1 ships heavier than the v2 estimates the prompt was written against. The lazy-split is working correctly (only fetched on `/admin/analytics`; main chunk only grew +1.05 KB gzip), but the analytics chunk itself is 386.37 KB raw / 113.82 KB gzip.
-- **Expected:** ~50–80 KB gzip per the prompt; the prod-grade fix is per-chart dynamic import or downgrading to recharts v2.
-- **Fix:** Either (a) wrap each chart import behind `React.lazy(() => import('recharts').then(...))` so the heavy library only loads on the active analytics tab, or (b) drop to `recharts@^2.x` which has a smaller surface area. Defer until Stage 5 polish.
-- **Found at:** 2026-04-26 (Stage 4.3 build)
-- **Human input:** Let's choose option a fix.
----
-
-
-
-### [I-3] Inline role-string comparisons drift across 5 display-mode call-sites
-
-- **Severity:** M
-- **File:**
-  - `src/features/auth/lib/post-signin-navigate.ts:31` — `role === 'lp' || role === 'potential_lp'`
-  - `src/features/search/routes/SearchPage.tsx:38` — `const isMasked = role === 'partner';`
-  - `src/features/profile/schemas.ts:83` — `role === 'startup_inprogress' || role === 'startup_onboarded' || role === 'startup_funded'`
-  - `src/features/profile/routes/ProfilePage.tsx:27` — `const isMasked = role === 'partner';`
-  - `src/features/profile/routes/ProfilePage.tsx:130-138` — both startup-target and lp-target inline checks via `useMemo`
-- **Feature:** cross-cutting (auth + search + profile)
-- **Rule violated:** CLAUDE.md §3.4 / §16 — "**`can(role, capability)`** is the only sanctioned way to gate UI. Never compare role strings inline."
-- **Observed:** These are display-mode branching, not security gates — but they bypass the central capability vocabulary and will silently drift when a new role enum is added (the union now includes `partner`; the next added role will not surface in any of these `||` chains automatically).
-- **Expected:** Introduce small predicate helpers in `src/lib/role-capabilities.ts`:
-  - `isStartupRole(role)` — covers all three startup_* values
-  - `isLpRole(role)` — covers `lp` + `potential_lp`
-  - `isMaskedSearchRole(role)` — currently `role === 'partner'`, future-proof for any masked role
-  Update all 5 call-sites to use the helpers. Add unit tests in `role-capabilities.test.ts` asserting each predicate.
-- **Fix:** Add 3 predicates to `role-capabilities.ts` + update 5 call-sites + 3 unit tests. ~30 minutes.
-- **Found at:** 2026-04-26 (Stage 5 regression)
-
----
-
-### [I-4] `MaskedCardFooter` "Upgrade for full access" button shows a placeholder toast and dead-ends
-
-- **Severity:** M (UX papercut visible to every partner user on every search result)
-- **File:** `src/features/search/components/MaskedCardFooter.tsx:33-36`
-- **Feature:** search (partner-mode escalation footer)
-- **Rule violated:** CLAUDE.md §7.4 — "Don't add features… for hypothetical future requirements" + §7.3 (no hardcoded data in routes; toast acts like one).
-- **Observed:** Every partner search result card renders an "Upgrade for full access" button next to "Request to connect". Clicking it fires `toast.info('Partner upgrade coming soon — request a connection in the meantime.')`. There is no upgrade flow, no settings page, no email handoff — the click is a dead end. A confused partner will keep clicking.
-- **Expected:** Either (a) hide the upgrade button until the monetisation flow is wired (preferred — current UX implies a paid tier that doesn't exist), or (b) render it disabled with a tooltip explaining "coming soon", or (c) link it to an external waitlist form.
-- **Fix:** In `MaskedCardFooter.tsx`, gate the upgrade button behind a `VITE_PARTNER_UPGRADE_ENABLED` env flag (default false). Remove the JSX entirely when the flag is off. Update the partner masking decision in `decisions.md [P-20]` to note the deferred upgrade flow.
-- **Found at:** 2026-04-26 (Stage 5 regression)
-
----
-
-### [I-5] Long-standing `react-refresh` lint warnings (4) carried over from Stage 1
-
-- **Severity:** L
-- **File:**
-  - `src/app/router.tsx:121,123` — `PageLoader` + `Susp` exported alongside `router` const
-  - `src/components/ui/button.tsx:44` — `buttonVariants` exported alongside `Button` (shadcn convention)
-  - `src/test/test-utils.tsx:27` — `export *` re-export
-- **Feature:** cross-cutting (chassis)
-- **Rule violated:** CLAUDE.md §10 DoD — "all four gates green; no warnings". The lint gate currently passes with 0 errors but reports 4 warnings.
-- **Observed:** Same 4 warnings observed in Stage 1 review and Stage 2 review. They are cosmetic (Vite HMR boundary suggestions) and don't fail builds.
-- **Expected:** Either (a) document them as accepted in `decisions.md` so the DoD bar moves to "0 errors, 4 known warnings", or (b) split the offending exports into separate files so the warnings disappear entirely. Option (b) is the textbook fix; ~20 min total.
-- **Fix:** Defer-able — open a P-N in `decisions.md` with the chosen option. Do not block ship on this.
-- **Found at:** 2026-04-26 (Stage 5 regression — same 4 warnings as Stage 1/2)
-
----
-
-### [I-6] Bundle main chunk at 294.31 KB gzip — 5.7 KB headroom under 300 KB target
+### [I-6] Bundle main chunk at 295.56 KB gzip — 4.4 KB headroom under 300 KB target
 
 - **Severity:** L (informational; not exceeded yet)
 - **File:** observability — `pnpm build` output
 - **Feature:** cross-cutting
 - **Rule violated:** queue.md § Stage 5 bundle-size target — "Initial chunk < 300 KB gzip"
-- **Observed:** Main chunk currently 294.31 KB gzip — under target but with only 5.7 KB headroom. P-19 lazy-splitting is in place; every Stage 3+ feature route is properly chunked (e.g. `MISPage` 6.21 KB gzip, `SearchPage` 4.22 KB, `AddUserPage` 20.57 KB). The growth pressure now comes from shared deps in the main chunk (TanStack Query + React Router + axios + Zod + the shadcn primitives + the shared schema files).
-- **Expected:** Stage 5.4 will run a fuller bundle audit. No fix needed today, but **a single new shared dep added in Stage 5 (e.g. Playwright e2e helper, a new modal lib) could push past 300 KB**. Watch carefully.
-- **Fix:** None right now. Treat as a watchpoint for Stage 5.4.
+- **Observed:** Main chunk currently 295.56 KB gzip — under target but with only 4.4 KB headroom. Lazy splits remain healthy (every Stage 3+ feature route ≤ 21 KB gzip; the new `CartesianChart` lazy chunk for Recharts is 101.15 KB gzip and only loads on Funnel / Match Success tabs). Pressure now comes from shared deps (TanStack Query + React Router + axios + Zod + shadcn primitives + shared schemas).
+- **Expected:** Stage 5.4 will run a fuller bundle audit. **A single new shared dep added in Stage 5 (e.g. Playwright e2e helper, a new modal lib) could push past 300 KB**. Watch carefully.
+- **Fix:** None right now. Treat as a watchpoint for Stage 5.4. Likely follow-up: add a `manualChunks` config splitting the React + TanStack Query vendor bundle.
 - **Found at:** 2026-04-26 (Stage 5 regression — build output)
 
 ---
 
-### [I-7] `/admin/partner-referral` route is unreachable from the sidebar
-
-- **Severity:** **H** (visible regression — admins cannot discover the partner-referral console without typing the URL)
-- **File:** `src/lib/role-capabilities.ts:166-173` (NAV_ITEMS array — `admin-partner-referral` entry is missing); route registered in `src/app/router.tsx:428-435`
-- **Feature:** admin-partner-referral
-- **Rule violated:** CLAUDE.md §3.4 — "Adding a new route MUST add an entry to `NAV_ITEMS` with correct roles — otherwise the route is unreachable from the UI." Also CLAUDE.md §11 NEVER DO list — "Add a new root-level route … not listed in `frontend_prd.md §4`" (this route IS in §4 row 27 but NAV_ITEMS was not updated).
-- **Observed:** `src/app/router.tsx:428-435` registers `/admin/partner-referral` under the admin RoleGuard; `src/api/endpoints.ts:719`, `src/test/msw-fixtures/admin-partner-referral-handlers.ts`, and `src/features/admin/routes/AdminPartnerReferralPage.test.tsx` all reference the path. But `NAV_ITEMS` in `src/lib/role-capabilities.ts` skips from `admin-tracxn` straight to `admin-analytics` — there is no `admin-partner-referral` entry. The admin sidebar therefore omits it entirely; the only way to reach the page is via direct URL or the deeplinked admin home.
-- **Expected:** A nav entry between the LP funnel row (line 167) and the Tracxn row (line 168) so admins discover the console from the sidebar.
-- **Fix:** Add the following entry to `NAV_ITEMS` in `src/lib/role-capabilities.ts`:
-  ```ts
-  { key: 'admin-partner-referral', label: 'Partner referral', path: '/admin/partner-referral', icon: 'Megaphone', roles: ['admin', 'super_admin'] },
-  ```
-  Pick an icon already imported by `<NavList>` (`Megaphone` from `lucide-react` is the natural fit; verify it's whitelisted in the icon resolver). Add a sidebar smoke assertion in `src/components/layout/__tests__` (or whichever test exercises NavList) confirming the link renders for admin role.
-- **Found at:** 2026-04-26 (Stage 5.1 QA)
-
----
-
-### [I-8] `SearchPage` declares `useMutation` inline in the route component
-
-- **Severity:** M
-- **File:** `src/features/search/routes/SearchPage.tsx:59-72`
-- **Feature:** feature-search
-- **Rule violated:** CLAUDE.md §15 "Patterns" — "`<ExecutionPanel>` (PRD §6.7) is mandatory for all action screens. No inline `useMutation` inside route components." Also CLAUDE.md §4.2 — "Do not combine data fetching with business logic inside components. Always go via a hook."
-- **Observed:** `SearchPage` imports `useMutation, useQueryClient` directly from TanStack Query and constructs `submitMutation` at line 59. The author justified it in lines 54-57 ("ExecutionPanel-style explicit submit") but the rule allows no exceptions outside `SignInPage` (CLAUDE.md §6.7.1). The mutation also reaches into `qc.setQueryData` to seed the infinite-query cache, which mixes data orchestration into the route.
-- **Expected:** Either (a) extract the submit-orchestration into `src/features/search/hooks/use-search-submit.ts` returning the mutation result and `onSubmit` handler; the route only consumes the hook. Or (b) wrap the search bar in a real `<ExecutionPanel>` if the team agrees `/search` is an "action screen" by §6.7's definition.
-- **Fix:** Option (a) — move lines 59-72 into a new `use-search-submit.ts` hook; the route imports `const { submitMutation, onSubmit } = useSearchSubmit({ query, filters, qc })`. ~30 minutes including unit test for the hook.
-- **Found at:** 2026-04-26 (Stage 5.1 QA)
-
----
-
-### [I-9] `AdminAnalyticsPage` imports Recharts charts eagerly — root cause of I-1's 113 KB chunk
-
-- **Severity:** M (informational root-cause for already-tracked I-1; the fix delivers I-1's option (a))
-- **File:** `src/features/analytics/routes/AdminAnalyticsPage.tsx:12-15` (the four `import { ... } from '@/features/analytics/components/...'` lines that pull `KpiCards`, `FunnelBarChart`, `CohortHeatmap`, `MatchSuccessChart`)
-- **Feature:** admin-analytics
-- **Rule violated:** CLAUDE.md §7.12 — "Code-split at the route level". Also queue.md Stage 5 bundle-size — "analytics chunk should appear separately ~50–80 KB".
-- **Observed:** `AdminAnalyticsPage.tsx` imports the four chart components synchronously. Each chart pulls Recharts → the entire Recharts surface is bundled into the analytics chunk (386.37 KB raw / 113.82 KB gzip per `pnpm build`). Recharts loads on `/admin/analytics` route entry, not on the active tab.
-- **Expected:** Per I-1 option (a) — `React.lazy()` each chart at the tab boundary so Recharts only loads when the Funnel / Cohort / Match Success tab is selected. The Overview tab (KpiCards) needs no chart code and should remain eager.
-- **Fix:** In `AdminAnalyticsPage.tsx`:
-  1. Change the three chart imports to `const FunnelBarChart = lazy(() => import('@/features/analytics/components/FunnelBarChart').then(m => ({ default: m.FunnelBarChart })))` (and similarly for Cohort + Match Success).
-  2. Wrap the chart render in `<Suspense fallback={<Skeleton className="h-72 w-full" />}>` per tab.
-  3. Re-run `pnpm build` and confirm the analytics chunk drops below 80 KB gzip; the Recharts chunk should appear as a separate lazy-loaded asset.
-- **Found at:** 2026-04-26 (Stage 5.1 QA — supersedes I-1 root cause analysis)
-
----
-
-### [I-10] Five mutation hooks lack unit tests
-
-- **Severity:** M (mutations encode optimistic updates + invalidation; untested mutations are exactly the kind that drift silently)
-- **File:**
-  - `src/features/admin/hooks/use-dead-letter-retry.ts`
-  - `src/features/admin/hooks/use-quarterly-report-approve.ts`
-  - `src/features/digest/hooks/use-digest-generate.ts`
-  - `src/features/matchmaking/hooks/use-match-approve.ts` (has optimistic rollback context — most fragile of the five)
-  - `src/features/matchmaking/hooks/use-match-generate.ts`
-- **Feature:** admin-dead-letter-jobs / admin-quarterly-reports / admin-digest / admin-matchmaking-ops
-- **Rule violated:** CLAUDE.md §10 DoD — "Every new hook has a unit test." CLAUDE.md §9.2 step 10 — "Add MSW handlers in `src/test/msw-handlers.ts` and a unit test for each hook + a smoke test for the page."
-- **Observed:** Each of the five hooks defines a `useMutation` (some with optimistic update + rollback) but no `.test.ts` / `.test.tsx` file exists alongside, and the hook's camelCase name does not appear in any sibling test file. The route-level smoke tests exercise the mutations indirectly, but the optimistic + invalidation paths are not asserted (e.g. `use-match-approve.ts` has a `RollbackContext` branch — no test covers it).
-- **Expected:** One unit test per hook covering: success path → cache invalidation; error path → no state change / rollback if applicable; for `use-match-approve.ts` specifically — both the optimistic update AND the rollback on 4xx.
-- **Fix:** Add 5 test files modelled on `src/features/digest/hooks/use-digest.test.tsx` (which covers `useDigestApprove`'s rollback). Each test ~25-40 lines; together ~3 hours.
-- **Found at:** 2026-04-26 (Stage 5.1 QA)
-
----
-
-### [I-11] Four query hooks lack unit tests
-
-- **Severity:** L (query hooks are simpler and route-tests usually exercise them; still a DoD gap)
-- **File:**
-  - `src/features/digest/hooks/use-digest-history.ts`
-  - `src/features/analytics/hooks/use-analytics-funnel-connections.ts`
-  - `src/features/analytics/hooks/use-analytics-funnel-lp.ts`
-  - `src/features/analytics/hooks/use-analytics-funnel-startup.ts`
-- **Feature:** admin-digest / admin-analytics
-- **Rule violated:** CLAUDE.md §10 DoD — "Every new hook has a unit test."
-- **Observed:** Four query-only hooks lack explicit test files and aren't imported in any sibling `.test.*` file. The analytics overview / cohort / match-success hooks ARE covered by `use-analytics.test.ts`; the three funnel sub-hooks are not.
-- **Expected:** Add the three funnel-sub-hooks to the existing `use-analytics.test.ts` (single import block + one `it()` per hook is sufficient — they all hit `/analytics/funnel/*` and use the same envelope shape). Add `useDigestHistory` to `use-digest.test.tsx` similarly.
-- **Fix:** ~45 minutes total — extend two existing test files.
-- **Found at:** 2026-04-26 (Stage 5.1 QA)
-
----
-
-### [I-12] `useMe` test triggers an unwrapped React state-update warning
-
-- **Severity:** L (test-only noise; production code is fine)
-- **File:** `src/features/auth/hooks/use-me.test.ts:25-34` (the `fetches profile when a session is hydrated` case)
-- **Feature:** auth
-- **Rule violated:** CLAUDE.md §10 DoD — "no warnings" (warnings appear in `pnpm test` stderr per the build log). React docs — wrap state-changing fire-events in `act(...)`.
-- **Observed:** `pnpm test` stderr shows: `Warning: An update to TestComponent inside a test was not wrapped in act(...). … at TestComponent (.../testing-library/react/dist/pure.js:307:5)`. The warning surfaces every time the test runs but does not fail the suite. It originates from the hook's MSW-driven query state transitioning from `idle → fetching → success` after `setMswSignedInPhone` populates the session.
-- **Expected:** Wrap the `setAuth(...)` + `setMswSignedInPhone(...)` calls inside `act(async () => { … })` (or use `await waitFor` directly without the up-front mutation). The cleanest fix is replacing `renderHookWithProviders(() => useMe())` with the same call after `act()` settles the auth-store state.
-- **Fix:** ~10 minutes — either (a) wrap the auth-store mutation in `act(() => { setAuth(...); setMswSignedInPhone(...); })`, or (b) move `setAuth` into a `beforeEach` so it runs synchronously before the hook mounts.
-- **Found at:** 2026-04-26 (Stage 5.1 QA — observed in `pnpm test` stderr)
-
----
-
-### [I-13] PRD §4 row 18 (`/digest`) role list is stale post-[P-22]
-
-- **Severity:** L (documentation drift, no behavioural impact)
-- **File:** `docs/frontend_prd.md` §4 row 18 — "Allowed roles: LP, Potential LP, VC, Startup Funded, Partner"
-- **Feature:** user-digest
-- **Rule violated:** CLAUDE.md §15 — PRD §4 must mirror what `NAV_ITEMS` and `<RoleGuard>` actually enforce. Also CLAUDE.md §9.7 — "If the backend changes a contract: Update `frontend_prd.md §7` first."
-- **Observed:** `src/app/router.tsx:347-353` registers `/digest` with NO `<RoleGuard>` (only `RequireAuth + ProfileGate`); `NAV_ITEMS.digest.roles = ['*']` (all authenticated). After [P-22] replaced the blocker with the real UI, the route is open to every authenticated role including `advisor`, `startup_inprogress`, `startup_onboarded`, `admin`, `super_admin` — none of which appear in PRD §4 row 18's allow-list.
-- **Expected:** Update `frontend_prd.md §4` row 18 to match the post-[P-22] reality: "All authenticated" (with a parenthetical noting the page is most useful to LP / Potential LP / VC / Startup Funded / Partner — admins see an admin-console shortcut). Or, if the PRD's narrower list is intentional product policy, add a `<RoleGuard>` to the route.
-- **Fix:** ~5 minutes if the PRD is the side that drifts (preferred per [P-22] supersedes); ~10 minutes if a RoleGuard is added.
-- **Found at:** 2026-04-26 (Stage 5.1 QA — cross-reference router vs PRD)
-
----
-
-### [I-14] Vite build emits "chunks larger than 500 KB" warning for the analytics chunk
-
-- **Severity:** L (informational — same root cause as I-9 / I-1; flagged here so the warning is acknowledged in the report)
-- **File:** `pnpm build` console output — last 6 lines
-- **Feature:** admin-analytics
-- **Rule violated:** CLAUDE.md §10 DoD — "no warnings" (build emits a Rollup warning).
-- **Observed:** Build log ends with `(!) Some chunks are larger than 500 kB after minification. Consider: …` — driven by `AdminAnalyticsPage-DsAsqABa.js` at 386.37 KB raw. The main chunk (`index-tG0ry3Uo.js`) at 1,259.64 KB raw also exceeds 500 KB but is acceptable for an SPA shell when gzipped (295.59 KB gzip).
-- **Expected:** Once I-9 ships, the analytics chunk falls below 500 KB raw. The main-chunk warning will remain because of TanStack Query + React Router + Zod + Recharts shells; consider raising `build.chunkSizeWarningLimit` to 800 KB OR splitting common deps into `manualChunks: { vendor: ['react', 'react-dom', '@tanstack/react-query'] }` once Stage 5.4 bundle audit runs.
-- **Fix:** Bundled into I-9's fix + a Stage 5.4 manualChunks pass.
-- **Found at:** 2026-04-26 (Stage 5.1 QA)
-
----
-
-QA regression complete. **6 issues found — H: 1, M: 2, L: 3.**
-
-Top 3 ship blockers:
-1. **[I-2] Placeholder WhatsApp link `+91XXXXXXXXXX` rendered to users in every error state** — H, fixes a broken-link click on every 5xx. Single-file env-flag gate, ~10 min.
-
-(No other H issues. Treat I-3 + I-4 as Stage 5.2 fix candidates; I-1 + I-5 + I-6 as Stage 5.4 / 5.5 deferrable polish.)
-
----
-
-QA complete. 14 issues found — H: 2, M: 5, L: 7. Awaiting human triage.
-
-(Stage 5.1 QA pass added I-7 through I-14 on 2026-04-26. Pre-existing rows I-1, I-3, I-4, I-5, I-6 remain Active; I-2 is Deferred — see below.)
-
-Stage 5.1 ship blockers in priority order:
-1. **[I-2] (Deferred — H)** — Broken WhatsApp support link visible on every error.
-2. **[I-7] (H)** — `/admin/partner-referral` unreachable from sidebar; admin can only get there by typing the URL. Single-line NAV_ITEMS entry, ~5 min.
-3. **[I-8] (M)** — `SearchPage` inline `useMutation` violates §15. Extract to hook, ~30 min.
-4. **[I-9] (M)** — Eager Recharts import in `AdminAnalyticsPage` (root cause of I-1 chunk size). Lazy-split per chart, ~45 min.
-5. **[I-10] (M)** — Five mutation hooks (incl. `use-match-approve` rollback) untested. ~3 hr.
-6. **[I-3] (M)** — Pre-existing inline role comparisons. ~30 min.
-7. **[I-4] (M)** — Pre-existing partner upgrade dead-end button. ~10 min.
-
-Polish / deferrable: I-1 (replaced by I-9 fix), I-5, I-6, I-11, I-12, I-13, I-14.
+QA fixes complete. **1 active issue remains — L: 1.** All H + M items from the Stage 5.1 audit are resolved (or deferred where noted). I-6 is a watchpoint, not a defect.
 
 ---
 
 ## § Resolved (last 30)
 
-_(Empty. Populated as issues are fixed.)_
+### [I-1] AdminAnalyticsPage chunk is 113 KB gzip ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original file:** `src/features/analytics/routes/AdminAnalyticsPage.tsx` + the 4 chart components
+- **Fix applied:** Superseded by [I-9]'s fix — Recharts is now lazy-loaded behind the Funnel / Match tabs. `pnpm build` reports the analytics chunk at **3.24 KB gzip** (was 113.82 KB) and a separate `CartesianChart-*.js` chunk at 101.15 KB gzip that only loads on the chart tabs.
+
+### [I-3] Inline role-string comparisons drift across 5 display-mode call-sites ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original files:** `src/features/auth/lib/post-signin-navigate.ts:31`, `src/features/search/routes/SearchPage.tsx:38`, `src/features/profile/schemas.ts:83`, `src/features/profile/routes/ProfilePage.tsx:27`, `src/features/profile/routes/ProfilePage.tsx:130-138`
+- **Fix applied:** Added `isStartupRole`, `isLpRole`, `isMaskedSearchRole` predicates to `src/lib/role-capabilities.ts`. Updated all 5 call-sites to use the helpers. Added 3 unit tests in `src/lib/role-capabilities.test.ts` covering each predicate's positive / negative / null inputs.
+
+### [I-4] `MaskedCardFooter` "Upgrade for full access" button shows a placeholder toast ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original file:** `src/features/search/components/MaskedCardFooter.tsx:33-36`
+- **Fix applied:** Added `VITE_PARTNER_UPGRADE_ENABLED` env flag (default `false` in dev / staging / prod). Gated the upgrade `<Button>` behind `env.PARTNER_UPGRADE_ENABLED`. Updated `src/lib/env.ts`, `src/vite-env.d.ts`, all three `.env.*` files, and `SearchPage.test.tsx` to assert the button is hidden by default.
+
+### [I-5] Long-standing `react-refresh` lint warnings (4) ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original files:** `src/app/router.tsx:121,123`, `src/components/ui/button.tsx:44`, `src/test/test-utils.tsx:27`
+- **Fix applied:** Extracted `PageLoader` + `Susp` into new `src/app/route-suspense.tsx`. Extracted `buttonVariants` + `ButtonVariants` type into new `src/components/ui/button-variants.ts`. `src/test/test-utils.tsx` is test-only (never loaded by Vite dev server) so the `export *` line carries a targeted `// eslint-disable-next-line react-refresh/only-export-components` with rationale. `pnpm lint` now reports **0 errors, 0 warnings**.
+
+### [I-7] `/admin/partner-referral` route unreachable from sidebar ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original file:** `src/lib/role-capabilities.ts:166-173` (NAV_ITEMS); route at `src/app/router.tsx:428-435`
+- **Fix applied:** Added `{ key: 'admin-partner-referral', label: 'Partner referral', path: '/admin/partner-referral', icon: 'Megaphone', roles: ['admin', 'super_admin'] }` to `NAV_ITEMS`. Added a sibling test in `role-capabilities.test.ts` asserting the entry exists with the right roles.
+
+### [I-8] `SearchPage` declares `useMutation` inline in the route component ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original file:** `src/features/search/routes/SearchPage.tsx:59-72`
+- **Fix applied:** Extracted the submit-mutation logic into a new `src/features/search/hooks/use-search-submit.ts`. `SearchPage` now imports `useSearchSubmit({ query, filters })` and surfaces the mutation directly — no `useMutation` / `useQueryClient` / `searchUnified` / `qk` references in the route file. Added `use-search-submit.test.tsx` with happy-path + empty-query rejection cases.
+
+### [I-9] AdminAnalyticsPage imports Recharts charts eagerly — root cause of I-1 ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original file:** `src/features/analytics/routes/AdminAnalyticsPage.tsx:13,15`
+- **Fix applied:** Replaced eager imports of `FunnelBarChart` + `MatchSuccessChart` with `React.lazy()`. Wrapped the Funnel pane and Match pane in `<Suspense fallback={<ChartSkeleton />}>`. KpiCards + CohortHeatmap stay eager (no Recharts). Build output confirms: analytics chunk **3.24 KB gzip** (was 113.82); new `CartesianChart-*.js` chunk 101.15 KB gzip loads only on the active chart tab.
+
+### [I-10] Five mutation hooks lack unit tests ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original files:** `src/features/admin/hooks/use-dead-letter-retry.ts`, `use-quarterly-report-approve.ts`, `src/features/digest/hooks/use-digest-generate.ts`, `src/features/matchmaking/hooks/use-match-approve.ts`, `use-match-generate.ts`
+- **Fix applied:** Added 4 new test files (`use-dead-letter-retry.test.tsx`, `use-quarterly-report-approve.test.tsx`, `use-match-approve.test.tsx`, `use-match-generate.test.tsx`) covering happy + error paths. `use-match-approve.test.tsx` specifically asserts the `RollbackContext` branch (optimistic remove → 4xx → cache restored). Extended the existing `use-digest.test.tsx` with `useDigestGenerate` cases. Side-fix: corrected a UUID-shape bug in `src/test/msw-fixtures/admin-matchmaking-ops-handlers.ts` (`padStart(8) → padStart(4)`) that surfaced when `use-match-generate` gained its first unit test.
+
+### [I-11] Four query hooks lack unit tests ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original files:** `src/features/digest/hooks/use-digest-history.ts`, `src/features/analytics/hooks/use-analytics-funnel-{lp,startup,connections}.ts`
+- **Fix applied:** Extended `src/features/analytics/hooks/use-analytics.test.ts` with 3 new tests covering each funnel sub-hook. Extended `src/features/digest/hooks/use-digest.test.tsx` with a `useDigestHistory` happy-path test.
+
+### [I-13] PRD §4 row 18 (`/digest`) role list stale post-[P-22] ✅ resolved 2026-04-27 (Stage 5.2 fixes)
+
+- **Original file:** `docs/frontend_prd.md` §4 row 18
+- **Fix applied:** Updated the "Primary APIs" cell from "(Phase 4 — placeholder)" to the three real `/me/digest/*` endpoints, and the "Allowed roles" cell from the narrow LP/Potential LP/VC/Startup Funded/Partner list to "All authenticated (most useful to LP / Potential LP / VC / Startup Funded / Partner) — per [P-22]". Reflects the post-[P-22] reality: the route has no `<RoleGuard>` (all authenticated reach it; admins also see an admin-console shortcut on the page).
 
 ---
 
@@ -316,6 +158,27 @@ _(Empty. Populated as issues are fixed.)_
 - **Expected:** Until a real number is set, hide the WhatsApp CTA entirely (or guard it behind a `VITE_SUPPORT_WHATSAPP_ENABLED` flag and default to off in development + production). The Email CTA, which has a real address, can keep rendering.
 - **Fix:** In `src/components/error-state/ErrorState.tsx`, conditionally render the WhatsApp button only when `SUPPORT_WHATSAPP !== '+91XXXXXXXXXX'`. Add an env-driven override and a unit test asserting the button is hidden when the placeholder value is in effect.
 - **Found at:** 2026-04-26 (Stage 5 regression)
+- **Deferred:** 2026-04-26 — pending a real WhatsApp support number from the human (P-15 follow-up). Revisit in milestone: v1.0 / Stage 5.5 polish.
+
+### [I-12] `useMe` test triggers an unwrapped React state-update warning
+
+- **Severity:** L (test-only noise; production code is fine)
+- **File:** `src/features/auth/hooks/use-me.test.ts`
+- **Feature:** auth
+- **Rule violated:** CLAUDE.md §10 DoD — "no warnings".
+- **Observed:** `pnpm test` stderr emits an `act(...)` warning when the React Query hook transitions idle → fetching → success against MSW. The same pattern surfaces in 4+ other tests (AddUserPage, SearchPage, DuplicateContactDialog) — this is a project-wide React 18 strict-act issue, not a single-test bug.
+- **Expected:** A targeted test-helper refactor (likely an `actAround(renderHookWithProviders)` shim) — not a per-test patch. Several `await act(...)` attempts during Stage 5.2 either left the warning in place (the transition still happens during render) or required wrapping `renderHookWithProviders` itself, which expands the surface beyond the I-12 description.
+- **Deferred:** 2026-04-27 — fixing one site doesn't suppress the warning across the project. Tackle as a Stage 5.5 (a11y / polish) project-wide test-helper refactor. Revisit in milestone: v1.0.
+
+### [I-14] Vite build emits "chunks larger than 500 KB" warning
+
+- **Severity:** L (informational)
+- **File:** `pnpm build` console output
+- **Feature:** cross-cutting
+- **Rule violated:** CLAUDE.md §10 DoD — "no warnings".
+- **Observed:** After [I-9]'s fix, the analytics chunk no longer trips the warning, but two chunks still exceed 500 KB **raw**: the main chunk (1,260.06 KB raw / 295.56 KB gzip) and the new `CartesianChart-*.js` Recharts chunk (338.29 KB raw / 101.15 KB gzip). Both are within gzip targets; raw size is the surface area Vite warns on.
+- **Expected:** Configure `build.rollupOptions.output.manualChunks` to split a `vendor` chunk (react, react-dom, @tanstack/react-query, react-router) so the main chunk drops below 500 KB raw. Or raise `build.chunkSizeWarningLimit` to 800 KB if the team accepts the current shape.
+- **Deferred:** 2026-04-27 — partial-fix already shipped via [I-9]. Full clearance requires a `manualChunks` design call which belongs in Stage 5.4 bundle-size pass. Revisit in milestone: Stage 5.4.
 
 ---
 

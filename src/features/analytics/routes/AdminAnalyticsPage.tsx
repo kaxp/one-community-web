@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,9 +10,27 @@ import { useAnalyticsFunnelConnections } from '@/features/analytics/hooks/use-an
 import { useAnalyticsCohort } from '@/features/analytics/hooks/use-analytics-cohort';
 import { useAnalyticsMatchSuccess } from '@/features/analytics/hooks/use-analytics-match-success';
 import { KpiCards } from '@/features/analytics/components/KpiCards';
-import { FunnelBarChart } from '@/features/analytics/components/FunnelBarChart';
 import { CohortHeatmap } from '@/features/analytics/components/CohortHeatmap';
-import { MatchSuccessChart } from '@/features/analytics/components/MatchSuccessChart';
+
+// issues.md [I-9] / [I-1] — Recharts ships ~120 KB gzip via FunnelBarChart +
+// MatchSuccessChart. Lazy-load both so the analytics chunk loads only the
+// hooks + KpiCards + CohortHeatmap shell on Overview entry; Recharts is
+// fetched on the first Funnel / Match tab click. KpiCards and CohortHeatmap
+// stay eager because they don't pull Recharts.
+const FunnelBarChart = lazy(() =>
+  import('@/features/analytics/components/FunnelBarChart').then((m) => ({
+    default: m.FunnelBarChart,
+  })),
+);
+const MatchSuccessChart = lazy(() =>
+  import('@/features/analytics/components/MatchSuccessChart').then((m) => ({
+    default: m.MatchSuccessChart,
+  })),
+);
+
+function ChartSkeleton({ className }: { className?: string }) {
+  return <Skeleton className={className ?? 'h-60 w-full'} />;
+}
 import {
   CONNECTIONS_FUNNEL_LABEL,
   LP_FUNNEL_LABEL,
@@ -105,70 +123,72 @@ function FunnelPane() {
   }, [conn.data]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>LP funnel</CardTitle>
-          <CardDescription>Counts per stage (1_new_lead → 5_invested).</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {lp.isLoading ? (
-            <Skeleton className="h-60 w-full" />
-          ) : lp.isError ? (
-            <ErrorState
-              error={lp.error}
-              onRetry={() => {
-                void lp.refetch();
-              }}
-            />
-          ) : (
-            <FunnelBarChart data={lpSeries} />
-          )}
-        </CardContent>
-      </Card>
+    <Suspense fallback={<ChartSkeleton className="h-60 w-full" />}>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>LP funnel</CardTitle>
+            <CardDescription>Counts per stage (1_new_lead → 5_invested).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {lp.isLoading ? (
+              <Skeleton className="h-60 w-full" />
+            ) : lp.isError ? (
+              <ErrorState
+                error={lp.error}
+                onRetry={() => {
+                  void lp.refetch();
+                }}
+              />
+            ) : (
+              <FunnelBarChart data={lpSeries} />
+            )}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Startup pipeline</CardTitle>
-          <CardDescription>Top 6 statuses; everything else folded into Other.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {startup.isLoading ? (
-            <Skeleton className="h-60 w-full" />
-          ) : startup.isError ? (
-            <ErrorState
-              error={startup.error}
-              onRetry={() => {
-                void startup.refetch();
-              }}
-            />
-          ) : (
-            <FunnelBarChart data={startupSeries} />
-          )}
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Startup pipeline</CardTitle>
+            <CardDescription>Top 6 statuses; everything else folded into Other.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {startup.isLoading ? (
+              <Skeleton className="h-60 w-full" />
+            ) : startup.isError ? (
+              <ErrorState
+                error={startup.error}
+                onRetry={() => {
+                  void startup.refetch();
+                }}
+              />
+            ) : (
+              <FunnelBarChart data={startupSeries} />
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Connection requests</CardTitle>
-          <CardDescription>Pipeline counts by `conn_status`.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {conn.isLoading ? (
-            <Skeleton className="h-60 w-full" />
-          ) : conn.isError ? (
-            <ErrorState
-              error={conn.error}
-              onRetry={() => {
-                void conn.refetch();
-              }}
-            />
-          ) : (
-            <FunnelBarChart data={connSeries} />
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Connection requests</CardTitle>
+            <CardDescription>Pipeline counts by `conn_status`.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {conn.isLoading ? (
+              <Skeleton className="h-60 w-full" />
+            ) : conn.isError ? (
+              <ErrorState
+                error={conn.error}
+                onRetry={() => {
+                  void conn.refetch();
+                }}
+              />
+            ) : (
+              <FunnelBarChart data={connSeries} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </Suspense>
   );
 }
 
@@ -241,7 +261,9 @@ function MatchPane() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <MatchSuccessChart data={series} />
+        <Suspense fallback={<ChartSkeleton className="h-72 w-full" />}>
+          <MatchSuccessChart data={series} />
+        </Suspense>
       </CardContent>
     </Card>
   );

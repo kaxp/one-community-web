@@ -6,11 +6,14 @@ import { useAdminDigest } from './use-admin-digest';
 import { useDigestPending } from './use-digest-pending';
 import { useDigestApprove } from './use-digest-approve';
 import { useDigestSend } from './use-digest-send';
+import { useDigestGenerate } from './use-digest-generate';
+import { useDigestHistory } from './use-digest-history';
 import { qk } from '@/api/query-keys';
 import { useAuthStore } from '@/auth/auth-store';
 import { renderHookWithProviders } from '@/test/hook-utils';
 import {
   queueDigestApproveError,
+  queueDigestGenerateError,
   queueDigestSendError,
 } from '@/test/msw-fixtures/admin-digest-handlers';
 
@@ -150,5 +153,37 @@ describe('digest hooks', () => {
     result.current.mutate({ workflow_name: 'lp_weekly' });
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.code).toBe('conflict');
+  });
+
+  it('useDigestGenerate invalidates digest.pending on success (issues.md [I-10])', async () => {
+    signedInAsAdmin();
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useDigestGenerate(), { wrapper: makeWrapper(client) });
+    result.current.mutate({ segment: 'lp' });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.generated_count).toBe(3);
+    const calledKeys = invalidate.mock.calls.map(
+      (c) => (c[0] as { queryKey: readonly unknown[] } | undefined)?.queryKey,
+    );
+    expect(calledKeys).toContainEqual(qk.digest.pending);
+  });
+
+  it('useDigestGenerate surfaces ApiError on 5xx (issues.md [I-10])', async () => {
+    signedInAsAdmin();
+    queueDigestGenerateError({ status: 500, code: 'internal_error', message: 'boom' });
+    const { result } = renderHookWithProviders(() => useDigestGenerate());
+    result.current.mutate({ segment: 'lp' });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.code).toBe('internal_error');
+  });
+
+  it('useDigestHistory returns the seeded list (issues.md [I-11])', async () => {
+    signedInAsAdmin();
+    const { result } = renderHookWithProviders(() => useDigestHistory({ limit: 50 }));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(Array.isArray(result.current.data)).toBe(true);
   });
 });

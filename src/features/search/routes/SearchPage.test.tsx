@@ -129,9 +129,11 @@ describe('SearchPage (PRD §7.4.1)', () => {
     expect(
       within(grid).getAllByRole('button', { name: /request to connect/i }).length,
     ).toBeGreaterThan(0);
+    // Per issues.md [I-4], the "Upgrade for full access" button is gated behind
+    // VITE_PARTNER_UPGRADE_ENABLED. Default is false → the button must NOT render.
     expect(
-      within(grid).getAllByRole('button', { name: /upgrade for full access/i }).length,
-    ).toBeGreaterThan(0);
+      within(grid).queryByRole('button', { name: /upgrade for full access/i }),
+    ).not.toBeInTheDocument();
     // Withheld values are NOT rendered as text — they appear as locked placeholders.
     expect(within(grid).queryByText(/3 pilot banks/i)).not.toBeInTheDocument();
     expect(within(grid).queryByText(/Strong match on sector/i)).not.toBeInTheDocument();

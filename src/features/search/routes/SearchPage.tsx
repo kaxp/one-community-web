@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,17 +10,16 @@ import { SearchBar } from '@/features/search/components/SearchBar';
 import { FilterChips } from '@/features/search/components/FilterChips';
 import { ResultCard } from '@/features/search/components/ResultCard';
 import { useSearch } from '@/features/search/hooks/use-search';
+import { useSearchSubmit } from '@/features/search/hooks/use-search-submit';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import {
   filtersFromSearchParams,
   filtersToSearchParams,
   type SearchFilters,
 } from '@/features/search/schemas';
-import { searchUnified } from '@/api/endpoints';
-import { qk } from '@/api/query-keys';
-import type { ApiError } from '@/api/errors';
 import type { SearchResponse } from '@/features/search/schemas';
 import { useRole } from '@/auth/use-auth';
+import { isMaskedSearchRole } from '@/lib/role-capabilities';
 
 const DEBOUNCE_MS = 400;
 
@@ -30,12 +28,11 @@ export function SearchPage() {
   const [query, setQuery] = useState(params.get('q') ?? '');
   const filters = useMemo(() => filtersFromSearchParams(params), [params]);
   const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS);
-  const qc = useQueryClient();
   // Partners see Crunchbase-style locked cards (decisions.md [P-20] / [P-21]).
   // The backend strips fields from the response; the UI renders the full card
   // structure with blurred placeholders for the withheld values.
   const role = useRole();
-  const isMasked = role === 'partner';
+  const isMasked = isMaskedSearchRole(role);
 
   // Update the URL when the debounced query stabilises.
   useEffect(() => {
@@ -51,25 +48,9 @@ export function SearchPage() {
     enabled: debouncedQuery.trim().length > 0,
   });
 
-  // ExecutionPanel-style explicit submit: the user-visible "Search" button surfaces a
-  // mutation state that the panel can wire isPending to. The mutation simply forces a
-  // fresh fetch by populating the cache for the current key (so the form-submit flow
-  // is observable as a mutation per CLAUDE.md §6.7 even though /search itself is a
-  // useInfiniteQuery for pagination).
-  const submitMutation = useMutation<SearchResponse, ApiError, void>({
-    mutationFn: async () => {
-      const trimmed = query.trim();
-      if (trimmed.length === 0) {
-        throw new Error('Query is required');
-      }
-      const resp = await searchUnified({ query: trimmed, filters, limit: 20 });
-      qc.setQueryData(qk.search.query({ query: trimmed, filters }), {
-        pages: [resp],
-        pageParams: [null],
-      });
-      return resp;
-    },
-  });
+  // The explicit "Search" button surfaces a mutation state for `isPending`
+  // wiring; logic lives in `useSearchSubmit` per CLAUDE.md §15 / issues.md [I-8].
+  const submitMutation = useSearchSubmit({ query, filters });
 
   const onSubmit = () => {
     submitMutation.reset();

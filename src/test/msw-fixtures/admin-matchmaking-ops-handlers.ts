@@ -130,7 +130,10 @@ export const adminMatchmakingOpsHandlers: HttpHandler[] = [
       );
     }
     jobCounter += 1;
-    const job_id = `b4c5d6e7-${jobCounter.toString(16).padStart(8, '0')}-4a2b-9c4d-5e6f7a8b9c0d`;
+    // 8-4-4-4-12 UUID-v4 layout — second segment is 4 hex chars per spec.
+    // Was 8 hex chars, which Zod's `.uuid()` rejected (issues.md [I-10] surfaced
+    // this as a side-effect when use-match-generate gained its own unit test).
+    const job_id = `b4c5d6e7-${jobCounter.toString(16).padStart(4, '0')}-4a2b-9c4d-5e6f7a8b9c0d`;
     jobs.set(job_id, {
       job_id,
       state: 'PENDING',

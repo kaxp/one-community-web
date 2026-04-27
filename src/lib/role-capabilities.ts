@@ -55,6 +55,33 @@ export function can(role: UserRole | null | undefined, capability: Capability): 
   return (CAPABILITIES[capability] as readonly UserRole[]).includes(role);
 }
 
+// Display-mode predicates — use these for branching UI presentation, not for
+// security gating. `can()` remains the only sanctioned way to gate capabilities.
+// Centralising the role-set membership here keeps inline `role === 'xxx'` chains
+// out of feature code (CLAUDE.md §3.4).
+
+const STARTUP_ROLES: readonly UserRole[] = [
+  'startup_inprogress',
+  'startup_onboarded',
+  'startup_funded',
+];
+
+const LP_ROLES: readonly UserRole[] = ['lp', 'potential_lp'];
+
+const MASKED_SEARCH_ROLES: readonly UserRole[] = ['partner'];
+
+export function isStartupRole(role: UserRole | null | undefined): boolean {
+  return !!role && STARTUP_ROLES.includes(role);
+}
+
+export function isLpRole(role: UserRole | null | undefined): boolean {
+  return !!role && LP_ROLES.includes(role);
+}
+
+export function isMaskedSearchRole(role: UserRole | null | undefined): boolean {
+  return !!role && MASKED_SEARCH_ROLES.includes(role);
+}
+
 export interface NavItem {
   key: string;
   label: string;
@@ -169,6 +196,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Tracxn ingest',
     path: '/admin/tracxn',
     icon: 'Globe',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-partner-referral',
+    label: 'Partner referral',
+    path: '/admin/partner-referral',
+    icon: 'Megaphone',
     roles: ['admin', 'super_admin'],
   },
 ];

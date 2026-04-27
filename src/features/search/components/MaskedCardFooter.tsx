@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { can } from '@/lib/role-capabilities';
 import { useRole } from '@/auth/use-auth';
+import { env } from '@/lib/env';
 import { RequestConnectDialog } from '@/features/connections/components/RequestConnectDialog';
 
 interface Props {
@@ -30,7 +31,9 @@ export function MaskedCardFooter({ targetUserId, targetName }: Props) {
   };
 
   const onUpgrade = () => {
-    // TODO(monetisation): launch the partner upgrade flow when the product is ready.
+    // Reachable only when VITE_PARTNER_UPGRADE_ENABLED=true. The button itself
+    // is hidden behind the flag below so the placeholder toast is unreachable
+    // until the monetisation flow ships (issues.md [I-4]).
     toast.info('Partner upgrade coming soon — request a connection in the meantime.');
   };
 
@@ -52,10 +55,12 @@ export function MaskedCardFooter({ targetUserId, targetName }: Props) {
         <Button size="sm" onClick={onRequestConnect}>
           Request to connect
         </Button>
-        <Button size="sm" variant="outline" onClick={onUpgrade}>
-          <Sparkles className="h-3.5 w-3.5" aria-hidden />
-          <span>Upgrade for full access</span>
-        </Button>
+        {env.PARTNER_UPGRADE_ENABLED ? (
+          <Button size="sm" variant="outline" onClick={onUpgrade}>
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            <span>Upgrade for full access</span>
+          </Button>
+        ) : null}
       </div>
       <RequestConnectDialog
         open={open}

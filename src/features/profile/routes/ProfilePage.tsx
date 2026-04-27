@@ -8,7 +8,7 @@ import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { ApiError } from '@/api/errors';
 import { useRole } from '@/auth/use-auth';
-import { can } from '@/lib/role-capabilities';
+import { can, isLpRole, isMaskedSearchRole, isStartupRole } from '@/lib/role-capabilities';
 import { useLogInteraction } from '@/features/interactions/hooks/use-log-interaction';
 import { useProfile } from '@/features/profile/hooks/use-profile';
 import { profileTargetType, type ProfileView } from '@/features/profile/schemas';
@@ -24,7 +24,7 @@ export function ProfilePage() {
   const role = useRole();
   // Partner viewers see Crunchbase-style locked placeholders for fields the
   // backend strips (decisions.md [P-21]).
-  const isMasked = role === 'partner';
+  const isMasked = isMaskedSearchRole(role);
   const log = useLogInteraction();
 
   const query = useProfile(id);
@@ -127,17 +127,8 @@ function ProfileBody({
     profile.viewer_interaction.has_requested && !profile.viewer_interaction.has_connected;
   const showConnectedStatus = profile.viewer_interaction.has_connected;
 
-  const isStartupTarget = useMemo(
-    () =>
-      profile.role === 'startup_inprogress' ||
-      profile.role === 'startup_onboarded' ||
-      profile.role === 'startup_funded',
-    [profile.role],
-  );
-  const isLPTarget = useMemo(
-    () => profile.role === 'lp' || profile.role === 'potential_lp',
-    [profile.role],
-  );
+  const isStartupTarget = useMemo(() => isStartupRole(profile.role), [profile.role]);
+  const isLPTarget = useMemo(() => isLpRole(profile.role), [profile.role]);
 
   return (
     <div className="flex flex-col gap-6">

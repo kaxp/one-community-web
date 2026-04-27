@@ -10,6 +10,7 @@ interface ImportMetaEnv {
   readonly VITE_OCR_SERVER_ENABLED: string;
   readonly VITE_WHISPER_SERVER_ENABLED: string;
   readonly VITE_DOCUMENTS_UPLOAD_ENABLED: string;
+  readonly VITE_PARTNER_UPGRADE_ENABLED: string;
   readonly VITE_SENTRY_DSN: string;
 }
 

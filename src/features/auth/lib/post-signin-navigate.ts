@@ -1,5 +1,6 @@
 import type { UserRole } from '@/types/enums';
 import type { AuthMeResponse } from '@/features/auth/schemas';
+import { isLpRole } from '@/lib/role-capabilities';
 
 // Per decisions.md [P-18] (overrides PRD §10.2): every manual sign-in lands on
 // /dashboard, regardless of role. The role-based map below is reserved for
@@ -28,7 +29,7 @@ export function nextRouteForUser(me: Pick<AuthMeResponse, 'role' | 'profile_comp
 // LP + potential_lp are prompted (not forced) to fill the investment profile next.
 // All other roles continue into their workflow home.
 export function nextRouteAfterProfile(role: UserRole): string {
-  if (role === 'lp' || role === 'potential_lp') return '/onboarding/lp-profile';
+  if (isLpRole(role)) return '/onboarding/lp-profile';
   return POST_ONBOARDING_BY_ROLE[role];
 }
 

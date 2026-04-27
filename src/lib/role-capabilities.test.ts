@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { can, navForRole, NAV_ITEMS } from './role-capabilities';
+import {
+  can,
+  isLpRole,
+  isMaskedSearchRole,
+  isStartupRole,
+  NAV_ITEMS,
+  navForRole,
+} from './role-capabilities';
 
 describe('role-capabilities', () => {
   it('can("admin", "admin.any") is true', () => {
@@ -47,5 +54,38 @@ describe('role-capabilities', () => {
     for (const item of NAV_ITEMS) {
       expect(item.roles.length).toBeGreaterThan(0);
     }
+  });
+
+  it('NAV_ITEMS exposes /admin/partner-referral to admin + super_admin (I-7)', () => {
+    const item = NAV_ITEMS.find((i) => i.path === '/admin/partner-referral');
+    expect(item).toBeDefined();
+    expect(item?.roles).toEqual(['admin', 'super_admin']);
+  });
+
+  describe('display-mode predicates (I-3)', () => {
+    it('isStartupRole covers all three startup_* values', () => {
+      expect(isStartupRole('startup_inprogress')).toBe(true);
+      expect(isStartupRole('startup_onboarded')).toBe(true);
+      expect(isStartupRole('startup_funded')).toBe(true);
+      expect(isStartupRole('lp')).toBe(false);
+      expect(isStartupRole('partner')).toBe(false);
+      expect(isStartupRole(null)).toBe(false);
+      expect(isStartupRole(undefined)).toBe(false);
+    });
+
+    it('isLpRole covers lp + potential_lp', () => {
+      expect(isLpRole('lp')).toBe(true);
+      expect(isLpRole('potential_lp')).toBe(true);
+      expect(isLpRole('vc')).toBe(false);
+      expect(isLpRole('startup_funded')).toBe(false);
+      expect(isLpRole(null)).toBe(false);
+    });
+
+    it('isMaskedSearchRole returns true for partner only', () => {
+      expect(isMaskedSearchRole('partner')).toBe(true);
+      expect(isMaskedSearchRole('lp')).toBe(false);
+      expect(isMaskedSearchRole('admin')).toBe(false);
+      expect(isMaskedSearchRole(null)).toBe(false);
+    });
   });
 });

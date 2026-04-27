@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { zUUID, zE164 } from '@/lib/zod-helpers';
 import { zUserRole } from '@/features/auth/schemas';
 import { STARTUP_STAGES } from '@/features/onboarding/schemas';
+import { isStartupRole } from '@/lib/role-capabilities';
 
 // PRD §7.5.1 — `GET /profile/{id}`. Gap-flagged via VITE_PROFILE_V1_ENABLED (§13.2 G1).
 //
@@ -80,8 +81,5 @@ export const zProfileView = z.object({
 export type ProfileView = z.infer<typeof zProfileView>;
 
 export function profileTargetType(role: ProfileView['role']): 'lp' | 'startup' {
-  if (role === 'startup_inprogress' || role === 'startup_onboarded' || role === 'startup_funded') {
-    return 'startup';
-  }
-  return 'lp';
+  return isStartupRole(role) ? 'startup' : 'lp';
 }

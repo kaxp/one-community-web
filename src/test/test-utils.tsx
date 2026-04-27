@@ -24,4 +24,7 @@ export function renderWithProviders(ui: ReactElement, { route = '/', ...opts }: 
   return render(ui, { wrapper: Wrapper, ...opts });
 }
 
+// This file is loaded only inside Vitest (never by the Vite dev server), so the
+// react-refresh fast-refresh boundary rule does not apply (issues.md [I-5]).
+// eslint-disable-next-line react-refresh/only-export-components
 export * from '@testing-library/react';

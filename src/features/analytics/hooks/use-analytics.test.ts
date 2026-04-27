@@ -4,6 +4,9 @@ import { renderHookWithProviders } from '@/test/hook-utils';
 import { useAnalyticsOverview } from './use-analytics-overview';
 import { useAnalyticsCohort } from './use-analytics-cohort';
 import { useAnalyticsMatchSuccess } from './use-analytics-match-success';
+import { useAnalyticsFunnelLp } from './use-analytics-funnel-lp';
+import { useAnalyticsFunnelStartup } from './use-analytics-funnel-startup';
+import { useAnalyticsFunnelConnections } from './use-analytics-funnel-connections';
 import { useAuthStore } from '@/auth/auth-store';
 import { queueAnalyticsOverviewError } from '@/test/msw-fixtures/admin-analytics-handlers';
 
@@ -57,5 +60,26 @@ describe('analytics hooks', () => {
     const { result } = renderHookWithProviders(() => useAnalyticsOverview());
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.code).toBe('internal_error');
+  });
+
+  it('useAnalyticsFunnelLp returns the seeded items (issues.md [I-11])', async () => {
+    signedInAsAdmin();
+    const { result } = renderHookWithProviders(() => useAnalyticsFunnelLp());
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(Array.isArray(result.current.data?.items)).toBe(true);
+  });
+
+  it('useAnalyticsFunnelStartup returns the seeded items (issues.md [I-11])', async () => {
+    signedInAsAdmin();
+    const { result } = renderHookWithProviders(() => useAnalyticsFunnelStartup());
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(Array.isArray(result.current.data?.items)).toBe(true);
+  });
+
+  it('useAnalyticsFunnelConnections returns the seeded items (issues.md [I-11])', async () => {
+    signedInAsAdmin();
+    const { result } = renderHookWithProviders(() => useAnalyticsFunnelConnections());
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(Array.isArray(result.current.data?.items)).toBe(true);
   });
 });

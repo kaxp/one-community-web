@@ -14,6 +14,7 @@ const Schema = z.object({
   OCR_SERVER_ENABLED: truthy.default(false),
   WHISPER_SERVER_ENABLED: truthy.default(false),
   DOCUMENTS_UPLOAD_ENABLED: truthy.default(false),
+  PARTNER_UPGRADE_ENABLED: truthy.default(false),
   SENTRY_DSN: z.string().optional().default(''),
 });
 
@@ -27,6 +28,7 @@ const raw = {
   OCR_SERVER_ENABLED: import.meta.env.VITE_OCR_SERVER_ENABLED,
   WHISPER_SERVER_ENABLED: import.meta.env.VITE_WHISPER_SERVER_ENABLED,
   DOCUMENTS_UPLOAD_ENABLED: import.meta.env.VITE_DOCUMENTS_UPLOAD_ENABLED,
+  PARTNER_UPGRADE_ENABLED: import.meta.env.VITE_PARTNER_UPGRADE_ENABLED,
   SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
 };
 
