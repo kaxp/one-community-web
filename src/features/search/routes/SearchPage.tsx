@@ -69,6 +69,9 @@ export function SearchPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Visually-hidden page heading so the doc starts at h1 → CardTitle h2
+          flow without changing the existing card-only design (issues.md [A-4]). */}
+      <h1 className="sr-only">Search</h1>
       <Card>
         <CardHeader>
           <CardTitle>Search the community</CardTitle>

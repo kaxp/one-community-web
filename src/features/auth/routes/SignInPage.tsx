@@ -126,7 +126,9 @@ export function SignInPage() {
   const verifying = otpVerify.isPending || otpSend.isPending;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    // <main> landmark (issues.md [A-1]) — auth-walled routes inherit one from
+    // <AppShell>; SignInPage sits outside the shell so it owns its own.
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
           <BrandLogo size={40} />
@@ -231,6 +233,6 @@ export function SignInPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }

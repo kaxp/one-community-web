@@ -53,8 +53,11 @@ export function CompleteProfilePage() {
   };
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-background px-4 py-12">
+    // <main> landmark — onboarding sits outside <AppShell>. Visually-hidden h1
+    // gives AT users a clear page title without changing the design (issues.md [A-3]).
+    <main className="flex min-h-screen items-start justify-center bg-background px-4 py-12">
       <div className="w-full max-w-xl">
+        <h1 className="sr-only">Complete your profile</h1>
         <div className="mb-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <BrandLogo size={32} />
@@ -138,6 +141,6 @@ export function CompleteProfilePage() {
           )}
         />
       </div>
-    </div>
+    </main>
   );
 }

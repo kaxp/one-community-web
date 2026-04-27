@@ -22,9 +22,13 @@ export const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
 );
 CardHeader.displayName = 'CardHeader';
 
+// Default heading level is `<h2>` so `<h1>` page-titles flow naturally into
+// card-section headings without skipping a level (issues.md [A-2] / WCAG
+// 2.1 §1.3.1 + Lighthouse `heading-order`). The `text-xl` styling keeps the
+// visual identical to the previous h3 — semantics-only change.
 export const CardTitle = forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3
+    <h2
       ref={ref}
       className={cn(
         'text-xl font-semibold leading-none tracking-tight text-ink-heading',

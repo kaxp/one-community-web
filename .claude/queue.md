@@ -98,7 +98,7 @@ _Spot-check gate_
 
 - [x] **qa-report** — Opus in QA mode writes `.claude/issues.md § Active`. No code changes.
 - [x] **qa-fixes** — Opus fixes every non-deferred item from issues.md. Triages resolved vs archived.
-- [ ] **a11y-audit** — Lighthouse run + keyboard-nav smoke on top 10 screens. Fix score < 90.
+- [x] **a11y-audit** — Lighthouse run + keyboard-nav smoke on top 10 screens. Fix score < 90.
 - [ ] **bundle-size** — route-level `React.lazy()` for all admin routes. Initial chunk < 300KB gzip.
 - [ ] **playwright-smoke** — signin → search → request-connect → admin-approve → target-accept, end-to-end.
 
