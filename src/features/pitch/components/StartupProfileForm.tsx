@@ -42,6 +42,10 @@ export function StartupProfileForm({ initial }: Props) {
         revenue_model: initial?.revenue_model ?? '',
         traction: initial?.traction ?? '',
         ask_amount_cr: initial?.ask_amount_cr ?? undefined,
+        // Financial metrics — moved from MIS per decisions.md [P-23].
+        revenue_monthly: initial?.revenue_monthly ?? undefined,
+        burn_monthly: initial?.burn_monthly ?? undefined,
+        runway_months: initial?.runway_months ?? undefined,
       }}
       mutation={mutation}
       submitLabel={isCreate ? 'Create profile' : 'Save changes'}
@@ -172,6 +176,72 @@ export function StartupProfileForm({ initial }: Props) {
               {...register('traction')}
             />
           </FormField>
+
+          {/* Financial metrics — relocated from MIS per decisions.md [P-23].
+              The amounts are captured in INR rupees; UI helpers format them
+              with the Indian numbering system on read-only surfaces. */}
+          <fieldset
+            className="md:col-span-2 flex flex-col gap-3 rounded-lg border border-border bg-surface-muted/40 p-4"
+            data-testid="pitch-financial-metrics"
+          >
+            <legend className="px-1 text-sm font-semibold text-ink-heading">
+              Financial metrics
+            </legend>
+            <p className="text-xs text-ink-muted">
+              Operating numbers used for matchmaking and investor briefings. Update whenever they
+              change — admins see the latest values.
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <FormField
+                label="Monthly revenue (₹)"
+                htmlFor="pitch-revenue-monthly"
+                error={formState.errors.revenue_monthly?.message}
+                hint="Latest closed month"
+              >
+                <Input
+                  id="pitch-revenue-monthly"
+                  type="number"
+                  min={0}
+                  step="1"
+                  inputMode="numeric"
+                  placeholder="2500000"
+                  {...register('revenue_monthly', { valueAsNumber: true })}
+                />
+              </FormField>
+              <FormField
+                label="Monthly burn (₹)"
+                htmlFor="pitch-burn-monthly"
+                error={formState.errors.burn_monthly?.message}
+                hint="Net cash spent / month"
+              >
+                <Input
+                  id="pitch-burn-monthly"
+                  type="number"
+                  min={0}
+                  step="1"
+                  inputMode="numeric"
+                  placeholder="1500000"
+                  {...register('burn_monthly', { valueAsNumber: true })}
+                />
+              </FormField>
+              <FormField
+                label="Runway (months)"
+                htmlFor="pitch-runway-months"
+                error={formState.errors.runway_months?.message}
+                hint="Months until cash-out"
+              >
+                <Input
+                  id="pitch-runway-months"
+                  type="number"
+                  min={0}
+                  step="1"
+                  inputMode="numeric"
+                  placeholder="18"
+                  {...register('runway_months', { valueAsNumber: true })}
+                />
+              </FormField>
+            </div>
+          </fieldset>
         </div>
       )}
     />

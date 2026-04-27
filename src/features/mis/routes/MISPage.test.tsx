@@ -44,9 +44,9 @@ describe('MISPage (file-upload redesign, PRD §7.9)', () => {
     setMisMswScenario('already_submitted');
     renderPage();
     await waitFor(() =>
-      expect(screen.getByTestId('mis-already-submitted-banner')).toBeInTheDocument(),
+      expect(screen.getAllByText(/MIS-Apr-2026\.xlsx/i).length).toBeGreaterThan(0),
     );
-    expect(screen.getByText(/MIS-Apr-2026\.xlsx/i)).toBeInTheDocument();
+    expect(screen.getByTestId('mis-already-submitted-banner')).toBeInTheDocument();
   });
 
   it('renders loading skeleton while fetching', () => {
@@ -60,5 +60,34 @@ describe('MISPage (file-upload redesign, PRD §7.9)', () => {
     setMisMswScenario('error_500');
     renderPage();
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+  });
+
+  it('renders the upload form (period display, file dropzone, comment textarea)', async () => {
+    signedInStartup();
+    renderPage();
+    await waitFor(() => expect(screen.getByText(/Upload your MIS report/i)).toBeInTheDocument());
+    expect(screen.getByTestId('mis-period-display')).toHaveTextContent(/April 2026/i);
+    expect(screen.getByText(/Drop your MIS file/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Comment/i)).toBeInTheDocument();
+    // Submit button reads "Upload MIS" when no prior submission.
+    expect(screen.getByRole('button', { name: /Upload MIS/i })).toBeInTheDocument();
+  });
+
+  it('renders past submissions from /portfolio/mis/history', async () => {
+    signedInStartup();
+    renderPage();
+    const list = await screen.findByTestId('mis-history-list');
+    expect(list).toBeInTheDocument();
+    expect(screen.getByText(/March 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/MIS-Mar-2026\.xlsx/i)).toBeInTheDocument();
+  });
+
+  it('submit button label switches to "Replace MIS" when last_submission is present', async () => {
+    signedInStartup();
+    setMisMswScenario('already_submitted');
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Replace MIS/i })).toBeInTheDocument(),
+    );
   });
 });

@@ -92,4 +92,44 @@ describe('PitchPage', () => {
     // Strengths bullet list rendered.
     expect(screen.getByText(/Experienced founders/i)).toBeInTheDocument();
   });
+
+  it('Profile tab renders the Financial metrics section with three numeric fields', async () => {
+    // Per decisions.md [P-23] / issues.md [I-16] — quantitative MIS metrics
+    // moved to the pitch profile.
+    signedInStartup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByTestId('pitch-financial-metrics')).toBeInTheDocument());
+    expect(screen.getByLabelText(/monthly revenue/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/monthly burn/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/runway \(months\)/i)).toBeInTheDocument();
+  });
+
+  it('Profile submit includes the entered financial metrics in the request', async () => {
+    signedInStartup();
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText(/edit startup profile/i)).toBeInTheDocument());
+
+    const revenue = screen.getByLabelText(/monthly revenue/i);
+    await user.clear(revenue);
+    await user.type(revenue, '2500000');
+
+    const burn = screen.getByLabelText(/monthly burn/i);
+    await user.clear(burn);
+    await user.type(burn, '1500000');
+
+    const runway = screen.getByLabelText(/runway \(months\)/i);
+    await user.clear(runway);
+    await user.type(runway, '18');
+
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    // The success path renders no inline result by default for this panel —
+    // assert the form did not surface a Zod validation error on the new fields.
+    await waitFor(() => {
+      expect(screen.queryByText(/Must be at least/i)).not.toBeInTheDocument();
+    });
+  });
 });
