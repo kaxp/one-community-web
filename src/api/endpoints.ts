@@ -123,12 +123,11 @@ import {
 } from '@/features/pitch/schemas';
 import {
   zMISFormResponse,
-  zMISPrefillResponse,
-  zMISSubmitResponse,
+  zMISUploadResponse,
+  zMISHistoryResponse,
   type MISFormResponse,
-  type MISPrefillResponse,
-  type MISSubmitRequest,
-  type MISSubmitResponse,
+  type MISUploadResponse,
+  type MISHistoryResponse,
 } from '@/features/mis/schemas';
 import {
   zBookResponse,
@@ -416,31 +415,35 @@ export async function getDeckJob(jobId: string): Promise<DeckJobStatus> {
   return zDeckJobStatus.parse(unwrap(resp.data, url));
 }
 
-// PRD §7.9.1 — `GET /portfolio/mis` (current month form schema + prefill).
+// PRD §7.9.1 — `GET /portfolio/mis` (current period + last submission info).
 export async function getMisForm(): Promise<MISFormResponse> {
   const resp = await apiClient.get<ApiEnvelope<MISFormResponse>>('/portfolio/mis');
   return zMISFormResponse.parse(unwrap(resp.data, '/portfolio/mis'));
 }
 
-// PRD §7.9.3 — `GET /portfolio/mis/prefill` (last month's data). Admins must
-// pass `company_id`; non-admins resolve from JWT.
-export async function getMisPrefill(args?: {
-  companyId?: string | undefined;
-}): Promise<MISPrefillResponse> {
-  const params = new URLSearchParams();
-  if (args?.companyId) params.set('company_id', args.companyId);
-  const qs = params.toString();
-  const url = `/portfolio/mis/prefill${qs ? `?${qs}` : ''}`;
-  const resp = await apiClient.get<ApiEnvelope<MISPrefillResponse>>(url);
-  return zMISPrefillResponse.parse(unwrap(resp.data, url));
+// PRD §7.9.2 — `POST /portfolio/mis` — multipart file upload.
+// Use `buildMISFormData()` from mis/schemas to construct the FormData.
+// Axios detects FormData automatically and sets `Content-Type: multipart/form-data`
+// with the correct boundary — no explicit header override needed.
+export async function postMisUpload(formData: FormData): Promise<MISUploadResponse> {
+  const resp = await apiClient.post('/portfolio/mis', formData);
+  return zMISUploadResponse.parse(
+    unwrap(resp.data as ApiEnvelope<MISUploadResponse>, '/portfolio/mis'),
+  );
 }
 
-// PRD §7.9.2 — `POST /portfolio/mis`. UNIQUE(startup_id, period) enforced
-// → 409 mis_already_submitted. Body must already include the strict raw_data
-// (build via `buildMISRequest`).
-export async function postMisSubmit(body: MISSubmitRequest): Promise<MISSubmitResponse> {
-  const resp = await apiClient.post<ApiEnvelope<MISSubmitResponse>>('/portfolio/mis', body);
-  return zMISSubmitResponse.parse(unwrap(resp.data, '/portfolio/mis'));
+// PRD §7.9.3 — `GET /portfolio/mis/history` (past submissions).
+export async function getMisHistory(args?: {
+  companyId?: string | undefined;
+  limit?: number;
+}): Promise<MISHistoryResponse> {
+  const params = new URLSearchParams();
+  if (args?.companyId) params.set('company_id', args.companyId);
+  if (args?.limit) params.set('limit', String(args.limit));
+  const qs = params.toString();
+  const url = `/portfolio/mis/history${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<MISHistoryResponse>>(url);
+  return zMISHistoryResponse.parse(unwrap(resp.data, url));
 }
 
 // PRD §7.10.1 — `GET /schedule/slots`. Returns `data: Slot[]` (array IS the

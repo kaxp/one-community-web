@@ -2079,6 +2079,9 @@ Content-Type: application/json
 - `team_size` (int, optional) — ≥ 0.
 - `revenue_model`, `traction` (string, optional) — 1–1000 chars.
 - `ask_amount_cr` (number, optional) — INR crore, ≥ 0.
+- `revenue_monthly` (number, optional) — INR rupees; current monthly revenue. Moved from MIS per decisions.md [P-23].
+- `burn_monthly` (number, optional) — INR rupees; current monthly burn.
+- `runway_months` (number, optional) — months of runway at current burn rate, ≥ 0.
 
 **Success 200:**
 
@@ -2099,6 +2102,9 @@ Content-Type: application/json
     "revenue_model": "SaaS subscription",
     "traction": "3 pilot banks, ₹2Cr ARR",
     "ask_amount_cr": 10.0,
+    "revenue_monthly": 1800000,
+    "burn_monthly": 1400000,
+    "runway_months": 8.5,
     "notion_page_id": null
   },
   "error": null
@@ -2110,6 +2116,9 @@ Content-Type: application/json
 - `startup_id` always present.
 - `deck_url` — null until `POST /pitch/deck` succeeds.
 - `notion_page_id` — set async after Notion sync; may be null for minutes after creation.
+- `revenue_monthly`, `burn_monthly`, `runway_months` — nullable; represent current operating metrics. Moved from MIS per decisions.md [P-23].
+  - Display: `revenue_monthly` and `burn_monthly` in INR rupees (`₹ 18,00,000` style). `runway_months` as `"8.5 months"`.
+  - Transform: same as §8.12.2 — use `toLocaleString('en-IN')` with ₹ prefix for amounts.
 
 **Error 400 / 422 — validation_error:**
 
@@ -3985,9 +3994,11 @@ HTTP 409
 
 ## 7.9 Portfolio / MIS
 
+> **Redesigned 2026-04-27 (decisions.md [P-23]).** MIS is now a **file upload** — founders upload their existing MIS document (Excel/Tally/CSV/PDF). Financial operating metrics (`revenue_monthly`, `burn_monthly`, `runway_months`) have moved to the **pitch profile** (§7.3.1) and are no longer submitted through this endpoint.
+
 ### 7.9.1 `GET /portfolio/mis`
 
-**Purpose:** Render a pre-filled monthly MIS (Management Information System) form. The caller's startup is resolved from the JWT; admins can pass `company_id` on §7.9.3. Period is the current month by default.
+**Purpose:** Return the current period, company name, and last submission status. Frontend uses this to decide whether to show the "already submitted" banner.
 
 **Required roles:** `startup_funded`, `admin`, `super_admin`.
 
@@ -3999,34 +4010,21 @@ HTTP 409
 Authorization: Bearer <jwt>
 ```
 
-**Query parameters:** none (use §7.9.3 for prefill flavour).
-
 **Success 200:**
 
 ```json
 {
   "data": {
-    "period": "2026-04",
     "company_name": "Acme Technologies",
-    "startup_id": "3c9a1e00-1d12-4b56-9ab0-4d2c8b0f3a12",
-    "fields_schema": {
-      "revenue": { "unit": "INR", "required": true },
-      "burn": { "unit": "INR", "required": true },
-      "runway_months": { "unit": "months", "required": false },
-      "headcount": { "unit": "count", "required": false },
-      "highlights": { "max_length": 2000, "required": false },
-      "lowlights": { "max_length": 2000, "required": false }
-    },
-    "prefill": {
-      "revenue": 2000000,
-      "burn": 1500000,
-      "runway_months": 8,
-      "headcount": 12,
-      "highlights": "Closed Bank X as a pilot.",
-      "lowlights": "Churned Customer Y."
-    },
-    "already_submitted": false,
-    "last_submission_at": "2026-03-05T10:00:00Z"
+    "current_period": "2026-04",
+    "last_submission": {
+      "submission_id": "d4e5f6a7-...",
+      "period": "2026-04",
+      "file_url": "https://drive.google.com/file/d/abc/view",
+      "file_name": "MIS-Apr-2026.xlsx",
+      "comment": "Q1 final numbers",
+      "submitted_at": "2026-04-23T10:00:00Z"
+    }
   },
   "error": null
 }
@@ -4034,41 +4032,23 @@ Authorization: Bearer <jwt>
 
 **Response field rules:**
 
-- `prefill.*` may all be null (first-ever MIS).
-- `already_submitted` — true if this period already has a row (frontend should warn and show existing values).
-- `fields_schema` — hints; may be minimal. Treat as optional.
+- `last_submission` — null if no submission exists for `current_period`.
+- `last_submission.file_url` — Drive view URL (may be a stub URL like `https://drive.google.com/stub/...` when Drive credentials aren't configured in Phase 0–3).
+- `last_submission.comment` — nullable.
 
-**Error 401 / 429 / 500:** see §7.0.4.
-
-**Error 403 — insufficient_role:** see §7.0.4.
-
-**Error 404 — not_found (no startup profile):**
-
-```json
-HTTP 404
-{
-  "data": null,
-  "error": { "code": "not_found", "message": "No startup profile found for caller" }
-}
-```
+**Error 401 / 403 / 404 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
 
 1. `/mis` mount → `useQuery(qk.mis.form)`.
-2. Render `<MISForm />` with prefill values.
-3. If `already_submitted=true` → banner "You already submitted for {period} — editing will overwrite (admin only)".
-4. On 404 → redirect `/pitch` "Create startup profile first".
-
-**Data transformation notes:**
-
-- Amounts are in INR rupees (not crore). Display as `₹ 20,00,000` with Indian numbering.
-- `highlights`/`lowlights` are free-text; render in multi-line textareas.
+2. If `last_submission !== null` → show banner "MIS for {current_period} already submitted on {submitted_at}. Upload a revised file to replace."
+3. On 404 (no startup profile) → redirect to `/pitch` with message "Create your pitch profile first".
 
 ---
 
 ### 7.9.2 `POST /portfolio/mis`
 
-**Purpose:** Submit a new MIS row for one period. UNIQUE(startup_id, period) enforced.
+**Purpose:** Upload an MIS document for the current period. Stored in the startup's Google Drive folder. UNIQUE(startup_id, period) enforced — uploading again replaces the existing record.
 
 **Required roles:** `startup_funded`, `admin`, `super_admin`.
 
@@ -4078,39 +4058,20 @@ HTTP 404
 
 ```
 Authorization: Bearer <jwt>
-Content-Type: application/json
+Content-Type: multipart/form-data
 ```
 
-**Request body:**
+**Request body — `multipart/form-data`:**
 
-```json
-{
-  "period": "2026-04",
-  "revenue": 2100000,
-  "burn": 1600000,
-  "runway_months": 7,
-  "headcount": 14,
-  "highlights": "Hired 2 engineers.",
-  "lowlights": "Revenue dipped slightly due to churn.",
-  "raw_data": {
-    "revenue_inr": "2100000.00",
-    "burn_inr": "1600000.00",
-    "headcount": 14,
-    "runway_months": 7.0,
-    "highlights": "Hired 2 engineers.",
-    "lowlights": "Revenue dipped slightly due to churn."
-  }
-}
-```
+| Field     | Type                | Required | Notes                                        |
+| --------- | ------------------- | -------- | -------------------------------------------- |
+| `file`    | binary (UploadFile) | ✅       | Excel / Tally export / CSV / PDF. Max 20 MB. |
+| `period`  | text                | ✅       | `YYYY-MM` — e.g. `2026-04`.                  |
+| `comment` | text                | ❌       | Optional founder note accompanying the file. |
 
-**Request field rules:**
+**Allowed MIME types:** `application/vnd.ms-excel`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `text/csv`, `application/pdf`, `application/octet-stream` (generic fallback for Tally exports).
 
-- `period` (string, required) — `YYYY-MM` with month 01–12. Regex `^\d{4}-(0[1-9]|1[0-2])$`.
-- `revenue`, `burn` (number, optional) — INR rupees, ≥ 0. Nullable → treat as "not reported".
-- `runway_months` (int, optional) — ≥ 0.
-- `headcount` (int, optional) — ≥ 0.
-- `highlights`, `lowlights` (string, optional) — ≤ 2000 chars.
-- `raw_data` (object, optional, strict) — EXTRA KEYS REJECTED. Only these six keys allowed: `revenue_inr` (Decimal string), `burn_inr` (Decimal string), `headcount` (int), `runway_months` (float), `highlights` (string ≤ 2000), `lowlights` (string ≤ 2000).
+**NOTE:** This is `multipart/form-data`, NOT JSON. Use `FormData` with `apiClient.post('/portfolio/mis', formData)` — do NOT set `Content-Type` manually (axios sets the boundary automatically).
 
 **Success 200:**
 
@@ -4120,45 +4081,53 @@ Content-Type: application/json
     "submission_id": "d4e5f6a7-8b9c-0d1e-2f3a-4b5c6d7e8f90",
     "period": "2026-04",
     "startup_id": "3c9a1e00-1d12-4b56-9ab0-4d2c8b0f3a12",
-    "submitted_at": "2026-04-23T15:45:00Z"
+    "file_url": "https://drive.google.com/file/d/1abcDEF/view",
+    "file_name": "MIS-Apr-2026.xlsx",
+    "submitted_at": "2026-04-27T15:45:00Z"
   },
   "error": null
 }
 ```
 
-**Error 400 / 422 — validation_error (bad period):**
+**Error 422 — invalid period:**
 
 ```json
 HTTP 422
 {
   "data": null,
-  "error": {
-    "code": "validation_error",
-    "message": "Validation failed",
-    "detail": [
-      { "loc": ["body","period"], "msg": "string does not match regex \"^\\d{4}-(0[1-9]|1[0-2])$\"", "type": "value_error.str.regex" }
-    ]
-  }
+  "error": { "code": "validation_error", "message": "period must be YYYY-MM (e.g. 2026-04)" }
 }
 ```
 
-**Error 400 — validation_error (forbidden raw_data key):**
+**Error 422 — missing file:**
 
 ```json
 HTTP 422
 {
   "data": null,
-  "error": {
-    "code": "validation_error",
-    "message": "Validation failed",
-    "detail": [
-      { "loc": ["body","raw_data","secret_field"], "msg": "extra fields not permitted", "type": "value_error.extra" }
-    ]
-  }
+  "error": { "code": "validation_error", "message": "file is required. Upload an Excel, CSV, or PDF MIS report." }
 }
 ```
 
-**Error 401 / 403 / 429 / 500:** see §7.0.4.
+**Error 422 — unsupported mime type:**
+
+```json
+HTTP 422
+{
+  "data": null,
+  "error": { "code": "validation_error", "message": "Unsupported file type 'image/png'. Allowed: Excel, CSV, PDF, or generic binary." }
+}
+```
+
+**Error 422 — file too large:**
+
+```json
+HTTP 422
+{
+  "data": null,
+  "error": { "code": "validation_error", "message": "File too large (21504 KB). Max 20 MB." }
+}
+```
 
 **Error 409 — mis_already_submitted:**
 
@@ -4168,31 +4137,43 @@ HTTP 409
   "data": null,
   "error": {
     "code": "mis_already_submitted",
-    "message": "MIS for this period was already submitted",
-    "detail": { "existing_submission_id": "d4e5f6a7-...", "period": "2026-04" }
+    "message": "MIS already submitted for this period",
+    "detail": { "period": "2026-04" }
   }
 }
 ```
 
+**Error 401 / 403 / 404 / 429 / 500:** see §7.0.4.
+
 **UI flow:**
 
-1. User fills `<MISForm />`, submits.
-2. React Hook Form + Zod validate — especially `period` regex and `raw_data` strict keys.
-3. `POST /portfolio/mis`.
-4. On 200 → toast "Submitted for {period}"; invalidate `qk.mis.form`; navigate to dashboard.
-5. On 409 → show "Already submitted — contact admin to override"; keep form state.
-6. On 422 raw_data → display "Unknown field in raw_data" + highlight.
+1. User opens `/mis` → `<FileDropzone accept={xlsx/csv/pdf}>` + period display (current month, read-only) + optional comment textarea.
+2. On file selection, show filename + size. Enable "Upload MIS" button.
+3. On submit, build `FormData`:
+   ```ts
+   const fd = new FormData();
+   fd.append('file', file);
+   fd.append('period', currentPeriod); // 'YYYY-MM'
+   if (comment) fd.append('comment', comment);
+   ```
+4. `POST /portfolio/mis` with `FormData` — axios strips `Content-Type` JSON header automatically.
+5. On 200 → toast "MIS uploaded for {period}"; invalidate `qk.mis.form` + `qk.admin.summary`.
+6. On 409 → banner "Already uploaded — re-upload to replace" + keep UI (admins may upload revised file).
+7. On 422 mime → highlight dropzone red with "This file type isn't supported. Try an Excel or CSV export from Tally."
+8. On 422 size → "File is too large. Max 20 MB."
 
 **Data transformation notes:**
 
-- Build `raw_data` from top-level fields — don't let the user type it directly. Convert numbers to Decimal strings for INR amounts (e.g. `revenue.toFixed(2)`).
-- After success, refetch `qk.mis.form` (now shows `already_submitted=true`) and `qk.admin.summary` (admin's `mis_status` list).
+- Client-side Zod schema validates `period` regex + file presence + file size before submit.
+- `file_url` in the response is a Drive view URL (or a stub in Phase 0–3 when Drive isn't configured). Render as a clickable link with `target="_blank" rel="noopener noreferrer"`.
+- Financial metrics (`revenue_monthly`, `burn_monthly`, `runway_months`) are **not** part of this form. They live in `POST /pitch/profile` and appear on the Pitch page.
+- After success, the `/mis` GET endpoint will return `last_submission` with the new row.
 
 ---
 
-### 7.9.3 `GET /portfolio/mis/prefill`
+### 7.9.3 `GET /portfolio/mis/history`
 
-**Purpose:** Fetch last month's MIS values (not current month's) to pre-populate the form. Admins may pass `company_id` to prefill for any portfolio company; non-admins resolve from JWT.
+**Purpose:** Paginated list of past MIS submissions for a startup (file URL + filename + comment + period). Admins can query any startup via `company_id`; non-admins see their own.
 
 **Required roles:** `startup_funded`, `admin`, `super_admin`.
 
@@ -4206,76 +4187,47 @@ Authorization: Bearer <jwt>
 
 **Query parameters:**
 
-- `company_id` (UUID, optional for non-admins; REQUIRED for admins).
+- `company_id` (UUID, REQUIRED for admins; ignored for non-admins).
+- `limit` (int, optional, 1–60, default 12).
 
 **Success 200:**
 
 ```json
 {
   "data": {
-    "period": "2026-03",
-    "company_name": "Acme Technologies",
-    "prefill": {
-      "revenue": 2000000,
-      "burn": 1500000,
-      "runway_months": 8,
-      "headcount": 12,
-      "highlights": "Closed Bank X as a pilot.",
-      "lowlights": "Churned Customer Y."
-    }
+    "items": [
+      {
+        "submission_id": "d4e5f6a7-...",
+        "period": "2026-04",
+        "file_url": "https://drive.google.com/file/d/abc/view",
+        "file_name": "MIS-Apr-2026.xlsx",
+        "comment": "Q1 final numbers",
+        "submitted_at": "2026-04-27T15:45:00Z"
+      }
+    ]
   },
   "error": null
 }
 ```
 
-**Success 200 — no previous submission:**
+**Response field rules:**
 
-```json
-{
-  "data": {
-    "period": "2026-03",
-    "company_name": "Acme Technologies",
-    "prefill": null
-  },
-  "error": null
-}
-```
+- `file_url` and `file_name` nullable (rows created before the file-upload redesign may have neither).
+- `comment` nullable.
+- Sorted newest-first.
 
-**Error 400 — validation_error (admin missing company_id):**
-
-```json
-HTTP 400
-{
-  "data": null,
-  "error": {
-    "code": "validation_error",
-    "message": "company_id required for admin",
-    "detail": []
-  }
-}
-```
-
-**Error 401 / 403 / 429 / 500:** see §7.0.4.
-
-**Error 404 — not_found (company does not exist or caller has no startup):**
-
-```json
-HTTP 404
-{
-  "data": null,
-  "error": { "code": "not_found", "message": "No startup profile found" }
-}
-```
+**Error 400 / 401 / 403 / 404 / 429 / 500:** see §7.0.4.
 
 **UI flow:**
 
-1. Admin opens `/admin/mis/<company_id>` → `GET /portfolio/mis/prefill?company_id=...`.
-2. Non-admin founder: hook called automatically alongside §7.9.1.
-3. Render prefill if present; else show empty form.
+1. `/mis` page bottom section → `GET /portfolio/mis/history` for the past-uploads list.
+2. Render each row as: period badge + filename chip + optional comment + Download/View link.
+3. Empty state: "No MIS reports uploaded yet."
 
 **Data transformation notes:**
 
-- `prefill: null` is a valid success — treat as "no prior month data".
+- Period `YYYY-MM` → display as `format(parse(x, 'yyyy-MM', new Date()), 'LLLL yyyy')` e.g. "April 2026".
+- `file_url` link opens in new tab with `rel="noopener noreferrer"`.
 
 ---
 

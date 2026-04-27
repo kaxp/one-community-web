@@ -59,6 +59,10 @@ export const zStartupProfileRequest = z
     revenue_model: optionalString(1000),
     traction: optionalString(1000),
     ask_amount_cr: optionalPositiveNumber(0),
+    // Financial metrics — moved from MIS (decisions.md [P-23])
+    revenue_monthly: optionalPositiveNumber(0), // INR rupees
+    burn_monthly: optionalPositiveNumber(0), // INR rupees
+    runway_months: optionalPositiveNumber(0), // months
   })
   .strict();
 export type StartupProfileRequest = z.infer<typeof zStartupProfileRequest>;
@@ -80,6 +84,10 @@ export const zStartupProfileResponse = z.object({
   traction: z.string().nullable().optional(),
   ask_amount_cr: z.number().nullable().optional(),
   notion_page_id: z.string().nullable().optional(),
+  // Financial metrics — moved from MIS (decisions.md [P-23])
+  revenue_monthly: z.number().nonnegative().nullable().optional(),
+  burn_monthly: z.number().nonnegative().nullable().optional(),
+  runway_months: z.number().nonnegative().nullable().optional(),
 });
 export type StartupProfileResponse = z.infer<typeof zStartupProfileResponse>;
 

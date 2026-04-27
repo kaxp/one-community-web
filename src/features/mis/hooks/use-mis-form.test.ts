@@ -3,7 +3,7 @@ import { waitFor } from '@testing-library/react';
 import { renderHookWithProviders } from '@/test/hook-utils';
 import { useMisForm } from './use-mis-form';
 import { useAuthStore } from '@/auth/auth-store';
-import { queueMisFormError, setMswMisAlreadySubmitted } from '@/test/msw-fixtures/mis-handlers';
+import { setMisMswScenario } from '@/test/msw-fixtures/mis-handlers';
 
 function signedInStartup() {
   useAuthStore.getState().setSession({
@@ -21,28 +21,28 @@ function signedInStartup() {
   });
 }
 
-describe('useMisForm', () => {
-  it('resolves with the seed fixture when the period is fresh', async () => {
+describe('useMisForm (PRD §7.9.1 — file-upload redesign)', () => {
+  it('resolves with company name + current period when no prior submission', async () => {
     signedInStartup();
     const { result } = renderHookWithProviders(() => useMisForm());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.period).toBe('2026-04');
-    expect(result.current.data?.already_submitted).toBe(false);
-    expect(result.current.data?.prefill?.revenue).toBe(2000000);
+    expect(result.current.data?.current_period).toBe('2026-04');
+    expect(result.current.data?.company_name).toBe('Acme Technologies');
+    expect(result.current.data?.last_submission).toBeNull();
   });
 
-  it('reports already_submitted with last_submission_at when set', async () => {
+  it('includes last_submission when already uploaded', async () => {
     signedInStartup();
-    setMswMisAlreadySubmitted('2026-04-23T15:45:00.000Z');
+    setMisMswScenario('already_submitted');
     const { result } = renderHookWithProviders(() => useMisForm());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.already_submitted).toBe(true);
-    expect(result.current.data?.last_submission_at).toBe('2026-04-23T15:45:00.000Z');
+    expect(result.current.data?.last_submission?.file_name).toBe('MIS-Apr-2026.xlsx');
+    expect(result.current.data?.last_submission?.period).toBe('2026-04');
   });
 
-  it('surfaces a 500 error as ApiError', async () => {
+  it('surfaces a 500 as ApiError', async () => {
     signedInStartup();
-    queueMisFormError({ status: 500, code: 'internal_error', message: 'boom' });
+    setMisMswScenario('error_500');
     const { result } = renderHookWithProviders(() => useMisForm());
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.code).toBe('internal_error');

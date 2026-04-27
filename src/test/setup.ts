@@ -7,7 +7,7 @@ import { resetMswAdminState } from './msw-fixtures/admin-handlers';
 import { resetMswProfileState } from './msw-fixtures/profile-handlers';
 import { resetMswConnectionsState } from './msw-fixtures/connections-handlers';
 import { resetMswPitchState } from './msw-fixtures/pitch-handlers';
-import { resetMswMisState } from './msw-fixtures/mis-handlers';
+import { resetMisMswState } from './msw-fixtures/mis-handlers';
 import { resetMswScheduleState } from './msw-fixtures/schedule-handlers';
 import { resetMswTravelState } from './msw-fixtures/travel-handlers';
 import { resetMswMatchmakingState } from './msw-fixtures/matchmaking-handlers';
@@ -34,7 +34,7 @@ afterEach(() => {
   resetMswAdminState();
   resetMswConnectionsState();
   resetMswPitchState();
-  resetMswMisState();
+  resetMisMswState();
   resetMswScheduleState();
   resetMswTravelState();
   resetMswMatchmakingState();

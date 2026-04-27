@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { renderHookWithProviders } from '@/test/hook-utils';
-import { useSubmitMis } from './use-submit-mis';
+import { useUploadMis } from './use-submit-mis';
 import { useAuthStore } from '@/auth/auth-store';
-import { queueMisSubmitError, setMswMisAlreadySubmitted } from '@/test/msw-fixtures/mis-handlers';
+import { setMisUploadMswScenario } from '@/test/msw-fixtures/mis-handlers';
+import { buildMISFormData } from '@/features/mis/schemas';
 
 function signedInStartup() {
   useAuthStore.getState().setSession({
@@ -21,43 +22,37 @@ function signedInStartup() {
   });
 }
 
-describe('useSubmitMis', () => {
-  it('submits successfully and returns the submission ack', async () => {
+function makeFormData(filename = 'MIS.xlsx') {
+  const file = new File(['data'], filename, { type: 'text/csv' });
+  return buildMISFormData({ period: '2026-04', comment: 'Note' }, file);
+}
+
+describe('useUploadMis (PRD §7.9.2)', () => {
+  it('returns upload ack on success', async () => {
     signedInStartup();
-    const { result } = renderHookWithProviders(() => useSubmitMis('2026-04'));
-    result.current.mutate({
-      revenue: 2100000,
-      burn: 1600000,
-      runway_months: 7,
-      headcount: 14,
-      highlights: 'Hired 2 engineers.',
-      lowlights: 'Revenue dipped slightly.',
-    });
+    const { result } = renderHookWithProviders(() => useUploadMis());
+    result.current.mutate(makeFormData());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.period).toBe('2026-04');
-    expect(result.current.data?.submission_id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(result.current.data?.file_name).toBe('MIS-Apr-2026.xlsx');
+    expect(result.current.data?.file_url).toMatch(/drive\.google\.com/);
   });
 
   it('surfaces 409 mis_already_submitted as ApiError', async () => {
     signedInStartup();
-    setMswMisAlreadySubmitted('2026-04-01T00:00:00.000Z');
-    const { result } = renderHookWithProviders(() => useSubmitMis('2026-04'));
-    result.current.mutate({ revenue: 100, burn: 50 });
+    setMisUploadMswScenario('conflict_409');
+    const { result } = renderHookWithProviders(() => useUploadMis());
+    result.current.mutate(makeFormData());
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.code).toBe('mis_already_submitted');
     expect(result.current.error?.status).toBe(409);
   });
 
-  it('surfaces 422 validation_error (e.g. extra raw_data key) as ApiError', async () => {
+  it('surfaces 422 bad mime as ApiError', async () => {
     signedInStartup();
-    queueMisSubmitError({
-      status: 422,
-      code: 'validation_error',
-      message: 'Validation failed',
-      detail: [{ loc: ['body', 'raw_data', 'secret_field'], msg: 'extra fields not permitted' }],
-    });
-    const { result } = renderHookWithProviders(() => useSubmitMis('2026-04'));
-    result.current.mutate({ revenue: 100 });
+    setMisUploadMswScenario('bad_mime_422');
+    const { result } = renderHookWithProviders(() => useUploadMis());
+    result.current.mutate(makeFormData('photo.png'));
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.code).toBe('validation_error');
   });

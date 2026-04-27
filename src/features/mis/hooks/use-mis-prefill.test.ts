@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { renderHookWithProviders } from '@/test/hook-utils';
-import { useMisPrefill } from './use-mis-prefill';
+import { useMisHistory } from './use-mis-prefill';
 import { useAuthStore } from '@/auth/auth-store';
-import { queueMisPrefillError, setMswMisPrefillFixture } from '@/test/msw-fixtures/mis-handlers';
 
 function signedInStartup() {
   useAuthStore.getState().setSession({
@@ -21,32 +20,14 @@ function signedInStartup() {
   });
 }
 
-describe('useMisPrefill', () => {
-  it('returns last-month prefill when present', async () => {
+describe('useMisHistory (PRD §7.9.3)', () => {
+  it('returns paginated history items', async () => {
     signedInStartup();
-    const { result } = renderHookWithProviders(() => useMisPrefill());
+    const { result } = renderHookWithProviders(() => useMisHistory());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.period).toBe('2026-03');
-    expect(result.current.data?.prefill?.revenue).toBe(2000000);
-  });
-
-  it('handles prefill=null (no prior submission)', async () => {
-    signedInStartup();
-    setMswMisPrefillFixture({ prefill: null });
-    const { result } = renderHookWithProviders(() => useMisPrefill());
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.prefill).toBeNull();
-  });
-
-  it('surfaces a 404 error as ApiError', async () => {
-    signedInStartup();
-    queueMisPrefillError({
-      status: 404,
-      code: 'not_found',
-      message: 'No startup profile found',
-    });
-    const { result } = renderHookWithProviders(() => useMisPrefill());
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.error?.code).toBe('not_found');
+    const items = result.current.data?.items ?? [];
+    expect(items.length).toBeGreaterThan(0);
+    expect(items[0]).toHaveProperty('period');
+    expect(items[0]).toHaveProperty('file_name');
   });
 });

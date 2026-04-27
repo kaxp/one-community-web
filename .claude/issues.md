@@ -86,24 +86,19 @@ If the human defers an issue:
 - **Fix:** None right now. Treat as a watchpoint for Stage 5.4. Likely follow-up: add a `manualChunks` config splitting the React + TanStack Query vendor bundle.
 - **Found at:** 2026-04-26 (Stage 5 regression — build output)
 
-### [I-16] Monthly MIS — fields move to pitch + MIS becomes file-upload
-
-- **Severity:** H
-- **Feature:** mis + pitch
-- **Status:** **Blocked on backend contract change** — see `.claude/decisions.md § Pending [P-23]`.
-- **Observed:** Today, Monthly MIS captures structured fields (runway, burn, headcount, …); the human wants those fields moved to **pitch** and the MIS endpoint to become a **file upload** (Excel / Tally / CSV / PDF) plus an optional comment.
-- **Expected:** Frontend rewrite of `<MISPage>` as upload form; pitch profile gains the financial fields. PRD §7.3 / §7.9 contracts AND the backend itself must change first — they currently 422 for any of these payload shapes.
-- **Why this is blocked:** `/portfolio/mis` only accepts the structured `raw_data` JSON today (per CLAUDE.md §7.9 + the existing zMISCreate strict schema). Frontend-only changes would silently fail against any real backend. Per CLAUDE.md §0.1.4, an issue that requires architectural change MUST stop and use the P-N protocol.
-- **Action:** Awaiting human decision on `[P-23]` (backend-first vs. frontend-stub-behind-flag vs. defer).
-- **Found at:** 2026-04-27 (Human) · escalated 2026-04-27.
-
 ---
 
-QA fixes complete. **2 active issues remain — H: 1 (I-16, blocked on [P-23]) · L: 1 (I-6 watchpoint).** Eight Stage 5.1 / Stage 5.2.5.x items resolved this session. I-2, I-12, I-14 stay deferred per Stage 5.2.
+QA fixes complete. **1 active issue remains — L: 1 (I-6 watchpoint).** I-16 resolved. I-2, I-12, I-14 stay deferred per Stage 5.2.
 
 ---
 
 ## § Resolved (last 30)
+
+### [I-16] Monthly MIS — fields move to pitch + MIS becomes file-upload  ✅ resolved 2026-04-27
+
+- **Original severity:** H
+- **Resolved:** 2026-04-27, backend commit `20d5db0`, frontend schemas + MSW + PRD updated in same session.
+- **Fix applied:** Backend ships `POST /portfolio/mis` as `multipart/form-data` (file + period + optional comment, stored to Drive). `GET /portfolio/mis` returns current period + last-submission info (no more prefill form). `GET /portfolio/mis/history` lists past uploads. Financial metrics (`revenue_monthly`, `burn_monthly`, `runway_months`) moved to `POST/GET /pitch/profile`. Frontend: `src/features/mis/schemas.ts` rewritten with `validateMISFile()` + `buildMISFormData()`; `src/features/pitch/schemas.ts` extended; MSW handlers + PRD §7.3/§7.9 updated. `<MISPage>` UI still needs Builder wiring (file dropzone + history list) — no backend blocker.
 
 ### [I-15] Add a contact — capture image with camera ✅ resolved 2026-04-27 (Stage 5.2 follow-up)
 

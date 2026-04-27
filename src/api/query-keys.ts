@@ -41,6 +41,8 @@ export const qk = {
   mis: {
     all: ['mis'] as const,
     form: ['mis', 'form'] as const,
+    history: ['mis', 'history'] as const,
+    /** @deprecated use history */
     prefill: ['mis', 'prefill'] as const,
   },
   meetings: {
