@@ -23,6 +23,10 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Stage 5.5 — Playwright specs live in `e2e/` and use the
+    // `@playwright/test` runner, not vitest. Exclude them so `pnpm test`
+    // stays focused on unit + component tests.
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     env: {
       VITE_API_BASE_URL: 'http://localhost:8000/api/v1',
       VITE_APP_ENV: 'development',

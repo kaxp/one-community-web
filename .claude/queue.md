@@ -100,7 +100,7 @@ _Spot-check gate_
 - [x] **qa-fixes** — Opus fixes every non-deferred item from issues.md. Triages resolved vs archived.
 - [x] **a11y-audit** — Lighthouse run + keyboard-nav smoke on top 10 screens. Fix score < 90.
 - [x] **bundle-size** — route-level `React.lazy()` for all admin routes. Initial chunk < 300KB gzip.
-- [ ] **playwright-smoke** — signin → search → request-connect → admin-approve → target-accept, end-to-end.
+- [x] **playwright-smoke** — signin → search → request-connect → admin-approve → target-accept, end-to-end.
 
 > Gate after Stage 5: tag `v1.0` and push.
 
