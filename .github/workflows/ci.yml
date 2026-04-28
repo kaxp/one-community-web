@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [master]
+    branches: [master, development] # gate PRs into both protected branches
   push:
-    branches: [master]
+    branches: [master, development] # run CI on both long-lived branches
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
