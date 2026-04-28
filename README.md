@@ -31,19 +31,19 @@ In development with `DEV_OTP_BYPASS=true` on the backend, use OTP `000000` for a
 
 ## Scripts
 
-| Command | Purpose |
-|---|---|
-| `pnpm dev` | Start Vite dev server (HMR) |
-| `pnpm build` | Type-check + production build to `dist/` |
-| `pnpm preview` | Serve the production build locally |
-| `pnpm lint` | ESLint across the repo |
-| `pnpm lint:fix` | ESLint + autofix |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm format` | Prettier write |
-| `pnpm test` | Run Vitest once |
-| `pnpm test:watch` | Vitest watch mode |
-| `pnpm test:ui` | Vitest UI |
-| `pnpm e2e` | Playwright smoke tests |
+| Command           | Purpose                                  |
+| ----------------- | ---------------------------------------- |
+| `pnpm dev`        | Start Vite dev server (HMR)              |
+| `pnpm build`      | Type-check + production build to `dist/` |
+| `pnpm preview`    | Serve the production build locally       |
+| `pnpm lint`       | ESLint across the repo                   |
+| `pnpm lint:fix`   | ESLint + autofix                         |
+| `pnpm typecheck`  | `tsc --noEmit`                           |
+| `pnpm format`     | Prettier write                           |
+| `pnpm test`       | Run Vitest once                          |
+| `pnpm test:watch` | Vitest watch mode                        |
+| `pnpm test:ui`    | Vitest UI                                |
+| `pnpm e2e`        | Playwright smoke tests                   |
 
 Before every commit husky runs `pnpm lint-staged` and blocks on failure. Do not use `--no-verify`.
 
@@ -97,22 +97,24 @@ Feature folders are strictly self-contained: `components/`, `hooks/`, `routes/`,
 
 This repo is built by a single Claude Opus 4.7 instance using the protocol in [`CLAUDE.md`](./CLAUDE.md) §0.1. Coordination state lives in [`.claude/`](./.claude/):
 
-| File | Role |
-|---|---|
-| `.claude/decisions.md` | Living decisions log + pending human-input queue |
-| `.claude/queue.md` | Feature build queue (tick boxes as features complete) |
-| `.claude/session.md` | "Where I stopped" snapshot (overwritten each session end) |
-| `.claude/issues.md` | QA-found code issues |
-| `.claude/settings.json` | Claude Code hooks (auto-lint on edit, auto-test on stop) |
+| File                    | Role                                                      |
+| ----------------------- | --------------------------------------------------------- |
+| `.claude/decisions.md`  | Living decisions log + pending human-input queue          |
+| `.claude/queue.md`      | Feature build queue (tick boxes as features complete)     |
+| `.claude/session.md`    | "Where I stopped" snapshot (overwritten each session end) |
+| `.claude/issues.md`     | QA-found code issues                                      |
+| `.claude/settings.json` | Claude Code hooks (auto-lint on edit, auto-test on stop)  |
 
 All `.claude/*` files are **committed to git** — they're the institutional memory across sessions.
 
 If you're a human collaborator who needs to contribute manually:
+
 1. Read `CLAUDE.md` (rules) and `docs/frontend_prd.md` (API contracts + data models).
 2. Follow the Definition of Done in `CLAUDE.md §10`.
 3. Run `pnpm lint && pnpm typecheck && pnpm test && pnpm build` — all must pass.
 
 If you're a Claude agent resuming this build:
+
 - Read `docs/plan.md` for the stage-by-stage workflow.
 - Session startup / shutdown protocols are in `CLAUDE.md §0.1.2` and `§0.1.3`.
 
@@ -128,16 +130,58 @@ Mock Service Worker handles backend calls in tests and — when `VITE_MSW_ENABLE
 
 ---
 
-## Deployment
+## Deployment (Vercel)
 
-Static assets built by `pnpm build` deploy to Vercel / Netlify / any static host. CI runs install → lint → typecheck → test → build on every PR (see `.github/workflows/`).
+The app is hosted on Vercel as a static Vite SPA. `vercel.json` rewrites all paths to `index.html` so React Router handles client-side navigation.
 
-Production build:
-- `VITE_APP_ENV=production`
-- Source maps hidden (not inline)
-- Debug dock tree-shaken out
-- All `VITE_OTP_BYPASS_HINT=false`
-- Sentry on (if DSN configured)
+### First-time setup on Vercel
+
+1. **Push `vercel.json`** to `master` before importing the project (already committed).
+2. In the Vercel "New Project" wizard set:
+   - **Build Command** (override ON): `pnpm run build`
+   - **Install Command** (override ON): `pnpm install --frozen-lockfile`
+   - **Output Directory**: leave default (`dist`)
+3. Under **Environment Variables**, click **Import .env** and paste the contents of `.env.production` (fill in `VITE_API_BASE_URL` with the real backend URL first — the placeholder `YOUR_BACKEND_DOMAIN` will not work).
+4. Click **Deploy**.
+
+### Redeploying after a code change
+
+Vercel redeploys automatically on every push to `master`. Nothing extra to do — just:
+
+```bash
+git push origin master
+```
+
+Watch the build at `vercel.com/dashboard` → project → **Deployments** tab.
+
+### Redeploying after an environment variable change
+
+1. Go to Vercel dashboard → project → **Settings** → **Environment Variables**.
+2. Edit or add the variable.
+3. Trigger a new deployment: **Deployments** tab → latest deployment → **Redeploy** (three-dot menu) — a redeploy is required for env changes to take effect.
+
+### Preview deployments (PRs)
+
+Every branch pushed to GitHub automatically gets a preview URL at `<branch>-one-community-web.vercel.app`. Use these for testing before merging to `master`.
+
+### Flipping a backend gap flag
+
+When the backend ships a new endpoint (e.g. `POST /profile/{id}`), set its flag to `true` in Vercel env vars and redeploy:
+
+| Flag                                 | Endpoint it unlocks       |
+| ------------------------------------ | ------------------------- |
+| `VITE_PROFILE_V1_ENABLED=true`       | `GET /profile/{id}`       |
+| `VITE_OCR_SERVER_ENABLED=true`       | `POST /ocr`               |
+| `VITE_WHISPER_SERVER_ENABLED=true`   | `POST /pitch/transcribe`  |
+| `VITE_DOCUMENTS_UPLOAD_ENABLED=true` | `POST /documents/upload`  |
+| `VITE_PARTNER_UPGRADE_ENABLED=true`  | Partner monetisation flow |
+
+### Production build flags
+
+- `VITE_APP_ENV=production` — hides source maps, enables Sentry
+- `VITE_OTP_BYPASS_HINT=false` — never shows the "000000 works" dev banner
+- `VITE_MSW_ENABLED=false` — disables Mock Service Worker
+- `VITE_DEBUG_PANEL=false` — debug dock tree-shaken from bundle
 
 ---
 
