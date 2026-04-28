@@ -109,6 +109,17 @@ const OTP_BYPASS = '000000';
 export async function signin(page: Page, role: SeedRole): Promise<SeedUser> {
   const seed = SEED_USERS[role];
   await page.goto('/signin');
+
+  // Wait for the MSW service worker to become the active controller BEFORE
+  // interacting with the page. Without this, fast CI runners can fire the
+  // "Send OTP" request before the SW has registered — the request hits the
+  // non-existent localhost:8000 backend and the OTP step never renders.
+  // The check is lightweight and resolves in < 1 s on a warm browser.
+  await page.waitForFunction(
+    () => navigator.serviceWorker && navigator.serviceWorker.controller !== null,
+    { timeout: 30_000 },
+  );
+
   await page.locator('#signin-phone').waitFor({ state: 'visible' });
   await page.locator('#signin-phone').fill(seed.phone);
   await page.getByRole('button', { name: /send otp/i }).click();
@@ -124,7 +135,9 @@ export async function signin(page: Page, role: SeedRole): Promise<SeedUser> {
     await otpCells.nth(i).fill(OTP_BYPASS[i]!);
   }
   // Per [P-18] every signed-in user lands on /dashboard.
-  await page.waitForURL('**/dashboard', { timeout: 15_000 });
+  // No explicit timeout — inherits page.navigationTimeout from playwright.config.ts
+  // (30 s local / 60 s CI).
+  await page.waitForURL('**/dashboard');
   return seed;
 }
 
