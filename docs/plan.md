@@ -1265,6 +1265,407 @@ git push --tags
 
 ---
 
+## Stage 6 — Role-based page corrections (post-v1.0, added 2026-04-28)
+
+**Goal.** The current build leaks admin into user-facing nav: an admin user sees "Suggestions / Connections / Pending / My pitch / MIS / Who viewed me / Documents / My digest" which are all participant flows. Admin is not a participant — admin is the operator. Stage 6 splits the nav cleanly and replaces the admin-side participant pages with admin-flavoured operator views.
+
+**Backend dependency.** Some sub-tasks require new backend endpoints from Phase 7 (`one-community-1` repo, `CLAUDE.md § Phase 7`). Each prompt below explicitly flags whether it ships nav-only or waits on backend.
+
+**Reference for every prompt below.**
+
+- File touched by all sub-tasks: `src/lib/role-capabilities.ts` (NAV_ITEMS array)
+- Layout files (read-only for context): `src/components/layout/Sidebar.tsx`, `src/components/layout/NavList.tsx`, `src/components/layout/MobileNavDrawer.tsx`
+- All new admin routes go under `src/features/admin/routes/<RouteName>.tsx`
+- All new admin routes must: use `<RoleGuard>` wrapper, lazy-import per CLAUDE.md §6.4 [P-19], add MSW fixtures + tests
+- Gate at end of every sub-task: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all green
+
+### 6.1 — Session 1: Hide admin from user-facing participant nav
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 1: nav-only corrections to remove admin from participant flows.
+
+PRD context to load:
+- frontend_prd.md §10 (Role-based routing & access)
+- frontend_prd.md §10.2 (Per-role landing routes)
+
+Read for context:
+- src/lib/role-capabilities.ts — NAV_ITEMS array, CAPABILITIES map
+- src/components/layout/NavList.tsx — uses navForRole() helper
+- src/auth/use-auth.ts — useRole() hook
+
+Implementation:
+
+1. In src/lib/role-capabilities.ts, edit the following NAV_ITEMS entries to REMOVE 'admin' and 'super_admin' from their `roles` array:
+
+   - 'matchmaking' (Suggestions): admin should not see — they have /admin/matchmaking
+       Before: ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin']
+       After:  ['lp', 'potential_lp', 'vc', 'startup_funded']
+
+   - 'connections' (Connections): admin does not connect; they triage via /admin/connections
+       Before: roles: ['*']
+       After:  roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor']
+       (i.e. every role except admin / super_admin)
+
+   - 'pending' (Pending): same logic as connections
+       Before: roles: ['*']
+       After:  same explicit list as connections above
+
+   - 'viewers' (Who viewed me): admin profile is not visible to others
+       Before: roles: ['*']
+       After:  roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor']
+
+   - 'digest' (My digest): admin does not subscribe to digests; they review at /admin/digest
+       Before: roles: ['*']
+       After:  roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor']
+
+2. Also tighten the CAPABILITIES map at the top of the same file:
+
+   - 'matchmaking.respond': remove 'admin', 'super_admin'
+       Before: ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin']
+       After:  ['lp', 'potential_lp', 'vc', 'startup_funded']
+
+   - 'connections.request': remove 'admin', 'super_admin' (admin does not initiate connection requests)
+   - 'connections.respond': remove 'admin', 'super_admin' (admin does not respond to connection invites; they approve/reject in the queue)
+
+3. Do NOT touch:
+   - 'search.use' — admin DOES use search (to look up startups during digest review).
+   - 'admin.any', 'analytics.view', 'tracxn.ingest', 'connections.approve', 'matchmaking.approve' — admin-only, keep as is.
+   - 'card_scan.use' — admin uses card scan to add LPs from events.
+
+4. Update tests:
+   - src/lib/role-capabilities.test.ts: add explicit assertions that admin role does NOT see Suggestions / Connections / Pending / Who viewed me / My digest in navForRole('admin').
+   - src/lib/role-capabilities.test.ts: add explicit assertion that admin retains Search, Add contact, Schedule, Travel, Dashboard.
+
+5. Run all four gates. Verify no broken routes — admin's existing /admin/* nav items must still work.
+
+Outputs: one PR-sized commit `feat(nav): remove admin from participant nav items`.
+```
+
+### 6.2 — Session 2: Replace admin "My pitch" with `/admin/pitches/inbound`
+
+**Backend dependency.** Requires Phase 7.2.f endpoint (`GET /admin/pitches/inbound`) — currently being built. Do NOT start this sub-task until backend confirms the endpoint is live in dev.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 2: replace the admin "My pitch" link with /admin/pitches/inbound.
+
+BLOCKED IF: backend has not shipped GET /admin/pitches/inbound yet. Check by:
+  curl -H "Authorization: Bearer <admin token>" http://localhost:8000/api/v1/admin/pitches/inbound?range=weekly
+If 404, append a P-N entry to .claude/decisions.md and stop.
+
+PRD context to load:
+- frontend_prd.md §7.X (TBD — backend will assign §7.12.X for /admin/pitches/inbound)
+- One-community-1/CLAUDE.md §Phase 7.2.f for backend contract
+
+Read for pattern reference:
+- src/features/admin/routes/AdminQuarterlyReportsPage.tsx — paginated admin list with filters (closest existing pattern)
+- src/features/search/components/FilterChips.tsx — URL-backed filter state
+- src/api/admin/quarterly-reports.ts — endpoint client + Zod schema pattern
+
+Implementation:
+
+1. In src/lib/role-capabilities.ts:
+   - Remove 'admin', 'super_admin' from the 'pitch' NAV_ITEM roles array. After this, only the 3 startup roles see "My pitch".
+       Before: ['startup_inprogress', 'startup_onboarded', 'startup_funded', 'admin', 'super_admin']
+       After:  ['startup_inprogress', 'startup_onboarded', 'startup_funded']
+   - Add a new admin NAV_ITEM right after 'admin-home':
+       { key: 'admin-pitches', label: 'Inbound pitches', path: '/admin/pitches/inbound', icon: 'FileSearch', roles: ['admin', 'super_admin'] }
+
+2. Add the API client at src/api/admin/pitches.ts:
+   - getAdminInboundPitches({ range: 'weekly'|'monthly'|'yearly', cursor?: string })
+   - Zod schema with .passthrough() per §13 G8
+   - Returns { items: InboundPitch[], next_cursor: string | null }
+   - InboundPitch fields per backend §Phase 7.2.f: id, company_name, founder_name, sector, stage, signal, ai_pitch_summary, financial_health, key_risks, notion_page_id, drive_folder_id, created_at
+
+3. Build src/features/admin/routes/AdminInboundPitchesPage.tsx:
+   - URL-backed range filter (weekly default)
+   - DataTable: Company | Founder | Sector | Stage | Signal (badge: green/amber/red) | Submitted | Actions
+   - Action buttons per row: "View Notion" (opens notion_page_id), "Open Drive" (opens drive_folder_id), "Full evaluation" (drawer with all v3 fields rendered)
+   - Cursor pagination
+   - Empty state: "No inbound pitches in this range"
+   - Lazy-import per [P-19], RoleGuard {admin, super_admin}
+
+4. Wire the route in src/app/router.tsx under the admin section.
+
+5. Tests:
+   - MSW fixture src/test/msw-fixtures/admin-pitches-handlers.ts with happy path + empty + 500
+   - Component test covering range filter URL sync + render + empty state
+   - Update queue.md: mark new feature [admin-inbound-pitches] as in progress → done
+
+6. All four gates green.
+
+Outputs: commit `feat(admin): inbound pitches list page replacing My pitch link`.
+```
+
+### 6.3 — Session 3: Replace admin "MIS" with `/admin/mis-overview`
+
+**Backend dependency.** Needs new endpoint `GET /admin/mis-overview?range=monthly|quarterly`. **Append a P-N to `.claude/decisions.md`** describing this new endpoint contract — it does NOT exist yet on backend. Do not implement until backend confirms.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 3: replace admin "MIS" upload with /admin/mis-overview.
+
+BLOCKED IF: backend has not shipped GET /admin/mis-overview yet.
+First action: append the following to .claude/decisions.md § Pending if not already present:
+
+  ### [P-XX] Admin MIS overview endpoint
+  - Feature: stage-6-admin-mis-overview
+  - Blocking: yes
+  - Added: <today>
+  - Context: Admin currently sees the startup-side /mis upload form, which makes
+    no sense (admin does not submit MIS). Stage 6 needs an admin-side aggregate
+    view: list of all MIS submissions across all funded startups, monthly filter,
+    open file in new tab.
+  - Question: Backend confirm contract for GET /admin/mis-overview?range=monthly
+    (cursor-paginated, returns { items, next_cursor }, item shape: { startup_id,
+    company_name, period_yyyy_mm, drive_url, submitted_at, comment, extracted_metrics })
+  - My recommendation: build it as a thin wrapper over the existing mis_repo +
+    a new repo method list_all_with_company.
+
+Once resolved, follow steps below.
+
+Read for pattern reference:
+- src/features/admin/routes/AdminQuarterlyReportsPage.tsx — same shape (admin paginated list)
+- src/api/admin/quarterly-reports.ts — endpoint pattern
+
+Implementation:
+
+1. In src/lib/role-capabilities.ts:
+   - Remove 'admin', 'super_admin' from 'mis' NAV_ITEM roles
+       Before: ['startup_funded', 'admin', 'super_admin']
+       After:  ['startup_funded']
+   - Add new admin NAV_ITEM after 'admin-pitches':
+       { key: 'admin-mis', label: 'MIS overview', path: '/admin/mis-overview', icon: 'BarChart3', roles: ['admin', 'super_admin'] }
+
+2. Add API client src/api/admin/mis.ts (per §13 G8 Zod .passthrough()).
+
+3. Build src/features/admin/routes/AdminMISOverviewPage.tsx:
+   - Monthly filter (defaults to current month, IST)
+   - DataTable: Company | Period | Submitted | Drive link | Revenue | Burn | Runway | Comment
+   - Drive link opens in new tab
+   - "Open Drive" + "Open Notion" actions per row
+   - Empty state for months with zero submissions
+   - Lazy-import + RoleGuard
+
+4. Tests + gates as Stage 6.2.
+
+Outputs: commit `feat(admin): MIS overview list page replacing MIS upload link`.
+```
+
+### 6.4 — Session 4: Documents page — clarify and gate
+
+**Decision needed.** The Documents page is currently a "coming soon in Phase 4" placeholder for everyone. The human asked "what is this for?" — append a `P-N` to `decisions.md` to confirm the product intent.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 4: resolve Documents page intent + role-correct.
+
+First action: append to .claude/decisions.md § Pending:
+
+  ### [P-XX] Documents page — purpose and audience
+  - Feature: stage-6-documents-clarify
+  - Blocking: yes
+  - Added: <today>
+  - Context: /documents currently renders a Phase-4 "coming soon" placeholder for
+    every role. The page advertises itself as "a shared vault for pitch decks,
+    term sheets, and portfolio reporting." For Stage 6 we need to decide:
+    (a) keep visible to everyone (current behaviour) and ship a real backend in Phase 4
+    (b) hide from admin (admin already accesses files via Notion+Drive directly)
+        and keep visible only to startup_funded + LP/VC roles for Phase-4 launch
+    (c) hide from EVERY role until Phase 4 ships — remove the nav item entirely
+  - Question: Which option? And if (a) or (b), what is the *actual* user story —
+    e.g. is this where LPs review term sheets they signed? Where startups upload
+    quarterly reports for LPs to read? The PRD section is ambiguous.
+  - My recommendation: (b) — admin gets files via Notion + Drive; user roles see
+    the placeholder until Phase 4 backend ships POST /documents/upload + GET
+    /documents per frontend_prd.md §13 G3.
+
+Once resolved:
+
+(a) Keep visible to everyone — no code change to NAV_ITEMS, just confirm the
+    placeholder copy is accurate and exit cleanly.
+
+(b) Hide from admin only — in src/lib/role-capabilities.ts, change:
+    Before: { key: 'documents', ..., roles: ['*'] }
+    After:  roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress',
+                    'startup_onboarded', 'startup_funded', 'partner', 'advisor']
+
+(c) Hide everywhere — comment out the entry in NAV_ITEMS with `// re-enable in Phase 4`
+    AND keep the route registered (so a deep-link from an old email still works,
+    rendering the existing "Coming soon" page).
+
+Update src/lib/role-capabilities.test.ts to assert the chosen behaviour.
+
+Run all four gates.
+```
+
+### 6.5 — Session 5: Schedule page — admin sees calendar, not booking form
+
+**Backend dependency.** Needs `GET /admin/schedule/calendar?from=YYYY-MM-DD&days=N` returning all admin's confirmed bookings across all users. The existing `/schedule/bookings` endpoint already returns the caller's own bookings; admin's caller-id is the operator account, so this might already work — verify before assuming new endpoint is needed.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 5: split /schedule into per-role views.
+
+First action: verify whether GET /schedule/bookings (existing) returns ALL
+bookings when called by an admin user, or only bookings where admin is the
+organizer. Run:
+
+  curl -H "Authorization: Bearer <admin token>" \
+    http://localhost:8000/api/v1/schedule/bookings?from=2026-04-28&days=14
+
+If response includes bookings where admin is neither organizer nor target,
+proceed with option A. Otherwise append P-N for option B.
+
+Read for pattern reference:
+- src/features/schedule/routes/SchedulePage.tsx — existing booking flow
+- src/features/schedule/components/CalendarGrid.tsx
+- frontend_prd.md §7.10.1–7.10.4
+
+Implementation:
+
+For ALL roles (no nav change to 'schedule' — keep roles: ['*']):
+- The /schedule route ALREADY works for non-admin roles — keep their flow as-is.
+- Inside src/features/schedule/routes/SchedulePage.tsx, branch on role:
+
+    const role = useRole();
+    if (role === 'admin' || role === 'super_admin') {
+      return <AdminCalendarView />;
+    }
+    return <ParticipantBookingView />;  // existing flow
+
+- Build src/features/schedule/components/AdminCalendarView.tsx:
+  • Header: "Calendar — all upcoming meetings"
+  • 7-day calendar grid (re-use CalendarGrid in read-only mode)
+  • Each tile shows: time, organizer name, target name, duration, status badge
+  • No "Book this slot" button (admin does not book)
+  • Date range navigator: prev week / this week / next week
+  • Hook: useAdminBookings(from, days) — calls /schedule/bookings (option A)
+    OR /admin/schedule/calendar (option B)
+
+- Build src/features/schedule/components/ParticipantBookingView.tsx by extracting
+  the existing flow from SchedulePage.tsx (no behaviour change, just relocation).
+
+Tests:
+- MSW fixture for admin role returning 5 bookings across 3 days
+- Snapshot test: admin sees AdminCalendarView, lp sees ParticipantBookingView
+- Existing tests for booking flow must still pass for non-admin
+
+All four gates green.
+
+Outputs: commit `feat(schedule): admin sees read-only calendar; participants book as before`.
+```
+
+### 6.6 — Session 6: Dashboard — role-specific home
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 6: replace placeholder Dashboard with role-specific home.
+
+PRD context to load:
+- frontend_prd.md §10.2 (per-role landing routes — note: admin already lands at /admin)
+- §7.12.1 — GET /admin/summary
+- §7.13.5 — GET /me/digest/recent (LP view)
+- §7.6.4 — GET /connections (count for KPI)
+- §7.7.3 — GET /interactions/profile-viewers (count)
+
+Read for pattern reference:
+- src/features/admin/routes/AdminHomePage.tsx — KPI cards pattern (re-use)
+- src/components/ui/Card.tsx, Badge.tsx
+
+Current behaviour: src/features/dashboard/routes/DashboardPage.tsx renders
+hardcoded demo cards (Card / Button / Badge samples). Replace.
+
+Implementation:
+
+src/features/dashboard/routes/DashboardPage.tsx becomes a router:
+
+  const role = useRole();
+  switch (role) {
+    case 'admin':
+    case 'super_admin':
+      return <AdminDashboard />;        // KPI cards: pending connections, MIS due,
+                                        // pending digests, recent inbound pitches.
+                                        // Re-uses /admin/summary; basically a slim
+                                        // version of AdminHomePage.
+    case 'lp':
+    case 'potential_lp':
+      return <LPDashboard />;           // 3 cards: latest digest, new matches,
+                                        // upcoming meetings. Buttons to drill in.
+    case 'vc':
+      return <VCDashboard />;           // 3 cards: new matches, recent searches,
+                                        // upcoming meetings.
+    case 'startup_inprogress':
+    case 'startup_onboarded':
+      return <StartupOnboardingDashboard />;
+                                        // 1 card: "Complete your profile" with
+                                        // checklist (deck uploaded, profile filled,
+                                        // sector tagged) + a primary CTA per gap.
+    case 'startup_funded':
+      return <StartupFundedDashboard />;
+                                        // 4 cards: pitch evaluation status, MIS
+                                        // submission status, new connection requests,
+                                        // upcoming meetings.
+    case 'partner':
+      return <PartnerDashboard />;      // 2 cards: referral count, recent referrals.
+    case 'advisor':
+      return <AdvisorDashboard />;      // empty for now (no advisor backend); render
+                                        // "Welcome — your advisor flows ship in a
+                                        // future release."
+    default:
+      return <Navigate to="/signin" />;
+  }
+
+For each sub-component:
+- File: src/features/dashboard/components/<Name>.tsx
+- Reuse existing API hooks where possible (no new endpoints)
+- All sub-components must be lazy-loaded if any of their hooks fetch heavy data
+
+Tests:
+- Snapshot per role
+- Empty-state coverage for each (e.g. LP with zero digests)
+
+All four gates green.
+
+Outputs: commit `feat(dashboard): role-specific home replacing demo cards`.
+```
+
+### 6.7 — Session 7: Closing checks + queue.md update
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 7: close out + tag.
+
+1. Update .claude/queue.md to add Stage 6 section under Stage 5:
+
+   ## Stage 6 — Role-based page corrections (Opus: 6 sessions, post-v1.0)
+   - [x] **stage-6.1-nav-cleanup** — remove admin from participant nav items
+   - [x] **stage-6.2-admin-pitches** — /admin/pitches/inbound list
+   - [x] **stage-6.3-admin-mis** — /admin/mis-overview list
+   - [~] **stage-6.4-documents** — gated on P-XX decision
+   - [x] **stage-6.5-schedule-split** — admin sees calendar, others book
+   - [x] **stage-6.6-dashboard-roles** — role-specific home
+
+2. Run a Playwright smoke as 4 different roles (admin / lp / startup_funded /
+   partner) and verify the sidebar items match the expected list per role.
+
+3. Tag v1.1-roles-corrected and push.
+
+All four gates green; tests must include explicit role-isolation cases.
+```
+
+> Gate after Stage 6: human verifies sidebar visibly differs per role on the staging build. Tag `v1.1-roles-corrected`.
+
+---
+
 ## Time budget summary
 
 | Stage                                           | Your time              | Opus sessions       |
