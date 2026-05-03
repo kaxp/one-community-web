@@ -77,6 +77,9 @@ export const qk = {
       ['admin', 'dlq', args] as const,
     dlqAll: ['admin', 'dlq'] as const,
     lpFunnel: (userId: string) => ['admin', 'lp-funnel', userId] as const,
+    inboundPitchesAll: ['admin', 'inbound-pitches'] as const,
+    inboundPitches: (range: string) => ['admin', 'inbound-pitches', { range }] as const,
+    inboundPitchDetail: (id: string) => ['admin', 'inbound-pitches', 'detail', id] as const,
   },
   digest: {
     pending: ['digest', 'pending'] as const,

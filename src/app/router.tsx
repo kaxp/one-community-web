@@ -107,6 +107,11 @@ const AdminPartnerReferralPage = lazy(() =>
     default: m.AdminPartnerReferralPage,
   })),
 );
+const AdminInboundPitchesPage = lazy(() =>
+  import('@/features/admin/routes/AdminInboundPitchesPage').then((m) => ({
+    default: m.AdminInboundPitchesPage,
+  })),
+);
 const AdminTracxnPage = lazy(() =>
   import('@/features/enrichment/routes/AdminTracxnPage').then((m) => ({
     default: m.AdminTracxnPage,
@@ -197,16 +202,11 @@ export const router = createBrowserRouter(
                   ],
                 },
                 {
-                  // PRD §7.3 — pitch is gated to startup roles + admin / super_admin.
+                  // PRD §7.3 — pitch is gated to startup roles only.
+                  // Admins see inbound pitches at /admin/pitches/inbound (Stage 6 S2).
                   element: (
                     <RoleGuard
-                      roles={[
-                        'startup_inprogress',
-                        'startup_onboarded',
-                        'startup_funded',
-                        'admin',
-                        'super_admin',
-                      ]}
+                      roles={['startup_inprogress', 'startup_onboarded', 'startup_funded']}
                     />
                   ),
                   children: [
@@ -425,6 +425,15 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminPartnerReferralPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // Phase 7.2.f — inbound pitches list + drawer.
+                      path: '/admin/pitches/inbound',
+                      element: (
+                        <Susp>
+                          <AdminInboundPitchesPage />
                         </Susp>
                       ),
                     },
