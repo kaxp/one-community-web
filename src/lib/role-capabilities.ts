@@ -141,7 +141,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'My pitch',
     path: '/pitch',
     icon: 'FileText',
-    roles: ['startup_inprogress', 'startup_onboarded', 'startup_funded', 'admin', 'super_admin'],
+    roles: ['startup_inprogress', 'startup_onboarded', 'startup_funded'],
   },
   {
     key: 'mis',
@@ -190,6 +190,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Admin home',
     path: '/admin',
     icon: 'LayoutDashboard',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-pitches',
+    label: 'Inbound pitches',
+    path: '/admin/pitches/inbound',
+    icon: 'FileSearch',
     roles: ['admin', 'super_admin'],
   },
   {

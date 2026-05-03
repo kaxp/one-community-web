@@ -62,6 +62,30 @@ describe('role-capabilities', () => {
     expect(item?.roles).toEqual(['admin', 'super_admin']);
   });
 
+  describe('admin nav — pitch replaced by admin-pitches (Stage 6 S2)', () => {
+    it('admin does NOT see My pitch in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).not.toContain('pitch');
+    });
+
+    it('admin sees admin-pitches (Inbound pitches) in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).toContain('admin-pitches');
+    });
+
+    it('startup_funded sees My pitch but NOT admin-pitches', () => {
+      const keys = navForRole('startup_funded').map((i) => i.key);
+      expect(keys).toContain('pitch');
+      expect(keys).not.toContain('admin-pitches');
+    });
+
+    it('admin-pitches nav item has correct path and roles', () => {
+      const item = NAV_ITEMS.find((i) => i.key === 'admin-pitches');
+      expect(item?.path).toBe('/admin/pitches/inbound');
+      expect(item?.roles).toEqual(['admin', 'super_admin']);
+    });
+  });
+
   describe('admin nav exclusions — participant flows removed (Stage 6 S1)', () => {
     it('admin does NOT see Suggestions / Connections / Pending / Who viewed me / My digest', () => {
       const keys = navForRole('admin').map((i) => i.key);

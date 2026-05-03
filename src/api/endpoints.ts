@@ -40,6 +40,8 @@ import {
   zDeadLetterJobsResponse,
   zDeadLetterRetryResponse,
   zFunnelStatusResponse,
+  zInboundPitchDetail,
+  zInboundPitchesResponse,
   zPartnerReferralResponse,
   zQuarterlyReportApproveResponse,
   zQuarterlyReportsResponse,
@@ -53,6 +55,9 @@ import {
   type DLQRetryStatus,
   type FunnelStatusRequest,
   type FunnelStatusResponse,
+  type InboundPitchDetail,
+  type InboundPitchRange,
+  type InboundPitchesResponse,
   type PartnerReferralRequest,
   type PartnerReferralResponse,
   type QuarterlyReportApproveRequest,
@@ -810,4 +815,27 @@ export async function updateMyDigestPreferences(
     payload,
   );
   return zMyDigestPreferences.parse(unwrap(resp.data, '/me/digest/preferences'));
+}
+
+// Phase 7.2.f — `GET /admin/pitches/inbound`.
+export async function getAdminInboundPitches(args: {
+  range: InboundPitchRange;
+  cursor?: string;
+  limit?: number;
+}): Promise<InboundPitchesResponse> {
+  const params = new URLSearchParams({ range: args.range });
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.cursor) params.set('cursor', args.cursor);
+  const url = `/admin/pitches/inbound?${params.toString()}`;
+  const resp = await apiClient.get<ApiEnvelope<InboundPitchesResponse>>(url);
+  return zInboundPitchesResponse.parse(unwrap(resp.data, url));
+}
+
+// Phase 7.2.f — `GET /admin/pitches/{startup_id}`.
+// 404 when startup_id doesn't exist or isn't inbound (source_channel not in
+// {web_form, email}). The detail endpoint scopes strictly to inbound rows.
+export async function getAdminInboundPitchDetail(startupId: string): Promise<InboundPitchDetail> {
+  const url = `/admin/pitches/${startupId}`;
+  const resp = await apiClient.get<ApiEnvelope<InboundPitchDetail>>(url);
+  return zInboundPitchDetail.parse(unwrap(resp.data, url));
 }
