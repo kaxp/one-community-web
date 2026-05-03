@@ -62,6 +62,77 @@ describe('role-capabilities', () => {
     expect(item?.roles).toEqual(['admin', 'super_admin']);
   });
 
+  describe('admin nav exclusions — participant flows removed (Stage 6 S1)', () => {
+    it('admin does NOT see Suggestions / Connections / Pending / Who viewed me / My digest', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).not.toContain('matchmaking');
+      expect(keys).not.toContain('connections');
+      expect(keys).not.toContain('pending');
+      expect(keys).not.toContain('viewers');
+      expect(keys).not.toContain('digest');
+    });
+
+    it('super_admin does NOT see Suggestions / Connections / Pending / Who viewed me / My digest', () => {
+      const keys = navForRole('super_admin').map((i) => i.key);
+      expect(keys).not.toContain('matchmaking');
+      expect(keys).not.toContain('connections');
+      expect(keys).not.toContain('pending');
+      expect(keys).not.toContain('viewers');
+      expect(keys).not.toContain('digest');
+    });
+
+    it('admin retains Dashboard / Search / Add contact / Schedule / Travel', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).toContain('dashboard');
+      expect(keys).toContain('search');
+      expect(keys).toContain('add-user');
+      expect(keys).toContain('schedule');
+      expect(keys).toContain('travel');
+    });
+  });
+
+  describe('admin CAPABILITIES exclusions — participant actions removed (Stage 6 S1)', () => {
+    it('admin cannot initiate connection requests (participant action)', () => {
+      expect(can('admin', 'connections.request')).toBe(false);
+    });
+
+    it('super_admin cannot initiate connection requests', () => {
+      expect(can('super_admin', 'connections.request')).toBe(false);
+    });
+
+    it('admin cannot respond to connection invites (participant action)', () => {
+      expect(can('admin', 'connections.respond')).toBe(false);
+    });
+
+    it('super_admin cannot respond to connection invites', () => {
+      expect(can('super_admin', 'connections.respond')).toBe(false);
+    });
+
+    it('admin cannot respond to matchmaking suggestions (participant action)', () => {
+      expect(can('admin', 'matchmaking.respond')).toBe(false);
+    });
+
+    it('super_admin cannot respond to matchmaking suggestions', () => {
+      expect(can('super_admin', 'matchmaking.respond')).toBe(false);
+    });
+
+    it('admin retains connections.approve (admin triage action)', () => {
+      expect(can('admin', 'connections.approve')).toBe(true);
+    });
+
+    it('admin retains matchmaking.approve (admin triage action)', () => {
+      expect(can('admin', 'matchmaking.approve')).toBe(true);
+    });
+
+    it('admin retains search.use (used during digest review)', () => {
+      expect(can('admin', 'search.use')).toBe(true);
+    });
+
+    it('admin retains card_scan.use (adds LPs from events)', () => {
+      expect(can('admin', 'card_scan.use')).toBe(true);
+    });
+  });
+
   describe('display-mode predicates (I-3)', () => {
     it('isStartupRole covers all three startup_* values', () => {
       expect(isStartupRole('startup_inprogress')).toBe(true);
