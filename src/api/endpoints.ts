@@ -42,6 +42,7 @@ import {
   zFunnelStatusResponse,
   zInboundPitchDetail,
   zInboundPitchesResponse,
+  zMISOverviewListResponse,
   zPartnerReferralResponse,
   zQuarterlyReportApproveResponse,
   zQuarterlyReportsResponse,
@@ -58,6 +59,8 @@ import {
   type InboundPitchDetail,
   type InboundPitchRange,
   type InboundPitchesResponse,
+  type MISOverviewListResponse,
+  type MISOverviewRange,
   type PartnerReferralRequest,
   type PartnerReferralResponse,
   type QuarterlyReportApproveRequest,
@@ -838,4 +841,18 @@ export async function getAdminInboundPitchDetail(startupId: string): Promise<Inb
   const url = `/admin/pitches/${startupId}`;
   const resp = await apiClient.get<ApiEnvelope<InboundPitchDetail>>(url);
   return zInboundPitchDetail.parse(unwrap(resp.data, url));
+}
+
+// Phase 7.2.g — `GET /admin/mis-overview`.
+export async function getAdminMisOverview(args: {
+  range: MISOverviewRange;
+  cursor?: string;
+  limit?: number;
+}): Promise<MISOverviewListResponse> {
+  const params = new URLSearchParams({ range: args.range });
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.cursor) params.set('cursor', args.cursor);
+  const url = `/admin/mis-overview?${params.toString()}`;
+  const resp = await apiClient.get<ApiEnvelope<MISOverviewListResponse>>(url);
+  return zMISOverviewListResponse.parse(unwrap(resp.data, url));
 }

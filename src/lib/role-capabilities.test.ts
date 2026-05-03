@@ -62,6 +62,30 @@ describe('role-capabilities', () => {
     expect(item?.roles).toEqual(['admin', 'super_admin']);
   });
 
+  describe('admin nav — MIS replaced by admin-mis (Stage 6 S3)', () => {
+    it('admin does NOT see MIS in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).not.toContain('mis');
+    });
+
+    it('admin sees admin-mis (MIS overview) in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).toContain('admin-mis');
+    });
+
+    it('startup_funded sees MIS but NOT admin-mis', () => {
+      const keys = navForRole('startup_funded').map((i) => i.key);
+      expect(keys).toContain('mis');
+      expect(keys).not.toContain('admin-mis');
+    });
+
+    it('admin-mis nav item has correct path and roles', () => {
+      const item = NAV_ITEMS.find((i) => i.key === 'admin-mis');
+      expect(item?.path).toBe('/admin/mis-overview');
+      expect(item?.roles).toEqual(['admin', 'super_admin']);
+    });
+  });
+
   describe('admin nav — pitch replaced by admin-pitches (Stage 6 S2)', () => {
     it('admin does NOT see My pitch in nav', () => {
       const keys = navForRole('admin').map((i) => i.key);

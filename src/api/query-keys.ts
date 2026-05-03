@@ -80,6 +80,8 @@ export const qk = {
     inboundPitchesAll: ['admin', 'inbound-pitches'] as const,
     inboundPitches: (range: string) => ['admin', 'inbound-pitches', { range }] as const,
     inboundPitchDetail: (id: string) => ['admin', 'inbound-pitches', 'detail', id] as const,
+    misOverviewAll: ['admin', 'mis-overview'] as const,
+    misOverview: (range: string) => ['admin', 'mis-overview', { range }] as const,
   },
   digest: {
     pending: ['digest', 'pending'] as const,

@@ -303,3 +303,36 @@ export const zInboundPitchDetail = z
   })
   .passthrough();
 export type InboundPitchDetail = z.infer<typeof zInboundPitchDetail>;
+
+// Phase 7.2.g — admin MIS overview list.
+// .passthrough() per §13 G8.
+export const MIS_OVERVIEW_RANGES = ['monthly', 'quarterly', 'yearly'] as const;
+export type MISOverviewRange = (typeof MIS_OVERVIEW_RANGES)[number];
+
+export const zMISOverviewItem = z
+  .object({
+    id: zUUID,
+    startup_id: zUUID,
+    company_name: z.string(),
+    period: z.string(),
+    submitted_at: zISODateTime,
+    file_url: z.string().nullable(),
+    file_name: z.string().nullable(),
+    comment: z.string().nullable(),
+    revenue: z.number().nullable(),
+    burn: z.number().nullable(),
+    runway_months: z.number().nullable(),
+    headcount: z.number().nullable(),
+    notion_page_id: z.string().nullable(),
+    drive_folder_id: z.string().nullable(),
+  })
+  .passthrough();
+export type MISOverviewItem = z.infer<typeof zMISOverviewItem>;
+
+export const zMISOverviewListResponse = z
+  .object({
+    items: z.array(zMISOverviewItem),
+    next_cursor: z.string().nullable(),
+  })
+  .passthrough();
+export type MISOverviewListResponse = z.infer<typeof zMISOverviewListResponse>;
