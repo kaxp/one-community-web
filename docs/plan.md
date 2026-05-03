@@ -1276,10 +1276,16 @@ git push --tags
 - ✅ Phase 7.1 nightly Notion sync (no Stage 6 dep — surface is Celery only).
 - ✅ Phase 7.2.a `POST /api/v1/public/pitch` — public web-form endpoint **(unblocks new Stage 6.8 — public pitch landing page)**.
 - ✅ Phase 7.2.b `POST /api/v1/webhooks/email/pitch` — email gateway with real SNS verifier (no Stage 6 dep — surface is webhook only).
-- ✅ Phase 7.2.f `GET /api/v1/admin/pitches/inbound` — **unblocks Stage 6.2** below.
-- ✅ Phase 7.3 quarterly watchlist (no Stage 6 dep — surface is email-only; admin UI for `watchlist_last_summary` can wait).
-- ⬜ Stage 6.3 admin MIS overview — Phase 7 did NOT touch MIS; still requires the `GET /admin/mis-overview` decision flagged below.
-- ⬜ Stage 6.5 admin schedule — Phase 7 did NOT touch schedule; still requires the verify-or-build decision flagged below.
+- ✅ Phase 7.2.f `GET /api/v1/admin/pitches/inbound` — **unblocks Stage 6.2** list+badge.
+- ✅ Phase 7.3 quarterly watchlist (no Stage 6 dep — surface is email-only).
+
+**Stage 6 frontend-unblock backend additions — shipped 2026-05-03 (one-community-1 commit `a73f76d`)**:
+
+- ✅ `GET /api/v1/admin/pitches/{startup_id}` — full v3 evaluation + founder contact for the **Stage 6.2 drawer**.
+- ✅ `GET /api/v1/admin/mis-overview?range=monthly|quarterly|yearly&cursor=&limit=` — **unblocks Stage 6.3 in full**.
+- ✅ `GET /api/v1/admin/schedule/calendar?from=YYYY-MM-DD&days=N` — **unblocks Stage 6.5 in full** (no verify-existing-endpoint dance needed — this is the operator-view endpoint).
+
+All three follow existing admin conventions: `require_role(admin, super_admin)`, slowapi rate limit, keyset pagination, repo-only DB access. 29 new admin tests, 724/724 backend suite passing, ruff clean.
 
 **Reference for every prompt below.**
 
@@ -1355,9 +1361,14 @@ Outputs: one PR-sized commit `feat(nav): remove admin from participant nav items
 
 ### 6.2 — Session 2: Replace admin "My pitch" with `/admin/pitches/inbound`
 
-**Backend status (2026-05-03).** ✅ UNBLOCKED. `GET /api/v1/admin/pitches/inbound` shipped in `one-community-1` Phase 7.2 Build 1 (commit `0f34d91`). Endpoint contract is confirmed in `one-community-1/CLAUDE.md §7.2.f` and `archive.md § PHASE 7.2 Build 1`.
+**Backend status (2026-05-03).** ✅ FULLY UNBLOCKED.
 
-**Important — actual response shape diverges from the original plan.** The shipped list endpoint returns the _summary_ fields per row, not the full v3 evaluation. The "Full evaluation" drawer needs either (a) a separate `GET /admin/pitches/{id}` endpoint that exposes the `ai_evaluation JSONB` column, or (b) the list endpoint extended to include `ai_evaluation`. **Append a P-N to `.claude/decisions.md` calling this out before building the drawer** — the list+badge UI ships unblocked, but the drawer needs a backend choice.
+- List: `GET /api/v1/admin/pitches/inbound` — shipped in `one-community-1` Phase 7.2 Build 1 (commit `0f34d91`).
+- **Detail (drawer): `GET /api/v1/admin/pitches/{startup_id}` — shipped 2026-05-03 in commit `a73f76d`** (Stage 6 frontend-unblock follow-up). Returns the full v3 evaluation expanded from `ai_evaluation` JSONB plus founder contact fields joined from `users`. 404 if the startup id isn't an inbound pitch.
+
+Both contracts are confirmed in `one-community-1/CLAUDE.md §7.2.f` and `archive.md`.
+
+**Original plan divergence still applies for the LIST endpoint.** The list response returns summary fields only (`id`, `company_name`, `ai_pitch_score`, `ai_pitch_summary`, `ai_signal`, `created_at`, `notion_page_id`, `drive_folder_id`, `source_channel`). Full v3 fields (`founder_name`, `sector`, `stage`, `financial_health`, `key_risks`, etc.) are returned by the new **detail** endpoint, NOT the list. So the table view shows summary; the drawer fetches detail on demand. **No P-N decision needed any more — the choice was (a) new detail endpoint, and that's what shipped.**
 
 **Prompt:**
 
@@ -1380,23 +1391,28 @@ NOTE the divergences from the original Stage 6 spec:
     the `ai_evaluation` JSONB column on the startups table but is NOT exposed via
     the list endpoint.
 
-BEFORE BUILDING the "Full evaluation" drawer (step 3 below), append to
-.claude/decisions.md § Pending:
+DRAWER ENDPOINT — also live: GET /api/v1/admin/pitches/{startup_id}
+(shipped 2026-05-03 in commit a73f76d). Verify with:
+  curl -H "Authorization: Bearer <admin token>" \
+    http://localhost:8000/api/v1/admin/pitches/<some-startup-id>
 
-  ### [P-XX] Admin pitch detail endpoint for full evaluation drawer
-  - Feature: stage-6.2-admin-pitches-drawer
-  - Blocking: drawer only (list+badge ships unblocked)
-  - Added: <today>
-  - Context: GET /admin/pitches/inbound returns summary fields only. The "Full
-    evaluation" drawer needs every v3 field (financial_health, market_position,
-    competitive_landscape, team_assessment, key_risks, indian_ecosystem_signals,
-    recommendation_rationale, strengths, concerns, recommended_lp_types).
-    These all live in startups.ai_evaluation JSONB.
-  - Question: Backend confirm — (a) ship a new GET /admin/pitches/{id} that
-    returns the row + ai_evaluation expanded, OR (b) extend the list endpoint
-    to include ai_evaluation per row.
-  - My recommendation: (a) — keeps the list payload small for the table view;
-    drawer fetches detail on demand.
+Returns: { data: { ...summary fields..., founder_name, founder_email,
+  founder_phone, founder_linkedin, sector, stage, founding_year, team_size,
+  website_url, description, one_liner, revenue_model, revenue_monthly,
+  burn_monthly, runway_months, current_balance_inr, growth_pct,
+  gross_margin_pct, customer_count, funding_target_cr, pitch_deck_url,
+  evaluation: { signal, summary, strengths[], concerns[],
+    recommended_lp_types[], financial_health, market_position,
+    competitive_landscape, team_assessment, key_risks[],
+    indian_ecosystem_signals, recommendation_rationale } },
+  error: null }
+
+404 when the startup id doesn't exist OR isn't an inbound pitch
+(source_channel not in {web_form, email}). The detail endpoint scopes
+strictly to inbound rows so admins can never accidentally surface a
+non-inbound row through the drawer.
+
+No P-N decision item needed — the drawer endpoint is shipped.
 
 PRD context to load:
 - frontend_prd.md §7.X (TBD — backend will assign §7.12.X for /admin/pitches/inbound)
@@ -1418,13 +1434,23 @@ Implementation:
 
 2. Add the API client at src/api/admin/pitches.ts:
    - getAdminInboundPitches({ range: 'weekly'|'monthly'|'yearly', cursor?: string, limit?: number })
-   - Zod schema with .passthrough() per §13 G8
-   - Returns { items: InboundPitch[], next_cursor: string | null }
-   - InboundPitch fields actually returned by Phase 7.2.f:
+   - getAdminInboundPitchDetail(startup_id: string) — for the drawer
+   - Zod schemas with .passthrough() per §13 G8
+   - List returns { items: InboundPitch[], next_cursor: string | null }
+   - Detail returns InboundPitchDetail (full v3 fields + founder contact +
+     evaluation block — see "Returns:" shape above).
+   - List InboundPitch fields actually returned by Phase 7.2.f:
        id (uuid), company_name (string), ai_pitch_score (number | null),
        ai_pitch_summary (string | null), ai_signal ('strong'|'moderate'|'weak'|null),
        created_at (ISO datetime), notion_page_id (string | null),
        drive_folder_id (string | null), source_channel ('web_form'|'email'|null).
+   - Detail InboundPitchDetail.evaluation fields:
+       signal (string|null), summary (string|null), strengths (string[]),
+       concerns (string[]), recommended_lp_types (string[]),
+       financial_health (string|null), market_position (string|null),
+       competitive_landscape (string|null), team_assessment (string|null),
+       key_risks (string[]), indian_ecosystem_signals (string|null),
+       recommendation_rationale (string|null).
 
 3. Build src/features/admin/routes/AdminInboundPitchesPage.tsx:
    - URL-backed range filter (weekly default; monthly + yearly options)
@@ -1432,15 +1458,18 @@ Implementation:
        Company | Source (chip: web_form / email) | Signal (badge) |
        Pitch score | Submitted | Actions
      (Drop founder/sector/stage from the table — they aren't returned by the list
-     endpoint; user can see them in the drawer once P-XX above is resolved.)
+     endpoint; surfaced in the drawer.)
    - Signal badge color mapping (frontend choice, NOT backend):
        'strong' → green, 'moderate' → amber, 'weak' → red, null → grey
    - Action buttons per row:
        "View Notion" (opens https://notion.so/{notion_page_id} when present),
        "Open Drive" (opens https://drive.google.com/drive/folders/{drive_folder_id}
                      when present),
-       "Full evaluation" (drawer — disabled with tooltip "Awaiting backend P-XX"
-                         until the detail endpoint ships)
+       "Full evaluation" (opens drawer — fetches getAdminInboundPitchDetail
+                         on click; renders sections for Founder contact,
+                         Financials snapshot, Evaluation summary, Detailed
+                         evaluation paragraphs, Strengths/Concerns/Risks,
+                         Recommended LP types, Recommendation rationale)
    - Cursor pagination
    - Empty state: "No inbound pitches in this range"
    - Lazy-import per [P-19], RoleGuard {admin, super_admin}
@@ -1448,11 +1477,19 @@ Implementation:
 4. Wire the route in src/app/router.tsx under the admin section.
 
 5. Tests:
-   - MSW fixture src/test/msw-fixtures/admin-pitches-handlers.ts with happy path + empty + 500
-     - Use the actual Phase 7.2.f field names (ai_signal not signal, etc.)
+   - MSW fixtures src/test/msw-fixtures/admin-pitches-handlers.ts:
+     • list: happy path + empty + 500 (use actual Phase 7.2.f field names —
+       ai_signal not signal)
+     • detail: happy path + empty-evaluation case + 404 (id not inbound)
    - Component test covering range filter URL sync + render + empty state +
      signal-badge color mapping for all four states (strong/moderate/weak/null)
-   - Component test asserting the "Full evaluation" button is disabled until P-XX
+   - Component test asserting the drawer:
+     • opens on "Full evaluation" click
+     • fetches the detail endpoint with the right id
+     • shows founder contact section
+     • renders empty-evaluation state gracefully (FE-side guard against
+       null scalars / empty arrays — the backend returns these for rows
+       that haven't been evaluated yet)
    - Update queue.md: mark new feature [admin-inbound-pitches] as in progress → done
 
 6. All four gates green.
@@ -1462,35 +1499,44 @@ Outputs: commit `feat(admin): inbound pitches list page replacing My pitch link`
 
 ### 6.3 — Session 3: Replace admin "MIS" with `/admin/mis-overview`
 
-**Backend status (2026-05-03).** ⬜ **STILL BLOCKED.** Phase 7 backend track did NOT include any MIS work — `GET /admin/mis-overview` does not exist. The decision-item P-N below remains required before this sub-task can ship. Backend roadmap has Phase 4 (WhatsApp, blocked on WATI account) and optional Phase 5 Group 3/4 as the only declared next backend work, so this MIS endpoint will need to be requested explicitly.
+**Backend status (2026-05-03).** ✅ UNBLOCKED. `GET /api/v1/admin/mis-overview` shipped in `one-community-1` commit `a73f76d` (Stage 6 frontend-unblock backend). No P-N needed — endpoint and contract are live.
 
 **Prompt:**
 
 ```
 Implement Stage 6 Session 3: replace admin "MIS" upload with /admin/mis-overview.
 
-BLOCKED IF: backend has not shipped GET /admin/mis-overview yet.
-First action: append the following to .claude/decisions.md § Pending if not already present:
+UNBLOCKED — endpoint live as of one-community-1 commit a73f76d. Verify with:
+  curl -H "Authorization: Bearer <admin token>" \
+    "http://localhost:8000/api/v1/admin/mis-overview?range=monthly"
 
-  ### [P-XX] Admin MIS overview endpoint
-  - Feature: stage-6-admin-mis-overview
-  - Blocking: yes
-  - Added: <today>
-  - Context: Admin currently sees the startup-side /mis upload form, which makes
-    no sense (admin does not submit MIS). Stage 6 needs an admin-side aggregate
-    view: list of all MIS submissions across all funded startups, monthly filter,
-    open file in new tab.
-  - Question: Backend confirm contract for GET /admin/mis-overview?range=monthly
-    (cursor-paginated, returns { items, next_cursor }, item shape: { startup_id,
-    company_name, period_yyyy_mm, drive_url, submitted_at, comment, extracted_metrics })
-  - My recommendation: build it as a thin wrapper over the existing mis_repo +
-    a new repo method list_all_with_company.
-
-Once resolved, follow steps below.
+Endpoint contract:
+  GET /api/v1/admin/mis-overview
+  Query params:
+    range: 'monthly' | 'quarterly' | 'yearly'  (default 'monthly')
+    cursor: string | undefined                  (opaque keyset cursor)
+    limit: number 1..100                        (default 20)
+  Returns envelope: { data: { items: MISOverviewItem[], next_cursor: string|null }, error: null }
+  MISOverviewItem fields:
+    id (uuid),
+    startup_id (uuid),
+    company_name (string),
+    period (string — typically 'YYYY-MM' but freeform per backend; treat as text),
+    submitted_at (ISO datetime),
+    file_url (string|null),
+    file_name (string|null),
+    comment (string|null),
+    revenue (number|null),
+    burn (number|null),
+    runway_months (number|null),
+    headcount (number|null),
+    notion_page_id (string|null),
+    drive_folder_id (string|null).
 
 Read for pattern reference:
 - src/features/admin/routes/AdminQuarterlyReportsPage.tsx — same shape (admin paginated list)
-- src/api/admin/quarterly-reports.ts — endpoint pattern
+- src/features/admin/routes/AdminInboundPitchesPage.tsx (from 6.2) — closest sibling
+- src/api/admin/quarterly-reports.ts — endpoint pattern + Zod .passthrough()
 
 Implementation:
 
@@ -1501,17 +1547,29 @@ Implementation:
    - Add new admin NAV_ITEM after 'admin-pitches':
        { key: 'admin-mis', label: 'MIS overview', path: '/admin/mis-overview', icon: 'BarChart3', roles: ['admin', 'super_admin'] }
 
-2. Add API client src/api/admin/mis.ts (per §13 G8 Zod .passthrough()).
+2. Add API client src/api/admin/mis.ts:
+   - listAdminMisOverview({ range, cursor?, limit? }) -> Promise<MISOverviewListResponse>
+   - Zod schema with .passthrough() per §13 G8
+   - Use the actual field names above (file_url not drive_url; period is a
+     freeform string).
 
 3. Build src/features/admin/routes/AdminMISOverviewPage.tsx:
-   - Monthly filter (defaults to current month, IST)
-   - DataTable: Company | Period | Submitted | Drive link | Revenue | Burn | Runway | Comment
-   - Drive link opens in new tab
-   - "Open Drive" + "Open Notion" actions per row
-   - Empty state for months with zero submissions
-   - Lazy-import + RoleGuard
+   - URL-backed range filter (monthly default; quarterly + yearly options)
+   - DataTable: Company | Period | Submitted | File | Revenue | Burn | Runway | Headcount | Comment | Actions
+   - "Open file" link uses file_url and opens in new tab (only render when present)
+   - "Open Drive" + "Open Notion" actions per row (only render when ids present)
+   - Cursor pagination (read next_cursor from envelope; pass back as ?cursor=)
+   - Empty state: "No MIS submissions in this range"
+   - Lazy-import + RoleGuard {admin, super_admin}
 
-4. Tests + gates as Stage 6.2.
+4. Tests:
+   - MSW fixture src/test/msw-fixtures/admin-mis-handlers.ts: happy path,
+     cursor passthrough, empty range, 500.
+   - Component test covering range filter URL sync + cursor + render +
+     empty state. Make sure rows with null file_url / null notion_page_id
+     don't render dead links.
+
+5. All four gates green.
 
 Outputs: commit `feat(admin): MIS overview list page replacing MIS upload link`.
 ```
@@ -1566,22 +1624,37 @@ Run all four gates.
 
 ### 6.5 — Session 5: Schedule page — admin sees calendar, not booking form
 
-**Backend status (2026-05-03).** Phase 7 did NOT touch schedule endpoints. The verify-existing-endpoint approach below is still the correct first step — if `GET /schedule/bookings` returns the operator's view (all bookings, not just where admin is organizer), no new backend is needed. Otherwise, append the P-N for `GET /admin/schedule/calendar` and request it as a small backend follow-up alongside the MIS overview from 6.3.
+**Backend status (2026-05-03).** ✅ UNBLOCKED. `GET /api/v1/admin/schedule/calendar` shipped in `one-community-1` commit `a73f76d` (Stage 6 frontend-unblock backend). The dedicated operator-view endpoint means no verify-existing-endpoint dance is needed.
 
 **Prompt:**
 
 ```
 Implement Stage 6 Session 5: split /schedule into per-role views.
 
-First action: verify whether GET /schedule/bookings (existing) returns ALL
-bookings when called by an admin user, or only bookings where admin is the
-organizer. Run:
-
+UNBLOCKED — admin endpoint live as of one-community-1 commit a73f76d.
+Verify with:
   curl -H "Authorization: Bearer <admin token>" \
-    http://localhost:8000/api/v1/schedule/bookings?from=2026-04-28&days=14
+    "http://localhost:8000/api/v1/admin/schedule/calendar?from=2026-05-10&days=14"
 
-If response includes bookings where admin is neither organizer nor target,
-proceed with option A. Otherwise append P-N for option B.
+Endpoint contract:
+  GET /api/v1/admin/schedule/calendar
+  Query params:
+    from:  YYYY-MM-DD          (default: today, server-side date)
+    days:  number 1..60        (default: 7)
+  Returns envelope: { data: { items: AdminCalendarItem[], next_cursor: null }, error: null }
+  AdminCalendarItem fields:
+    booking_id (uuid),
+    scheduled_at (ISO datetime),
+    duration_minutes (number|null),
+    status (string|null),
+    calendar_event_id (string|null),
+    notes (string|null),
+    requester: { user_id, name, email|null, role|null },
+    target:    { user_id, name, email|null, role|null }.
+
+  Note: cancelled bookings excluded, ordered ascending by scheduled_at.
+  next_cursor is always null — operators view at most 60 days at a time
+  so no pagination is needed.
 
 Read for pattern reference:
 - src/features/schedule/routes/SchedulePage.tsx — existing booking flow
@@ -1600,22 +1673,31 @@ For ALL roles (no nav change to 'schedule' — keep roles: ['*']):
     }
     return <ParticipantBookingView />;  // existing flow
 
+- Add API client src/api/admin/schedule.ts:
+  • getAdminCalendar({ from: Date, days: number }) -> Promise<AdminCalendarResponse>
+  • Zod schema with .passthrough() per §13 G8
+
 - Build src/features/schedule/components/AdminCalendarView.tsx:
   • Header: "Calendar — all upcoming meetings"
   • 7-day calendar grid (re-use CalendarGrid in read-only mode)
-  • Each tile shows: time, organizer name, target name, duration, status badge
+  • Each tile shows: scheduled_at (time), requester.name, target.name,
+    duration_minutes, status badge
   • No "Book this slot" button (admin does not book)
   • Date range navigator: prev week / this week / next week
-  • Hook: useAdminBookings(from, days) — calls /schedule/bookings (option A)
-    OR /admin/schedule/calendar (option B)
+    — keep window <= 60 days; quietly clamp on the client to match the
+    backend cap.
+  • Hook: useAdminCalendar(from, days) — calls /admin/schedule/calendar.
+    NOT /schedule/bookings (that's participant-scoped).
 
 - Build src/features/schedule/components/ParticipantBookingView.tsx by extracting
   the existing flow from SchedulePage.tsx (no behaviour change, just relocation).
 
 Tests:
-- MSW fixture for admin role returning 5 bookings across 3 days
-- Snapshot test: admin sees AdminCalendarView, lp sees ParticipantBookingView
-- Existing tests for booking flow must still pass for non-admin
+- MSW fixture for /admin/schedule/calendar: 5 bookings across 3 days, plus
+  empty + 500 cases.
+- Snapshot test: admin sees AdminCalendarView, lp sees ParticipantBookingView.
+- Existing tests for booking flow must still pass for non-admin.
+- Ensure days=120 client-side clamps to 60 (backend would 422 otherwise).
 
 All four gates green.
 
@@ -1708,8 +1790,8 @@ Implement Stage 6 Session 7: close out + tag.
 
    ## Stage 6 — Role-based page corrections (Opus: 7 sessions, post-v1.0)
    - [x] **stage-6.1-nav-cleanup** — remove admin from participant nav items
-   - [x] **stage-6.2-admin-pitches** — /admin/pitches/inbound list (drawer gated on P-XX)
-   - [~] **stage-6.3-admin-mis** — /admin/mis-overview list (gated on backend P-XX)
+   - [x] **stage-6.2-admin-pitches** — /admin/pitches/inbound list + drawer
+   - [x] **stage-6.3-admin-mis** — /admin/mis-overview list
    - [~] **stage-6.4-documents** — gated on P-XX decision
    - [x] **stage-6.5-schedule-split** — admin sees calendar, others book
    - [x] **stage-6.6-dashboard-roles** — role-specific home
