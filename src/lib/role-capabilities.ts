@@ -168,7 +168,25 @@ export const NAV_ITEMS: readonly NavItem[] = [
       'advisor',
     ],
   },
-  { key: 'documents', label: 'Documents', path: '/documents', icon: 'Folder', roles: ['*'] },
+  {
+    key: 'documents',
+    label: 'Documents',
+    path: '/documents',
+    icon: 'Folder',
+    // Admin accesses files via Notion + Drive on the inbound-pitches and
+    // MIS overview pages (decisions.md [P-24]). Route remains registered so
+    // deep-links still work.
+    roles: [
+      'lp',
+      'potential_lp',
+      'vc',
+      'startup_inprogress',
+      'startup_onboarded',
+      'startup_funded',
+      'partner',
+      'advisor',
+    ],
+  },
   {
     key: 'digest',
     label: 'My digest',
