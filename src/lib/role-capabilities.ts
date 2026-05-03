@@ -148,7 +148,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'MIS',
     path: '/mis',
     icon: 'BarChart3',
-    roles: ['startup_funded', 'admin', 'super_admin'],
+    roles: ['startup_funded'],
   },
   { key: 'schedule', label: 'Schedule', path: '/schedule', icon: 'Calendar', roles: ['*'] },
   { key: 'travel', label: 'Travel', path: '/travel', icon: 'Plane', roles: ['*'] },
@@ -197,6 +197,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Inbound pitches',
     path: '/admin/pitches/inbound',
     icon: 'FileSearch',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-mis',
+    label: 'MIS overview',
+    path: '/admin/mis-overview',
+    icon: 'BarChart3',
     roles: ['admin', 'super_admin'],
   },
   {

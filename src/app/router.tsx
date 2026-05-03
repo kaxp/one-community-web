@@ -112,6 +112,11 @@ const AdminInboundPitchesPage = lazy(() =>
     default: m.AdminInboundPitchesPage,
   })),
 );
+const AdminMISOverviewPage = lazy(() =>
+  import('@/features/admin/routes/AdminMISOverviewPage').then((m) => ({
+    default: m.AdminMISOverviewPage,
+  })),
+);
 const AdminTracxnPage = lazy(() =>
   import('@/features/enrichment/routes/AdminTracxnPage').then((m) => ({
     default: m.AdminTracxnPage,
@@ -221,9 +226,9 @@ export const router = createBrowserRouter(
                   ],
                 },
                 {
-                  // PRD §7.9 — MIS is gated to startup_funded + admin / super_admin
-                  // (matches CAPABILITIES['mis.submit']).
-                  element: <RoleGuard roles={['startup_funded', 'admin', 'super_admin']} />,
+                  // PRD §7.9 — MIS upload is startup_funded only.
+                  // Admins review submissions at /admin/mis-overview (Stage 6 S3).
+                  element: <RoleGuard roles={['startup_funded']} />,
                   children: [
                     {
                       path: '/mis',
@@ -452,6 +457,15 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminAnalyticsPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // Phase 7.2.g — MIS submissions overview.
+                      path: '/admin/mis-overview',
+                      element: (
+                        <Susp>
+                          <AdminMISOverviewPage />
                         </Susp>
                       ),
                     },
