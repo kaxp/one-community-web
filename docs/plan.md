@@ -1271,6 +1271,16 @@ git push --tags
 
 **Backend dependency.** Some sub-tasks require new backend endpoints from Phase 7 (`one-community-1` repo, `CLAUDE.md § Phase 7`). Each prompt below explicitly flags whether it ships nav-only or waits on backend.
 
+**Phase 7 backend status as of 2026-05-03 (refresh from `one-community-1/CLAUDE.md` + `archive.md`)**:
+
+- ✅ Phase 7.1 nightly Notion sync (no Stage 6 dep — surface is Celery only).
+- ✅ Phase 7.2.a `POST /api/v1/public/pitch` — public web-form endpoint **(unblocks new Stage 6.8 — public pitch landing page)**.
+- ✅ Phase 7.2.b `POST /api/v1/webhooks/email/pitch` — email gateway with real SNS verifier (no Stage 6 dep — surface is webhook only).
+- ✅ Phase 7.2.f `GET /api/v1/admin/pitches/inbound` — **unblocks Stage 6.2** below.
+- ✅ Phase 7.3 quarterly watchlist (no Stage 6 dep — surface is email-only; admin UI for `watchlist_last_summary` can wait).
+- ⬜ Stage 6.3 admin MIS overview — Phase 7 did NOT touch MIS; still requires the `GET /admin/mis-overview` decision flagged below.
+- ⬜ Stage 6.5 admin schedule — Phase 7 did NOT touch schedule; still requires the verify-or-build decision flagged below.
+
 **Reference for every prompt below.**
 
 - File touched by all sub-tasks: `src/lib/role-capabilities.ts` (NAV_ITEMS array)
@@ -1345,20 +1355,52 @@ Outputs: one PR-sized commit `feat(nav): remove admin from participant nav items
 
 ### 6.2 — Session 2: Replace admin "My pitch" with `/admin/pitches/inbound`
 
-**Backend dependency.** Requires Phase 7.2.f endpoint (`GET /admin/pitches/inbound`) — currently being built. Do NOT start this sub-task until backend confirms the endpoint is live in dev.
+**Backend status (2026-05-03).** ✅ UNBLOCKED. `GET /api/v1/admin/pitches/inbound` shipped in `one-community-1` Phase 7.2 Build 1 (commit `0f34d91`). Endpoint contract is confirmed in `one-community-1/CLAUDE.md §7.2.f` and `archive.md § PHASE 7.2 Build 1`.
+
+**Important — actual response shape diverges from the original plan.** The shipped list endpoint returns the _summary_ fields per row, not the full v3 evaluation. The "Full evaluation" drawer needs either (a) a separate `GET /admin/pitches/{id}` endpoint that exposes the `ai_evaluation JSONB` column, or (b) the list endpoint extended to include `ai_evaluation`. **Append a P-N to `.claude/decisions.md` calling this out before building the drawer** — the list+badge UI ships unblocked, but the drawer needs a backend choice.
 
 **Prompt:**
 
 ```
 Implement Stage 6 Session 2: replace the admin "My pitch" link with /admin/pitches/inbound.
 
-BLOCKED IF: backend has not shipped GET /admin/pitches/inbound yet. Check by:
-  curl -H "Authorization: Bearer <admin token>" http://localhost:8000/api/v1/admin/pitches/inbound?range=weekly
-If 404, append a P-N entry to .claude/decisions.md and stop.
+UNBLOCKED — endpoint live in dev as of one-community-1 commit 0f34d91. Verify with:
+  curl -H "Authorization: Bearer <admin token>" \
+    http://localhost:8000/api/v1/admin/pitches/inbound?range=weekly
+
+Expected envelope: { data: { items: [...], next_cursor: string|null }, error: null }.
+Per-item fields actually returned (per one-community-1 CLAUDE.md §7.2.f):
+  id, company_name, ai_pitch_score, ai_pitch_summary, ai_signal,
+  created_at, notion_page_id, drive_folder_id, source_channel.
+
+NOTE the divergences from the original Stage 6 spec:
+  - Plan listed `signal` — actual field is `ai_signal` (values: "strong" | "moderate" | "weak").
+  - Plan listed `founder_name`, `sector`, `stage`, `financial_health`, `key_risks` —
+    NONE of these are returned by the list endpoint. The full v3 evaluation lives in
+    the `ai_evaluation` JSONB column on the startups table but is NOT exposed via
+    the list endpoint.
+
+BEFORE BUILDING the "Full evaluation" drawer (step 3 below), append to
+.claude/decisions.md § Pending:
+
+  ### [P-XX] Admin pitch detail endpoint for full evaluation drawer
+  - Feature: stage-6.2-admin-pitches-drawer
+  - Blocking: drawer only (list+badge ships unblocked)
+  - Added: <today>
+  - Context: GET /admin/pitches/inbound returns summary fields only. The "Full
+    evaluation" drawer needs every v3 field (financial_health, market_position,
+    competitive_landscape, team_assessment, key_risks, indian_ecosystem_signals,
+    recommendation_rationale, strengths, concerns, recommended_lp_types).
+    These all live in startups.ai_evaluation JSONB.
+  - Question: Backend confirm — (a) ship a new GET /admin/pitches/{id} that
+    returns the row + ai_evaluation expanded, OR (b) extend the list endpoint
+    to include ai_evaluation per row.
+  - My recommendation: (a) — keeps the list payload small for the table view;
+    drawer fetches detail on demand.
 
 PRD context to load:
 - frontend_prd.md §7.X (TBD — backend will assign §7.12.X for /admin/pitches/inbound)
-- One-community-1/CLAUDE.md §Phase 7.2.f for backend contract
+- one-community-1/CLAUDE.md §Phase 7.2.f for backend contract
 
 Read for pattern reference:
 - src/features/admin/routes/AdminQuarterlyReportsPage.tsx — paginated admin list with filters (closest existing pattern)
@@ -1375,15 +1417,30 @@ Implementation:
        { key: 'admin-pitches', label: 'Inbound pitches', path: '/admin/pitches/inbound', icon: 'FileSearch', roles: ['admin', 'super_admin'] }
 
 2. Add the API client at src/api/admin/pitches.ts:
-   - getAdminInboundPitches({ range: 'weekly'|'monthly'|'yearly', cursor?: string })
+   - getAdminInboundPitches({ range: 'weekly'|'monthly'|'yearly', cursor?: string, limit?: number })
    - Zod schema with .passthrough() per §13 G8
    - Returns { items: InboundPitch[], next_cursor: string | null }
-   - InboundPitch fields per backend §Phase 7.2.f: id, company_name, founder_name, sector, stage, signal, ai_pitch_summary, financial_health, key_risks, notion_page_id, drive_folder_id, created_at
+   - InboundPitch fields actually returned by Phase 7.2.f:
+       id (uuid), company_name (string), ai_pitch_score (number | null),
+       ai_pitch_summary (string | null), ai_signal ('strong'|'moderate'|'weak'|null),
+       created_at (ISO datetime), notion_page_id (string | null),
+       drive_folder_id (string | null), source_channel ('web_form'|'email'|null).
 
 3. Build src/features/admin/routes/AdminInboundPitchesPage.tsx:
-   - URL-backed range filter (weekly default)
-   - DataTable: Company | Founder | Sector | Stage | Signal (badge: green/amber/red) | Submitted | Actions
-   - Action buttons per row: "View Notion" (opens notion_page_id), "Open Drive" (opens drive_folder_id), "Full evaluation" (drawer with all v3 fields rendered)
+   - URL-backed range filter (weekly default; monthly + yearly options)
+   - DataTable columns:
+       Company | Source (chip: web_form / email) | Signal (badge) |
+       Pitch score | Submitted | Actions
+     (Drop founder/sector/stage from the table — they aren't returned by the list
+     endpoint; user can see them in the drawer once P-XX above is resolved.)
+   - Signal badge color mapping (frontend choice, NOT backend):
+       'strong' → green, 'moderate' → amber, 'weak' → red, null → grey
+   - Action buttons per row:
+       "View Notion" (opens https://notion.so/{notion_page_id} when present),
+       "Open Drive" (opens https://drive.google.com/drive/folders/{drive_folder_id}
+                     when present),
+       "Full evaluation" (drawer — disabled with tooltip "Awaiting backend P-XX"
+                         until the detail endpoint ships)
    - Cursor pagination
    - Empty state: "No inbound pitches in this range"
    - Lazy-import per [P-19], RoleGuard {admin, super_admin}
@@ -1392,7 +1449,10 @@ Implementation:
 
 5. Tests:
    - MSW fixture src/test/msw-fixtures/admin-pitches-handlers.ts with happy path + empty + 500
-   - Component test covering range filter URL sync + render + empty state
+     - Use the actual Phase 7.2.f field names (ai_signal not signal, etc.)
+   - Component test covering range filter URL sync + render + empty state +
+     signal-badge color mapping for all four states (strong/moderate/weak/null)
+   - Component test asserting the "Full evaluation" button is disabled until P-XX
    - Update queue.md: mark new feature [admin-inbound-pitches] as in progress → done
 
 6. All four gates green.
@@ -1402,7 +1462,7 @@ Outputs: commit `feat(admin): inbound pitches list page replacing My pitch link`
 
 ### 6.3 — Session 3: Replace admin "MIS" with `/admin/mis-overview`
 
-**Backend dependency.** Needs new endpoint `GET /admin/mis-overview?range=monthly|quarterly`. **Append a P-N to `.claude/decisions.md`** describing this new endpoint contract — it does NOT exist yet on backend. Do not implement until backend confirms.
+**Backend status (2026-05-03).** ⬜ **STILL BLOCKED.** Phase 7 backend track did NOT include any MIS work — `GET /admin/mis-overview` does not exist. The decision-item P-N below remains required before this sub-task can ship. Backend roadmap has Phase 4 (WhatsApp, blocked on WATI account) and optional Phase 5 Group 3/4 as the only declared next backend work, so this MIS endpoint will need to be requested explicitly.
 
 **Prompt:**
 
@@ -1506,7 +1566,7 @@ Run all four gates.
 
 ### 6.5 — Session 5: Schedule page — admin sees calendar, not booking form
 
-**Backend dependency.** Needs `GET /admin/schedule/calendar?from=YYYY-MM-DD&days=N` returning all admin's confirmed bookings across all users. The existing `/schedule/bookings` endpoint already returns the caller's own bookings; admin's caller-id is the operator account, so this might already work — verify before assuming new endpoint is needed.
+**Backend status (2026-05-03).** Phase 7 did NOT touch schedule endpoints. The verify-existing-endpoint approach below is still the correct first step — if `GET /schedule/bookings` returns the operator's view (all bookings, not just where admin is organizer), no new backend is needed. Otherwise, append the P-N for `GET /admin/schedule/calendar` and request it as a small backend follow-up alongside the MIS overview from 6.3.
 
 **Prompt:**
 
@@ -1646,16 +1706,19 @@ Implement Stage 6 Session 7: close out + tag.
 
 1. Update .claude/queue.md to add Stage 6 section under Stage 5:
 
-   ## Stage 6 — Role-based page corrections (Opus: 6 sessions, post-v1.0)
+   ## Stage 6 — Role-based page corrections (Opus: 7 sessions, post-v1.0)
    - [x] **stage-6.1-nav-cleanup** — remove admin from participant nav items
-   - [x] **stage-6.2-admin-pitches** — /admin/pitches/inbound list
-   - [x] **stage-6.3-admin-mis** — /admin/mis-overview list
+   - [x] **stage-6.2-admin-pitches** — /admin/pitches/inbound list (drawer gated on P-XX)
+   - [~] **stage-6.3-admin-mis** — /admin/mis-overview list (gated on backend P-XX)
    - [~] **stage-6.4-documents** — gated on P-XX decision
    - [x] **stage-6.5-schedule-split** — admin sees calendar, others book
    - [x] **stage-6.6-dashboard-roles** — role-specific home
+   - [x] **stage-6.8-public-pitch-form** — /pitch landing page (Phase 7.2.a)
 
 2. Run a Playwright smoke as 4 different roles (admin / lp / startup_funded /
    partner) and verify the sidebar items match the expected list per role.
+   Plus an unauthenticated smoke of /pitch (added in 6.8) — confirm the page
+   renders without auth and submit posts to /api/v1/public/pitch.
 
 3. Tag v1.1-roles-corrected and push.
 
@@ -1663,6 +1726,137 @@ All four gates green; tests must include explicit role-isolation cases.
 ```
 
 > Gate after Stage 6: human verifies sidebar visibly differs per role on the staging build. Tag `v1.1-roles-corrected`.
+
+### 6.8 — Session 8 (NEW from Phase 7.2.a): Public pitch landing page
+
+**Backend status (2026-05-03).** ✅ UNBLOCKED. `POST /api/v1/public/pitch` shipped in `one-community-1` Phase 7.2 Build 1 (commit `0f34d91`). The endpoint is **public, unauthenticated, and rate-limited 3/hour per IP**. Without a frontend page, it is currently unreachable in the wild — Stage 6 closes that gap.
+
+**Why this isn't in the original Stage 6 spec.** Stage 6 was scoped to "role-based page corrections" before Phase 7.2 was finalised. The public web-form path is a brand-new public-facing surface that didn't exist when Stage 6 was written. Add as 6.8 so the `/pitch` flow is exercisable end-to-end alongside the v1.1 cut.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 8: public pitch submission landing page.
+
+UNBLOCKED — Phase 7.2.a endpoint live: POST /api/v1/public/pitch
+  - Auth: NONE (this is a public surface)
+  - Rate limit: 3/hour per IP (slowapi); 4th call returns 429 + envelope
+  - Returns: 202 Accepted, { data: { pitch_id, status, drive_folder_id }, error: null }
+    where status ∈ { 'received', 'duplicate' }
+    drive_folder_id may be null when Drive create failed best-effort
+  - 4xx validation errors return the standard envelope; FastAPI 422 body shape
+
+PRD context to load:
+- frontend_prd.md §10 (role-based routing) — note the /pitch route is
+  EXPLICITLY outside the auth shell
+- one-community-1/CLAUDE.md §7.2.a, §7.2.c for backend contract +
+  field-name divergences (revenue_inr/burn_rate_inr are MONTHLY values
+  per inbound_service._to_startup_fields)
+
+Read for pattern reference:
+- src/auth/routes/SignInPage.tsx — the only existing route outside the
+  authenticated shell (no Sidebar/RoleGuard)
+- src/components/forms/* — input + select primitives
+- src/lib/api-client.ts — fetch wrapper (use the public path; do NOT send
+  Authorization header on this call)
+
+Implementation:
+
+1. Routing:
+   - New route: /pitch (NOT /public/pitch — keep the URL clean for marketing).
+   - Lives outside the authenticated layout shell:
+     • No Sidebar / NavList
+     • No RoleGuard (it's public)
+     • Simple top bar with Warmup Ventures logo + a single "Already a member? Sign in" link
+   - File: src/features/public-pitch/routes/PublicPitchPage.tsx
+   - Lazy-load per [P-19] — keep the public bundle small.
+
+2. API client:
+   - File: src/api/public/pitch.ts
+   - submitPublicPitch(payload: PublicPitchInput): Promise<PublicPitchResponse>
+   - Zod schema with .passthrough() per §13 G8
+   - Do NOT attach Authorization header (use the public-mode of api-client, or
+     a bare fetch — pick whichever matches existing public-call convention)
+   - Handle 429 specifically — return a typed { kind: 'rate_limited' } variant
+
+3. Form fields (mirror Phase 7.2.a InboundPitchRequest):
+   REQUIRED:
+     - company_name (string, max 200)
+     - founder_name (string, max 200)
+     - email (regex validate — backend uses regex, NOT EmailStr)
+     - sector (free-text or select; backend stores as TEXT)
+     - stage (select — see enum below)
+     - tagline (string, max 280)
+     - description (textarea, max 4000)
+     - founding_year (int, 1900..currentYear)
+
+   OPTIONAL:
+     - phone (E.164-ish, accept "+91 ..." or "+1 ...")
+     - website_url (url)
+     - team_size (int)
+     - ask_amount_cr (number — INR crores)
+     - revenue_model (string)
+     - revenue_inr (number — MONTHLY INR; backend maps to revenue_monthly)
+     - growth_pct (number)
+     - burn_rate_inr (number — MONTHLY INR; backend maps to burn_monthly)
+     - runway_months (int)
+     - current_balance_inr (number)
+     - gross_margin_pct (number)
+     - customer_count (int)
+     - deck_url (url — Drive / Dropbox / etc.)
+
+   stage select options (from one-community-1 0004_startups.py startup_stage ENUM):
+     ideation, pre_seed, seed, early_growth, pre_a, series_a, pre_b, series_b, late_growth
+
+   Add a small note next to revenue_inr / burn_rate_inr explaining
+   "Monthly INR (we'll annualise downstream)" — this matches backend's
+   monthly-semantics decision.
+
+4. Submit handler:
+   - On 202 + status='received': show a success card with the pitch_id and
+     copy "Thanks — we'll review and reach out within 5 business days. Quote
+     this reference if you email us: <pitch_id>."
+   - On 202 + status='duplicate': show a friendly card "We already have your
+     pitch on file (reference <pitch_id>). We'll be in touch shortly."
+   - On 429: "You've hit the submission limit (3 per hour from this IP).
+     Please try again in an hour, or email pitch@warmupventures.com."
+   - On 4xx validation: render field-level errors inline (parse FastAPI's
+     422 detail array)
+   - On 5xx: generic error + "Try again" button + the same email fallback
+
+5. Confirmation surface:
+   - Replace the form with a confirmation card on success (don't navigate).
+   - Include a "Have questions? Email pitch@warmupventures.com" hint
+     (referencing the Phase 7.2.b email gateway).
+
+6. SEO + accessibility:
+   - Title: "Pitch your startup — Warmup Ventures"
+   - Meta description (one sentence)
+   - OG tags for share previews
+   - Form labels properly associated (axe-clean)
+
+7. Tests:
+   - MSW handler for /api/v1/public/pitch covering: received, duplicate, 429,
+     422 validation errors, 503
+   - Component tests:
+     • All required fields validated client-side
+     • Submit posts the right payload (assert on JSON body)
+     • Success state renders pitch_id
+     • Duplicate state renders friendly copy
+     • 429 state renders rate-limit copy
+     • Field-level error mapping from 422 detail array
+   - Playwright: load /pitch unauthenticated → fill required fields → submit →
+     assert success card visible
+
+8. Bundle size: confirm the public route adds < 30KB gzipped to the public
+   chunk (it shouldn't drag in the authenticated layout).
+
+All four gates green.
+
+Outputs: commit `feat(public): pitch submission landing page (POST /public/pitch)`.
+```
+
+> Gate after 6.8: human visits `/pitch` in incognito and successfully submits a test pitch end-to-end. Backend admin email arrives at `ADMIN_INBOUND_EMAIL`. The pitch shows up in `GET /api/v1/admin/pitches/inbound` (verify via the 6.2 page once shipped).
 
 ---
 
