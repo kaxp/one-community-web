@@ -12,7 +12,8 @@ test.describe('Pitch deck flow (Stage 5.5)', () => {
     // Pitch is gated to startup roles + admin per [router.tsx:208-216]; the
     // sidebar exposes "My pitch" for startup_funded.
     await page.getByRole('link', { name: /^my pitch$/i }).click();
-    await expect(page).toHaveURL(/\/pitch/);
+    // Stage 6 S8: authenticated pitch editor moved to /my-pitch; /pitch is now public.
+    await expect(page).toHaveURL(/\/my-pitch/);
 
     // Default scenario seeds a present profile, so we land on Edit mode.
     await expect(page.getByText(/edit startup profile/i)).toBeVisible({ timeout: 10_000 });

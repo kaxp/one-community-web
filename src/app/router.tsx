@@ -49,6 +49,11 @@ const PendingConnectionsPage = lazy(() =>
 const PitchPage = lazy(() =>
   import('@/features/pitch/routes/PitchPage').then((m) => ({ default: m.PitchPage })),
 );
+const PublicPitchPage = lazy(() =>
+  import('@/features/public-pitch/routes/PublicPitchPage').then((m) => ({
+    default: m.PublicPitchPage,
+  })),
+);
 const MISPage = lazy(() =>
   import('@/features/mis/routes/MISPage').then((m) => ({ default: m.MISPage })),
 );
@@ -145,6 +150,17 @@ export const router = createBrowserRouter(
     { path: '/expired', element: <ExpiredPage /> },
     { path: '/unauthorized', element: <UnauthorizedPage /> },
     {
+      // Stage 6 S8 — public pitch submission form. OUTSIDE the auth shell
+      // (no sidebar, no RoleGuard). Placed before RequireAuth so unauthenticated
+      // visitors reach it without a redirect.
+      path: '/pitch',
+      element: (
+        <Susp>
+          <PublicPitchPage />
+        </Susp>
+      ),
+    },
+    {
       element: <RequireAuth />,
       children: [
         {
@@ -207,8 +223,9 @@ export const router = createBrowserRouter(
                   ],
                 },
                 {
-                  // PRD §7.3 — pitch is gated to startup roles only.
-                  // Admins see inbound pitches at /admin/pitches/inbound (Stage 6 S2).
+                  // PRD §7.3 — startup pitch editor, startup roles only.
+                  // Moved to /my-pitch (Stage 6 S8) — /pitch is now the public
+                  // submission landing page for unauthenticated founders.
                   element: (
                     <RoleGuard
                       roles={['startup_inprogress', 'startup_onboarded', 'startup_funded']}
@@ -216,7 +233,7 @@ export const router = createBrowserRouter(
                   ),
                   children: [
                     {
-                      path: '/pitch',
+                      path: '/my-pitch',
                       element: (
                         <Susp>
                           <PitchPage />

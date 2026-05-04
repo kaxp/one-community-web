@@ -160,6 +160,7 @@ import {
   type TravelPlanCreateRequest,
   type TravelPlansResponse,
 } from '@/features/travel/schemas';
+import { zAdminCalendarResponse, type AdminCalendarResponse } from '@/features/schedule/schemas';
 import {
   zMatchApproveResponse,
   zMatchGenerateAck,
@@ -855,4 +856,16 @@ export async function getAdminMisOverview(args: {
   const url = `/admin/mis-overview?${params.toString()}`;
   const resp = await apiClient.get<ApiEnvelope<MISOverviewListResponse>>(url);
   return zMISOverviewListResponse.parse(unwrap(resp.data, url));
+}
+
+// Stage 6 S5 — `GET /admin/schedule/calendar`. days clamped to 1–60.
+export async function getAdminCalendar(args: {
+  from: string;
+  days: number;
+}): Promise<AdminCalendarResponse> {
+  const days = Math.max(1, Math.min(60, args.days));
+  const params = new URLSearchParams({ from: args.from, days: String(days) });
+  const url = `/admin/schedule/calendar?${params.toString()}`;
+  const resp = await apiClient.get<ApiEnvelope<AdminCalendarResponse>>(url);
+  return zAdminCalendarResponse.parse(unwrap(resp.data, url));
 }

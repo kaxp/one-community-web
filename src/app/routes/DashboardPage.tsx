@@ -1,58 +1,38 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser } from '@/auth/use-auth';
+import { Navigate } from 'react-router-dom';
+import { useRole } from '@/auth/use-auth';
+import { AdminDashboard } from '@/features/dashboard/components/AdminDashboard';
+import { LPDashboard } from '@/features/dashboard/components/LPDashboard';
+import { VCDashboard } from '@/features/dashboard/components/VCDashboard';
+import { StartupOnboardingDashboard } from '@/features/dashboard/components/StartupOnboardingDashboard';
+import { StartupFundedDashboard } from '@/features/dashboard/components/StartupFundedDashboard';
+import { PartnerDashboard } from '@/features/dashboard/components/PartnerDashboard';
+import { AdvisorDashboard } from '@/features/dashboard/components/AdvisorDashboard';
 
+// Stage 6 S6 — role-specific dashboard replacing the Stage 1 brand smoke-test
+// placeholder. Each sub-component owns its own data fetching via existing hooks;
+// no new endpoints are required.
 export function DashboardPage() {
-  const user = useUser();
+  const role = useRole();
 
-  return (
-    <div className="flex flex-col gap-6" data-testid="dashboard-root">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Dashboard</h1>
-        <p className="text-sm text-ink-muted">
-          {user ? `Signed in as ${user.name ?? user.phone}` : 'Scaffold — not yet signed in'}
-        </p>
-      </div>
-
-      {/* Visual brand smoke test per queue.md Stage 1: one Button, one Card, one success Badge. */}
-      <section
-        aria-label="Brand smoke test"
-        className="grid gap-4 md:grid-cols-3"
-        data-testid="brand-smoke"
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Card</CardTitle>
-            <CardDescription>White surface with muted border &amp; subtle shadow.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-ink-body">
-              This is the default card surface the whole product will sit on.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Button</CardTitle>
-            <CardDescription>Primary CTA uses the Warmup blue.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button data-testid="brand-smoke-button">Primary action</Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Badge</CardTitle>
-            <CardDescription>Semantic status colour sample.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Badge variant="success" data-testid="brand-smoke-badge">
-              Success
-            </Badge>
-          </CardContent>
-        </Card>
-      </section>
-    </div>
-  );
+  switch (role) {
+    case 'admin':
+    case 'super_admin':
+      return <AdminDashboard />;
+    case 'lp':
+    case 'potential_lp':
+      return <LPDashboard />;
+    case 'vc':
+      return <VCDashboard />;
+    case 'startup_inprogress':
+    case 'startup_onboarded':
+      return <StartupOnboardingDashboard />;
+    case 'startup_funded':
+      return <StartupFundedDashboard />;
+    case 'partner':
+      return <PartnerDashboard />;
+    case 'advisor':
+      return <AdvisorDashboard />;
+    default:
+      return <Navigate to="/signin" replace />;
+  }
 }

@@ -106,6 +106,20 @@ _Spot-check gate_
 
 ---
 
+## Stage 6 — Role-based page corrections (Opus: 7 sessions, post-v1.0)
+
+- [x] **stage-6.1-nav-cleanup** — remove admin from participant nav items (Suggestions, Connections, Pending, Who viewed me, My digest; tighten connections.request / connections.respond / matchmaking.respond capabilities)
+- [x] **stage-6.2-admin-pitches** — /admin/pitches/inbound list + drawer (Phase 7.2.f — AI-evaluated inbound pitches with Signal badge, founder contact, full v3 evaluation)
+- [x] **stage-6.3-admin-mis** — /admin/mis-overview list (GET /admin/mis-overview; range filter; file + Drive + Notion links; cursor pagination)
+- [x] **stage-6.4-documents** — gated on P-24 decision → resolved (b): Documents nav hidden from admin/super_admin; route stays registered for deep-links
+- [x] **stage-6.5-schedule-split** — admin sees read-only 7-day AdminCalendarView; participants see ParticipantBookingView (extracted from old SchedulePage)
+- [x] **stage-6.6-dashboard-roles** — role-specific DashboardPage replacing Stage 1 brand smoke-test placeholder (7 sub-dashboards, zero new endpoints)
+- [x] **stage-6.8-public-pitch-form** — /pitch public landing page (Phase 7.2.a: POST /api/v1/public/pitch; 20-field form; received/duplicate/rate-limited/server-error states; 18 unit tests + 2 Playwright specs; authenticated /pitch renamed to /my-pitch)
+
+> Gate after Stage 6: tag `v1.1-roles-corrected` after this PR merges to develop.
+
+---
+
 ## Legend
 
 - `- [ ]` unchecked — not started
