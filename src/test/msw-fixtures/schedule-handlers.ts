@@ -1,5 +1,5 @@
 import { http, HttpResponse, type HttpHandler } from 'msw';
-import type { Booking, Slot } from '@/features/schedule/schemas';
+import type { AdminCalendarItem, Booking, Slot } from '@/features/schedule/schemas';
 
 // PRD §7.10 fixtures. Slots are emitted in IST (+05:30) per backend
 // convention. The book handler removes the booked slot from the in-memory
@@ -52,12 +52,118 @@ const SEED_BOOKINGS: Booking[] = [
   },
 ];
 
+// Stage 6 S5 — admin calendar seed: 5 meetings across 3 days.
+const TODAY = '2026-05-04';
+const ADMIN_CALENDAR_SEED: AdminCalendarItem[] = [
+  {
+    booking_id: '00000000-0000-4000-8000-000000000c01',
+    scheduled_at: `${TODAY}T10:00:00+05:30`,
+    duration_minutes: 30,
+    status: 'confirmed',
+    calendar_event_id: 'ev_cal1@google.com',
+    notes: null,
+    requester: {
+      user_id: '00000000-0000-4000-8000-000000000004',
+      name: 'Arjun LP',
+      email: null,
+      role: 'lp',
+    },
+    target: {
+      user_id: '00000000-0000-4000-8000-000000000005',
+      name: 'Priya VC',
+      email: null,
+      role: 'vc',
+    },
+  },
+  {
+    booking_id: '00000000-0000-4000-8000-000000000c02',
+    scheduled_at: `${TODAY}T14:00:00+05:30`,
+    duration_minutes: 60,
+    status: 'confirmed',
+    calendar_event_id: null,
+    notes: null,
+    requester: {
+      user_id: '00000000-0000-4000-8000-000000000006',
+      name: 'Ravi LP',
+      email: null,
+      role: 'lp',
+    },
+    target: {
+      user_id: '00000000-0000-4000-8000-000000000007',
+      name: 'Startup Co',
+      email: null,
+      role: 'startup_funded',
+    },
+  },
+  {
+    booking_id: '00000000-0000-4000-8000-000000000c03',
+    scheduled_at: `2026-05-05T11:00:00+05:30`,
+    duration_minutes: 30,
+    status: 'pending',
+    calendar_event_id: null,
+    notes: 'Follow-up call',
+    requester: {
+      user_id: '00000000-0000-4000-8000-000000000008',
+      name: 'Meera VC',
+      email: null,
+      role: 'vc',
+    },
+    target: {
+      user_id: '00000000-0000-4000-8000-000000000009',
+      name: 'Raj LP',
+      email: null,
+      role: 'lp',
+    },
+  },
+  {
+    booking_id: '00000000-0000-4000-8000-000000000c04',
+    scheduled_at: `2026-05-06T09:30:00+05:30`,
+    duration_minutes: 30,
+    status: 'confirmed',
+    calendar_event_id: 'ev_cal4@google.com',
+    notes: null,
+    requester: {
+      user_id: '00000000-0000-4000-8000-000000000010',
+      name: 'Anjali LP',
+      email: null,
+      role: 'lp',
+    },
+    target: {
+      user_id: '00000000-0000-4000-8000-000000000011',
+      name: 'NovaTech',
+      email: null,
+      role: 'startup_funded',
+    },
+  },
+  {
+    booking_id: '00000000-0000-4000-8000-000000000c05',
+    scheduled_at: `2026-05-06T16:00:00+05:30`,
+    duration_minutes: 60,
+    status: 'confirmed',
+    calendar_event_id: 'ev_cal5@google.com',
+    notes: null,
+    requester: {
+      user_id: '00000000-0000-4000-8000-000000000012',
+      name: 'Kiran VC',
+      email: null,
+      role: 'vc',
+    },
+    target: {
+      user_id: '00000000-0000-4000-8000-000000000013',
+      name: 'LP Fund',
+      email: null,
+      role: 'potential_lp',
+    },
+  },
+];
+
 let slotsFixture: Slot[] = [];
 let bookingsFixture: Booking[] = [];
 let nextSlotsError: ErrorEnvelope | null = null;
 let nextBookError: ErrorEnvelope | null = null;
 let nextBookingsError: ErrorEnvelope | null = null;
 let nextCancelError: ErrorEnvelope | null = null;
+let nextAdminCalendarError: ErrorEnvelope | null = null;
 let bookCounter = 0;
 
 export function resetMswScheduleState() {
@@ -67,7 +173,12 @@ export function resetMswScheduleState() {
   nextBookError = null;
   nextBookingsError = null;
   nextCancelError = null;
+  nextAdminCalendarError = null;
   bookCounter = 0;
+}
+
+export function queueAdminCalendarError(err: ErrorEnvelope) {
+  nextAdminCalendarError = err;
 }
 
 resetMswScheduleState();
@@ -114,6 +225,20 @@ function errorBody(err: ErrorEnvelope) {
     },
   };
 }
+
+export const adminScheduleHandlers: HttpHandler[] = [
+  http.get('*/api/v1/admin/schedule/calendar', () => {
+    if (nextAdminCalendarError) {
+      const err = nextAdminCalendarError;
+      nextAdminCalendarError = null;
+      return HttpResponse.json(errorBody(err), { status: err.status });
+    }
+    return HttpResponse.json({
+      data: { items: ADMIN_CALENDAR_SEED, next_cursor: null },
+      error: null,
+    });
+  }),
+];
 
 export const scheduleHandlers: HttpHandler[] = [
   // PRD §7.10.1 — slots (filtered by from_date / days when present, else

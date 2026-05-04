@@ -82,6 +82,8 @@ export const qk = {
     inboundPitchDetail: (id: string) => ['admin', 'inbound-pitches', 'detail', id] as const,
     misOverviewAll: ['admin', 'mis-overview'] as const,
     misOverview: (range: string) => ['admin', 'mis-overview', { range }] as const,
+    calendarAll: ['admin', 'calendar'] as const,
+    calendar: (from: string, days: number) => ['admin', 'calendar', { from, days }] as const,
   },
   digest: {
     pending: ['digest', 'pending'] as const,

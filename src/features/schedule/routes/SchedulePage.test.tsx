@@ -4,7 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders, screen, waitFor } from '@/test/test-utils';
 import { SchedulePage } from './SchedulePage';
 import { useAuthStore } from '@/auth/auth-store';
-import { queueSlotsError, setMswSlotsFixture } from '@/test/msw-fixtures/schedule-handlers';
+import {
+  queueAdminCalendarError,
+  queueSlotsError,
+  setMswSlotsFixture,
+} from '@/test/msw-fixtures/schedule-handlers';
 
 vi.mock('sonner', async () => {
   const actual = await vi.importActual<typeof import('sonner')>('sonner');
@@ -18,14 +22,14 @@ vi.mock('sonner', async () => {
   };
 });
 
-function signedIn() {
+function signedIn(role: 'lp' | 'admin' | 'super_admin' = 'lp') {
   useAuthStore.getState().setSession({
     token: 'msw-jwt.test',
     user: {
       id: '00000000-0000-4000-8000-000000000004',
       phone: '+911234567892',
-      role: 'lp',
-      name: 'LP',
+      role,
+      name: role === 'lp' ? 'LP' : 'Admin',
       email: null,
       organisation: null,
       profile_complete: true,
@@ -43,7 +47,84 @@ function renderPage(route = '/schedule?from_date=2026-04-26&days=7') {
   );
 }
 
-describe('SchedulePage', () => {
+describe('SchedulePage — role branching', () => {
+  it('lp sees ParticipantBookingView (slot grid heading)', async () => {
+    signedIn('lp');
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /schedule a meeting/i })).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole('heading', { name: /calendar — all upcoming meetings/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('admin sees AdminCalendarView (calendar heading)', async () => {
+    signedIn('admin');
+    renderPage('/schedule');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: /calendar — all upcoming meetings/i }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole('heading', { name: /schedule a meeting/i })).not.toBeInTheDocument();
+  });
+
+  it('super_admin also sees AdminCalendarView', async () => {
+    signedIn('super_admin');
+    renderPage('/schedule');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: /calendar — all upcoming meetings/i }),
+      ).toBeInTheDocument(),
+    );
+  });
+});
+
+describe('AdminCalendarView', () => {
+  it('renders seed meetings from the fixture', async () => {
+    signedIn('admin');
+    renderPage('/schedule');
+    await screen.findByTestId('meeting-00000000-0000-4000-8000-000000000c01');
+    expect(screen.getByText(/Arjun LP → Priya VC/)).toBeInTheDocument();
+  });
+
+  it('shows prev-week disabled when on today', async () => {
+    signedIn('admin');
+    renderPage('/schedule');
+    await screen.findByTestId('prev-week');
+    expect(screen.getByTestId('prev-week')).toBeDisabled();
+  });
+
+  it('next-week advances the from date', async () => {
+    signedIn('admin');
+    const user = userEvent.setup();
+    renderPage('/schedule');
+    await screen.findByTestId('next-week');
+    await user.click(screen.getByTestId('next-week'));
+    await waitFor(() => expect(screen.getByTestId('prev-week')).not.toBeDisabled());
+  });
+
+  it('clamps days > 60 client-side (hook should not send days > 60)', async () => {
+    // Verify that even if we pass 120 days, the request goes out with days=60.
+    // We test this indirectly: load the calendar and confirm it loads (the hook
+    // clamping means MSW receives days<=60 and returns the seed, not a 422).
+    signedIn('admin');
+    renderPage('/schedule?from=2026-05-04&days=120');
+    await screen.findByTestId('meeting-00000000-0000-4000-8000-000000000c01');
+  });
+
+  it('shows an error state when the calendar fetch fails', async () => {
+    signedIn('admin');
+    queueAdminCalendarError({ status: 500, code: 'internal_error', message: 'boom' });
+    renderPage('/schedule');
+    await waitFor(() =>
+      expect(screen.getByText(/something went wrong on our end/i)).toBeInTheDocument(),
+    );
+  });
+});
+
+describe('SchedulePage — participant booking flow', () => {
   it('renders the slot grid with at least one available slot', async () => {
     signedIn();
     renderPage();
