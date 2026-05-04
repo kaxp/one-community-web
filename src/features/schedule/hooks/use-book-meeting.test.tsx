@@ -29,8 +29,6 @@ function makeWrapper(client: QueryClient) {
   };
 }
 
-const TARGET_ID = '11111111-1111-4000-8000-000000000010';
-
 describe('useBookMeeting', () => {
   it('books a slot and invalidates qk.meetings.slotsAll + qk.meetings.bookingsAll', async () => {
     signedIn();
@@ -41,7 +39,6 @@ describe('useBookMeeting', () => {
 
     const { result } = renderHook(() => useBookMeeting(), { wrapper: makeWrapper(client) });
     result.current.mutate({
-      target_id: TARGET_ID,
       scheduled_at: '2026-04-26T10:00:00+05:30',
       duration_minutes: 30,
       purpose: 'Quick chat',
@@ -72,7 +69,6 @@ describe('useBookMeeting', () => {
 
     const { result } = renderHook(() => useBookMeeting(), { wrapper: makeWrapper(client) });
     result.current.mutate({
-      target_id: TARGET_ID,
       scheduled_at: '2026-04-26T10:00:00+05:30',
       duration_minutes: 30,
     });

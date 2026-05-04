@@ -100,7 +100,7 @@ function PitchDetailDrawer({
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
-        className="w-full overflow-y-auto sm:max-w-2xl"
+        className="w-full overflow-y-auto p-6 sm:max-w-2xl"
         data-testid="pitch-detail-drawer"
       >
         <SheetTitle>{data?.company_name ?? 'Full evaluation'}</SheetTitle>
