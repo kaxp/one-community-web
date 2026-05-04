@@ -62,6 +62,153 @@ describe('role-capabilities', () => {
     expect(item?.roles).toEqual(['admin', 'super_admin']);
   });
 
+  describe('documents nav — hidden from admin only (decisions.md [P-24])', () => {
+    it('admin does NOT see Documents in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).not.toContain('documents');
+    });
+
+    it('super_admin does NOT see Documents in nav', () => {
+      const keys = navForRole('super_admin').map((i) => i.key);
+      expect(keys).not.toContain('documents');
+    });
+
+    it('lp sees Documents in nav', () => {
+      expect(navForRole('lp').map((i) => i.key)).toContain('documents');
+    });
+
+    it('startup_inprogress sees Documents in nav', () => {
+      expect(navForRole('startup_inprogress').map((i) => i.key)).toContain('documents');
+    });
+
+    it('partner sees Documents in nav', () => {
+      expect(navForRole('partner').map((i) => i.key)).toContain('documents');
+    });
+
+    it('advisor sees Documents in nav', () => {
+      expect(navForRole('advisor').map((i) => i.key)).toContain('documents');
+    });
+  });
+
+  describe('admin nav — MIS replaced by admin-mis (Stage 6 S3)', () => {
+    it('admin does NOT see MIS in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).not.toContain('mis');
+    });
+
+    it('admin sees admin-mis (MIS overview) in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).toContain('admin-mis');
+    });
+
+    it('startup_funded sees MIS but NOT admin-mis', () => {
+      const keys = navForRole('startup_funded').map((i) => i.key);
+      expect(keys).toContain('mis');
+      expect(keys).not.toContain('admin-mis');
+    });
+
+    it('admin-mis nav item has correct path and roles', () => {
+      const item = NAV_ITEMS.find((i) => i.key === 'admin-mis');
+      expect(item?.path).toBe('/admin/mis-overview');
+      expect(item?.roles).toEqual(['admin', 'super_admin']);
+    });
+  });
+
+  describe('admin nav — pitch replaced by admin-pitches (Stage 6 S2)', () => {
+    it('admin does NOT see My pitch in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).not.toContain('pitch');
+    });
+
+    it('admin sees admin-pitches (Inbound pitches) in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).toContain('admin-pitches');
+    });
+
+    it('startup_funded sees My pitch but NOT admin-pitches', () => {
+      const keys = navForRole('startup_funded').map((i) => i.key);
+      expect(keys).toContain('pitch');
+      expect(keys).not.toContain('admin-pitches');
+    });
+
+    it('admin-pitches nav item has correct path and roles', () => {
+      const item = NAV_ITEMS.find((i) => i.key === 'admin-pitches');
+      expect(item?.path).toBe('/admin/pitches/inbound');
+      expect(item?.roles).toEqual(['admin', 'super_admin']);
+    });
+  });
+
+  describe('admin nav exclusions — participant flows removed (Stage 6 S1)', () => {
+    it('admin does NOT see Suggestions / Connections / Pending / Who viewed me / My digest', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).not.toContain('matchmaking');
+      expect(keys).not.toContain('connections');
+      expect(keys).not.toContain('pending');
+      expect(keys).not.toContain('viewers');
+      expect(keys).not.toContain('digest');
+    });
+
+    it('super_admin does NOT see Suggestions / Connections / Pending / Who viewed me / My digest', () => {
+      const keys = navForRole('super_admin').map((i) => i.key);
+      expect(keys).not.toContain('matchmaking');
+      expect(keys).not.toContain('connections');
+      expect(keys).not.toContain('pending');
+      expect(keys).not.toContain('viewers');
+      expect(keys).not.toContain('digest');
+    });
+
+    it('admin retains Dashboard / Search / Add contact / Schedule / Travel', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).toContain('dashboard');
+      expect(keys).toContain('search');
+      expect(keys).toContain('add-user');
+      expect(keys).toContain('schedule');
+      expect(keys).toContain('travel');
+    });
+  });
+
+  describe('admin CAPABILITIES exclusions — participant actions removed (Stage 6 S1)', () => {
+    it('admin cannot initiate connection requests (participant action)', () => {
+      expect(can('admin', 'connections.request')).toBe(false);
+    });
+
+    it('super_admin cannot initiate connection requests', () => {
+      expect(can('super_admin', 'connections.request')).toBe(false);
+    });
+
+    it('admin cannot respond to connection invites (participant action)', () => {
+      expect(can('admin', 'connections.respond')).toBe(false);
+    });
+
+    it('super_admin cannot respond to connection invites', () => {
+      expect(can('super_admin', 'connections.respond')).toBe(false);
+    });
+
+    it('admin cannot respond to matchmaking suggestions (participant action)', () => {
+      expect(can('admin', 'matchmaking.respond')).toBe(false);
+    });
+
+    it('super_admin cannot respond to matchmaking suggestions', () => {
+      expect(can('super_admin', 'matchmaking.respond')).toBe(false);
+    });
+
+    it('admin retains connections.approve (admin triage action)', () => {
+      expect(can('admin', 'connections.approve')).toBe(true);
+    });
+
+    it('admin retains matchmaking.approve (admin triage action)', () => {
+      expect(can('admin', 'matchmaking.approve')).toBe(true);
+    });
+
+    it('admin retains search.use (used during digest review)', () => {
+      expect(can('admin', 'search.use')).toBe(true);
+    });
+
+    it('admin retains card_scan.use (adds LPs from events)', () => {
+      expect(can('admin', 'card_scan.use')).toBe(true);
+    });
+  });
+
   describe('display-mode predicates (I-3)', () => {
     it('isStartupRole covers all three startup_* values', () => {
       expect(isStartupRole('startup_inprogress')).toBe(true);

@@ -212,3 +212,127 @@ export const zPartnerReferralResponse = z
   })
   .passthrough();
 export type PartnerReferralResponse = z.infer<typeof zPartnerReferralResponse>;
+
+// Phase 7.2.f — inbound pitches list + drawer.
+// .passthrough() per §13 G8 — tighten to .strict() when backend publishes
+// the formal schema.
+
+export const INBOUND_PITCH_SIGNALS = ['strong', 'moderate', 'weak'] as const;
+export type InboundPitchSignal = (typeof INBOUND_PITCH_SIGNALS)[number];
+
+export const INBOUND_PITCH_RANGES = ['weekly', 'monthly', 'yearly'] as const;
+export type InboundPitchRange = (typeof INBOUND_PITCH_RANGES)[number];
+
+export const SOURCE_CHANNELS = ['web_form', 'email'] as const;
+export type InboundSourceChannel = (typeof SOURCE_CHANNELS)[number];
+
+export const zInboundPitch = z
+  .object({
+    id: zUUID,
+    company_name: z.string(),
+    ai_pitch_score: z.number().nullable(),
+    ai_pitch_summary: z.string().nullable(),
+    ai_signal: z.enum(INBOUND_PITCH_SIGNALS).nullable(),
+    created_at: zISODateTime,
+    notion_page_id: z.string().nullable(),
+    drive_folder_id: z.string().nullable(),
+    source_channel: z.enum(SOURCE_CHANNELS).nullable(),
+  })
+  .passthrough();
+export type InboundPitch = z.infer<typeof zInboundPitch>;
+
+export const zInboundPitchesResponse = z
+  .object({
+    items: z.array(zInboundPitch),
+    next_cursor: z.string().nullable(),
+  })
+  .passthrough();
+export type InboundPitchesResponse = z.infer<typeof zInboundPitchesResponse>;
+
+const zPitchEvaluation = z
+  .object({
+    signal: z.string().nullable(),
+    summary: z.string().nullable(),
+    strengths: z.array(z.string()),
+    concerns: z.array(z.string()),
+    recommended_lp_types: z.array(z.string()),
+    financial_health: z.string().nullable(),
+    market_position: z.string().nullable(),
+    competitive_landscape: z.string().nullable(),
+    team_assessment: z.string().nullable(),
+    key_risks: z.array(z.string()),
+    indian_ecosystem_signals: z.string().nullable(),
+    recommendation_rationale: z.string().nullable(),
+  })
+  .passthrough();
+export type PitchEvaluation = z.infer<typeof zPitchEvaluation>;
+
+export const zInboundPitchDetail = z
+  .object({
+    id: zUUID,
+    company_name: z.string(),
+    ai_pitch_score: z.number().nullable(),
+    ai_pitch_summary: z.string().nullable(),
+    ai_signal: z.enum(INBOUND_PITCH_SIGNALS).nullable(),
+    created_at: zISODateTime,
+    notion_page_id: z.string().nullable(),
+    drive_folder_id: z.string().nullable(),
+    source_channel: z.enum(SOURCE_CHANNELS).nullable(),
+    founder_name: z.string().nullable(),
+    founder_email: z.string().nullable(),
+    founder_phone: z.string().nullable(),
+    founder_linkedin: z.string().nullable(),
+    sector: z.string().nullable(),
+    stage: z.string().nullable(),
+    founding_year: z.number().int().nullable(),
+    team_size: z.number().int().nullable(),
+    website_url: z.string().nullable(),
+    description: z.string().nullable(),
+    one_liner: z.string().nullable(),
+    revenue_model: z.string().nullable(),
+    revenue_monthly: z.number().nullable(),
+    burn_monthly: z.number().nullable(),
+    runway_months: z.number().nullable(),
+    current_balance_inr: z.number().nullable(),
+    growth_pct: z.number().nullable(),
+    gross_margin_pct: z.number().nullable(),
+    customer_count: z.number().int().nullable(),
+    funding_target_cr: z.number().nullable(),
+    pitch_deck_url: z.string().nullable(),
+    evaluation: zPitchEvaluation.nullable(),
+  })
+  .passthrough();
+export type InboundPitchDetail = z.infer<typeof zInboundPitchDetail>;
+
+// Phase 7.2.g — admin MIS overview list.
+// .passthrough() per §13 G8.
+export const MIS_OVERVIEW_RANGES = ['monthly', 'quarterly', 'yearly'] as const;
+export type MISOverviewRange = (typeof MIS_OVERVIEW_RANGES)[number];
+
+export const zMISOverviewItem = z
+  .object({
+    id: zUUID,
+    startup_id: zUUID,
+    company_name: z.string(),
+    period: z.string(),
+    submitted_at: zISODateTime,
+    file_url: z.string().nullable(),
+    file_name: z.string().nullable(),
+    comment: z.string().nullable(),
+    revenue: z.number().nullable(),
+    burn: z.number().nullable(),
+    runway_months: z.number().nullable(),
+    headcount: z.number().nullable(),
+    notion_page_id: z.string().nullable(),
+    drive_folder_id: z.string().nullable(),
+  })
+  .passthrough();
+export type MISOverviewItem = z.infer<typeof zMISOverviewItem>;
+
+export const zMISOverviewListResponse = z
+  .object({
+    items: z.array(zMISOverviewItem),
+    next_cursor: z.string().nullable(),
+  })
+  .passthrough();
+export type MISOverviewListResponse = z.infer<typeof zMISOverviewListResponse>;

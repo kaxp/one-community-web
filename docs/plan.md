@@ -1265,6 +1265,683 @@ git push --tags
 
 ---
 
+## Stage 6 — Role-based page corrections (post-v1.0, added 2026-04-28)
+
+**Goal.** The current build leaks admin into user-facing nav: an admin user sees "Suggestions / Connections / Pending / My pitch / MIS / Who viewed me / Documents / My digest" which are all participant flows. Admin is not a participant — admin is the operator. Stage 6 splits the nav cleanly and replaces the admin-side participant pages with admin-flavoured operator views.
+
+**Backend dependency.** Some sub-tasks require new backend endpoints from Phase 7 (`one-community-1` repo, `CLAUDE.md § Phase 7`). Each prompt below explicitly flags whether it ships nav-only or waits on backend.
+
+**Phase 7 backend status as of 2026-05-03 (refresh from `one-community-1/CLAUDE.md` + `archive.md`)**:
+
+- ✅ Phase 7.1 nightly Notion sync (no Stage 6 dep — surface is Celery only).
+- ✅ Phase 7.2.a `POST /api/v1/public/pitch` — public web-form endpoint **(unblocks new Stage 6.8 — public pitch landing page)**.
+- ✅ Phase 7.2.b `POST /api/v1/webhooks/email/pitch` — email gateway with real SNS verifier (no Stage 6 dep — surface is webhook only).
+- ✅ Phase 7.2.f `GET /api/v1/admin/pitches/inbound` — **unblocks Stage 6.2** list+badge.
+- ✅ Phase 7.3 quarterly watchlist (no Stage 6 dep — surface is email-only).
+
+**Stage 6 frontend-unblock backend additions — shipped 2026-05-03 (one-community-1 commit `a73f76d`)**:
+
+- ✅ `GET /api/v1/admin/pitches/{startup_id}` — full v3 evaluation + founder contact for the **Stage 6.2 drawer**.
+- ✅ `GET /api/v1/admin/mis-overview?range=monthly|quarterly|yearly&cursor=&limit=` — **unblocks Stage 6.3 in full**.
+- ✅ `GET /api/v1/admin/schedule/calendar?from=YYYY-MM-DD&days=N` — **unblocks Stage 6.5 in full** (no verify-existing-endpoint dance needed — this is the operator-view endpoint).
+
+All three follow existing admin conventions: `require_role(admin, super_admin)`, slowapi rate limit, keyset pagination, repo-only DB access. 29 new admin tests, 724/724 backend suite passing, ruff clean.
+
+**Reference for every prompt below.**
+
+- File touched by all sub-tasks: `src/lib/role-capabilities.ts` (NAV_ITEMS array)
+- Layout files (read-only for context): `src/components/layout/Sidebar.tsx`, `src/components/layout/NavList.tsx`, `src/components/layout/MobileNavDrawer.tsx`
+- All new admin routes go under `src/features/admin/routes/<RouteName>.tsx`
+- All new admin routes must: use `<RoleGuard>` wrapper, lazy-import per CLAUDE.md §6.4 [P-19], add MSW fixtures + tests
+- Gate at end of every sub-task: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all green
+
+### 6.1 — Session 1: Hide admin from user-facing participant nav
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 1: nav-only corrections to remove admin from participant flows.
+
+PRD context to load:
+- frontend_prd.md §10 (Role-based routing & access)
+- frontend_prd.md §10.2 (Per-role landing routes)
+
+Read for context:
+- src/lib/role-capabilities.ts — NAV_ITEMS array, CAPABILITIES map
+- src/components/layout/NavList.tsx — uses navForRole() helper
+- src/auth/use-auth.ts — useRole() hook
+
+Implementation:
+
+1. In src/lib/role-capabilities.ts, edit the following NAV_ITEMS entries to REMOVE 'admin' and 'super_admin' from their `roles` array:
+
+   - 'matchmaking' (Suggestions): admin should not see — they have /admin/matchmaking
+       Before: ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin']
+       After:  ['lp', 'potential_lp', 'vc', 'startup_funded']
+
+   - 'connections' (Connections): admin does not connect; they triage via /admin/connections
+       Before: roles: ['*']
+       After:  roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor']
+       (i.e. every role except admin / super_admin)
+
+   - 'pending' (Pending): same logic as connections
+       Before: roles: ['*']
+       After:  same explicit list as connections above
+
+   - 'viewers' (Who viewed me): admin profile is not visible to others
+       Before: roles: ['*']
+       After:  roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor']
+
+   - 'digest' (My digest): admin does not subscribe to digests; they review at /admin/digest
+       Before: roles: ['*']
+       After:  roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor']
+
+2. Also tighten the CAPABILITIES map at the top of the same file:
+
+   - 'matchmaking.respond': remove 'admin', 'super_admin'
+       Before: ['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin']
+       After:  ['lp', 'potential_lp', 'vc', 'startup_funded']
+
+   - 'connections.request': remove 'admin', 'super_admin' (admin does not initiate connection requests)
+   - 'connections.respond': remove 'admin', 'super_admin' (admin does not respond to connection invites; they approve/reject in the queue)
+
+3. Do NOT touch:
+   - 'search.use' — admin DOES use search (to look up startups during digest review).
+   - 'admin.any', 'analytics.view', 'tracxn.ingest', 'connections.approve', 'matchmaking.approve' — admin-only, keep as is.
+   - 'card_scan.use' — admin uses card scan to add LPs from events.
+
+4. Update tests:
+   - src/lib/role-capabilities.test.ts: add explicit assertions that admin role does NOT see Suggestions / Connections / Pending / Who viewed me / My digest in navForRole('admin').
+   - src/lib/role-capabilities.test.ts: add explicit assertion that admin retains Search, Add contact, Schedule, Travel, Dashboard.
+
+5. Run all four gates. Verify no broken routes — admin's existing /admin/* nav items must still work.
+
+Outputs: one PR-sized commit `feat(nav): remove admin from participant nav items`.
+```
+
+### 6.2 — Session 2: Replace admin "My pitch" with `/admin/pitches/inbound`
+
+**Backend status (2026-05-03).** ✅ FULLY UNBLOCKED.
+
+- List: `GET /api/v1/admin/pitches/inbound` — shipped in `one-community-1` Phase 7.2 Build 1 (commit `0f34d91`).
+- **Detail (drawer): `GET /api/v1/admin/pitches/{startup_id}` — shipped 2026-05-03 in commit `a73f76d`** (Stage 6 frontend-unblock follow-up). Returns the full v3 evaluation expanded from `ai_evaluation` JSONB plus founder contact fields joined from `users`. 404 if the startup id isn't an inbound pitch.
+
+Both contracts are confirmed in `one-community-1/CLAUDE.md §7.2.f` and `archive.md`.
+
+**Original plan divergence still applies for the LIST endpoint.** The list response returns summary fields only (`id`, `company_name`, `ai_pitch_score`, `ai_pitch_summary`, `ai_signal`, `created_at`, `notion_page_id`, `drive_folder_id`, `source_channel`). Full v3 fields (`founder_name`, `sector`, `stage`, `financial_health`, `key_risks`, etc.) are returned by the new **detail** endpoint, NOT the list. So the table view shows summary; the drawer fetches detail on demand. **No P-N decision needed any more — the choice was (a) new detail endpoint, and that's what shipped.**
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 2: replace the admin "My pitch" link with /admin/pitches/inbound.
+
+UNBLOCKED — endpoint live in dev as of one-community-1 commit 0f34d91. Verify with:
+  curl -H "Authorization: Bearer <admin token>" \
+    http://localhost:8000/api/v1/admin/pitches/inbound?range=weekly
+
+Expected envelope: { data: { items: [...], next_cursor: string|null }, error: null }.
+Per-item fields actually returned (per one-community-1 CLAUDE.md §7.2.f):
+  id, company_name, ai_pitch_score, ai_pitch_summary, ai_signal,
+  created_at, notion_page_id, drive_folder_id, source_channel.
+
+NOTE the divergences from the original Stage 6 spec:
+  - Plan listed `signal` — actual field is `ai_signal` (values: "strong" | "moderate" | "weak").
+  - Plan listed `founder_name`, `sector`, `stage`, `financial_health`, `key_risks` —
+    NONE of these are returned by the list endpoint. The full v3 evaluation lives in
+    the `ai_evaluation` JSONB column on the startups table but is NOT exposed via
+    the list endpoint.
+
+DRAWER ENDPOINT — also live: GET /api/v1/admin/pitches/{startup_id}
+(shipped 2026-05-03 in commit a73f76d). Verify with:
+  curl -H "Authorization: Bearer <admin token>" \
+    http://localhost:8000/api/v1/admin/pitches/<some-startup-id>
+
+Returns: { data: { ...summary fields..., founder_name, founder_email,
+  founder_phone, founder_linkedin, sector, stage, founding_year, team_size,
+  website_url, description, one_liner, revenue_model, revenue_monthly,
+  burn_monthly, runway_months, current_balance_inr, growth_pct,
+  gross_margin_pct, customer_count, funding_target_cr, pitch_deck_url,
+  evaluation: { signal, summary, strengths[], concerns[],
+    recommended_lp_types[], financial_health, market_position,
+    competitive_landscape, team_assessment, key_risks[],
+    indian_ecosystem_signals, recommendation_rationale } },
+  error: null }
+
+404 when the startup id doesn't exist OR isn't an inbound pitch
+(source_channel not in {web_form, email}). The detail endpoint scopes
+strictly to inbound rows so admins can never accidentally surface a
+non-inbound row through the drawer.
+
+No P-N decision item needed — the drawer endpoint is shipped.
+
+PRD context to load:
+- frontend_prd.md §7.X (TBD — backend will assign §7.12.X for /admin/pitches/inbound)
+- one-community-1/CLAUDE.md §Phase 7.2.f for backend contract
+
+Read for pattern reference:
+- src/features/admin/routes/AdminQuarterlyReportsPage.tsx — paginated admin list with filters (closest existing pattern)
+- src/features/search/components/FilterChips.tsx — URL-backed filter state
+- src/api/admin/quarterly-reports.ts — endpoint client + Zod schema pattern
+
+Implementation:
+
+1. In src/lib/role-capabilities.ts:
+   - Remove 'admin', 'super_admin' from the 'pitch' NAV_ITEM roles array. After this, only the 3 startup roles see "My pitch".
+       Before: ['startup_inprogress', 'startup_onboarded', 'startup_funded', 'admin', 'super_admin']
+       After:  ['startup_inprogress', 'startup_onboarded', 'startup_funded']
+   - Add a new admin NAV_ITEM right after 'admin-home':
+       { key: 'admin-pitches', label: 'Inbound pitches', path: '/admin/pitches/inbound', icon: 'FileSearch', roles: ['admin', 'super_admin'] }
+
+2. Add the API client at src/api/admin/pitches.ts:
+   - getAdminInboundPitches({ range: 'weekly'|'monthly'|'yearly', cursor?: string, limit?: number })
+   - getAdminInboundPitchDetail(startup_id: string) — for the drawer
+   - Zod schemas with .passthrough() per §13 G8
+   - List returns { items: InboundPitch[], next_cursor: string | null }
+   - Detail returns InboundPitchDetail (full v3 fields + founder contact +
+     evaluation block — see "Returns:" shape above).
+   - List InboundPitch fields actually returned by Phase 7.2.f:
+       id (uuid), company_name (string), ai_pitch_score (number | null),
+       ai_pitch_summary (string | null), ai_signal ('strong'|'moderate'|'weak'|null),
+       created_at (ISO datetime), notion_page_id (string | null),
+       drive_folder_id (string | null), source_channel ('web_form'|'email'|null).
+   - Detail InboundPitchDetail.evaluation fields:
+       signal (string|null), summary (string|null), strengths (string[]),
+       concerns (string[]), recommended_lp_types (string[]),
+       financial_health (string|null), market_position (string|null),
+       competitive_landscape (string|null), team_assessment (string|null),
+       key_risks (string[]), indian_ecosystem_signals (string|null),
+       recommendation_rationale (string|null).
+
+3. Build src/features/admin/routes/AdminInboundPitchesPage.tsx:
+   - URL-backed range filter (weekly default; monthly + yearly options)
+   - DataTable columns:
+       Company | Source (chip: web_form / email) | Signal (badge) |
+       Pitch score | Submitted | Actions
+     (Drop founder/sector/stage from the table — they aren't returned by the list
+     endpoint; surfaced in the drawer.)
+   - Signal badge color mapping (frontend choice, NOT backend):
+       'strong' → green, 'moderate' → amber, 'weak' → red, null → grey
+   - Action buttons per row:
+       "View Notion" (opens https://notion.so/{notion_page_id} when present),
+       "Open Drive" (opens https://drive.google.com/drive/folders/{drive_folder_id}
+                     when present),
+       "Full evaluation" (opens drawer — fetches getAdminInboundPitchDetail
+                         on click; renders sections for Founder contact,
+                         Financials snapshot, Evaluation summary, Detailed
+                         evaluation paragraphs, Strengths/Concerns/Risks,
+                         Recommended LP types, Recommendation rationale)
+   - Cursor pagination
+   - Empty state: "No inbound pitches in this range"
+   - Lazy-import per [P-19], RoleGuard {admin, super_admin}
+
+4. Wire the route in src/app/router.tsx under the admin section.
+
+5. Tests:
+   - MSW fixtures src/test/msw-fixtures/admin-pitches-handlers.ts:
+     • list: happy path + empty + 500 (use actual Phase 7.2.f field names —
+       ai_signal not signal)
+     • detail: happy path + empty-evaluation case + 404 (id not inbound)
+   - Component test covering range filter URL sync + render + empty state +
+     signal-badge color mapping for all four states (strong/moderate/weak/null)
+   - Component test asserting the drawer:
+     • opens on "Full evaluation" click
+     • fetches the detail endpoint with the right id
+     • shows founder contact section
+     • renders empty-evaluation state gracefully (FE-side guard against
+       null scalars / empty arrays — the backend returns these for rows
+       that haven't been evaluated yet)
+   - Update queue.md: mark new feature [admin-inbound-pitches] as in progress → done
+
+6. All four gates green.
+
+Outputs: commit `feat(admin): inbound pitches list page replacing My pitch link`.
+```
+
+### 6.3 — Session 3: Replace admin "MIS" with `/admin/mis-overview`
+
+**Backend status (2026-05-03).** ✅ UNBLOCKED. `GET /api/v1/admin/mis-overview` shipped in `one-community-1` commit `a73f76d` (Stage 6 frontend-unblock backend). No P-N needed — endpoint and contract are live.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 3: replace admin "MIS" upload with /admin/mis-overview.
+
+UNBLOCKED — endpoint live as of one-community-1 commit a73f76d. Verify with:
+  curl -H "Authorization: Bearer <admin token>" \
+    "http://localhost:8000/api/v1/admin/mis-overview?range=monthly"
+
+Endpoint contract:
+  GET /api/v1/admin/mis-overview
+  Query params:
+    range: 'monthly' | 'quarterly' | 'yearly'  (default 'monthly')
+    cursor: string | undefined                  (opaque keyset cursor)
+    limit: number 1..100                        (default 20)
+  Returns envelope: { data: { items: MISOverviewItem[], next_cursor: string|null }, error: null }
+  MISOverviewItem fields:
+    id (uuid),
+    startup_id (uuid),
+    company_name (string),
+    period (string — typically 'YYYY-MM' but freeform per backend; treat as text),
+    submitted_at (ISO datetime),
+    file_url (string|null),
+    file_name (string|null),
+    comment (string|null),
+    revenue (number|null),
+    burn (number|null),
+    runway_months (number|null),
+    headcount (number|null),
+    notion_page_id (string|null),
+    drive_folder_id (string|null).
+
+Read for pattern reference:
+- src/features/admin/routes/AdminQuarterlyReportsPage.tsx — same shape (admin paginated list)
+- src/features/admin/routes/AdminInboundPitchesPage.tsx (from 6.2) — closest sibling
+- src/api/admin/quarterly-reports.ts — endpoint pattern + Zod .passthrough()
+
+Implementation:
+
+1. In src/lib/role-capabilities.ts:
+   - Remove 'admin', 'super_admin' from 'mis' NAV_ITEM roles
+       Before: ['startup_funded', 'admin', 'super_admin']
+       After:  ['startup_funded']
+   - Add new admin NAV_ITEM after 'admin-pitches':
+       { key: 'admin-mis', label: 'MIS overview', path: '/admin/mis-overview', icon: 'BarChart3', roles: ['admin', 'super_admin'] }
+
+2. Add API client src/api/admin/mis.ts:
+   - listAdminMisOverview({ range, cursor?, limit? }) -> Promise<MISOverviewListResponse>
+   - Zod schema with .passthrough() per §13 G8
+   - Use the actual field names above (file_url not drive_url; period is a
+     freeform string).
+
+3. Build src/features/admin/routes/AdminMISOverviewPage.tsx:
+   - URL-backed range filter (monthly default; quarterly + yearly options)
+   - DataTable: Company | Period | Submitted | File | Revenue | Burn | Runway | Headcount | Comment | Actions
+   - "Open file" link uses file_url and opens in new tab (only render when present)
+   - "Open Drive" + "Open Notion" actions per row (only render when ids present)
+   - Cursor pagination (read next_cursor from envelope; pass back as ?cursor=)
+   - Empty state: "No MIS submissions in this range"
+   - Lazy-import + RoleGuard {admin, super_admin}
+
+4. Tests:
+   - MSW fixture src/test/msw-fixtures/admin-mis-handlers.ts: happy path,
+     cursor passthrough, empty range, 500.
+   - Component test covering range filter URL sync + cursor + render +
+     empty state. Make sure rows with null file_url / null notion_page_id
+     don't render dead links.
+
+5. All four gates green.
+
+Outputs: commit `feat(admin): MIS overview list page replacing MIS upload link`.
+```
+
+### 6.4 — Session 4: Documents page — clarify and gate
+
+**Decision needed.** The Documents page is currently a "coming soon in Phase 4" placeholder for everyone. The human asked "what is this for?" — append a `P-N` to `decisions.md` to confirm the product intent.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 4: resolve Documents page intent + role-correct.
+
+First action: append to .claude/decisions.md § Pending:
+
+  ### [P-XX] Documents page — purpose and audience
+  - Feature: stage-6-documents-clarify
+  - Blocking: yes
+  - Added: <today>
+  - Context: /documents currently renders a Phase-4 "coming soon" placeholder for
+    every role. The page advertises itself as "a shared vault for pitch decks,
+    term sheets, and portfolio reporting." For Stage 6 we need to decide:
+    (a) keep visible to everyone (current behaviour) and ship a real backend in Phase 4
+    (b) hide from admin (admin already accesses files via Notion+Drive directly)
+        and keep visible only to startup_funded + LP/VC roles for Phase-4 launch
+    (c) hide from EVERY role until Phase 4 ships — remove the nav item entirely
+  - Question: Which option? And if (a) or (b), what is the *actual* user story —
+    e.g. is this where LPs review term sheets they signed? Where startups upload
+    quarterly reports for LPs to read? The PRD section is ambiguous.
+  - My recommendation: (b) — admin gets files via Notion + Drive; user roles see
+    the placeholder until Phase 4 backend ships POST /documents/upload + GET
+    /documents per frontend_prd.md §13 G3.
+
+Once resolved:
+
+(a) Keep visible to everyone — no code change to NAV_ITEMS, just confirm the
+    placeholder copy is accurate and exit cleanly.
+
+(b) Hide from admin only — in src/lib/role-capabilities.ts, change:
+    Before: { key: 'documents', ..., roles: ['*'] }
+    After:  roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress',
+                    'startup_onboarded', 'startup_funded', 'partner', 'advisor']
+
+(c) Hide everywhere — comment out the entry in NAV_ITEMS with `// re-enable in Phase 4`
+    AND keep the route registered (so a deep-link from an old email still works,
+    rendering the existing "Coming soon" page).
+
+Update src/lib/role-capabilities.test.ts to assert the chosen behaviour.
+
+Run all four gates.
+```
+
+### 6.5 — Session 5: Schedule page — admin sees calendar, not booking form
+
+**Backend status (2026-05-03).** ✅ UNBLOCKED. `GET /api/v1/admin/schedule/calendar` shipped in `one-community-1` commit `a73f76d` (Stage 6 frontend-unblock backend). The dedicated operator-view endpoint means no verify-existing-endpoint dance is needed.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 5: split /schedule into per-role views.
+
+UNBLOCKED — admin endpoint live as of one-community-1 commit a73f76d.
+Verify with:
+  curl -H "Authorization: Bearer <admin token>" \
+    "http://localhost:8000/api/v1/admin/schedule/calendar?from=2026-05-10&days=14"
+
+Endpoint contract:
+  GET /api/v1/admin/schedule/calendar
+  Query params:
+    from:  YYYY-MM-DD          (default: today, server-side date)
+    days:  number 1..60        (default: 7)
+  Returns envelope: { data: { items: AdminCalendarItem[], next_cursor: null }, error: null }
+  AdminCalendarItem fields:
+    booking_id (uuid),
+    scheduled_at (ISO datetime),
+    duration_minutes (number|null),
+    status (string|null),
+    calendar_event_id (string|null),
+    notes (string|null),
+    requester: { user_id, name, email|null, role|null },
+    target:    { user_id, name, email|null, role|null }.
+
+  Note: cancelled bookings excluded, ordered ascending by scheduled_at.
+  next_cursor is always null — operators view at most 60 days at a time
+  so no pagination is needed.
+
+Read for pattern reference:
+- src/features/schedule/routes/SchedulePage.tsx — existing booking flow
+- src/features/schedule/components/CalendarGrid.tsx
+- frontend_prd.md §7.10.1–7.10.4
+
+Implementation:
+
+For ALL roles (no nav change to 'schedule' — keep roles: ['*']):
+- The /schedule route ALREADY works for non-admin roles — keep their flow as-is.
+- Inside src/features/schedule/routes/SchedulePage.tsx, branch on role:
+
+    const role = useRole();
+    if (role === 'admin' || role === 'super_admin') {
+      return <AdminCalendarView />;
+    }
+    return <ParticipantBookingView />;  // existing flow
+
+- Add API client src/api/admin/schedule.ts:
+  • getAdminCalendar({ from: Date, days: number }) -> Promise<AdminCalendarResponse>
+  • Zod schema with .passthrough() per §13 G8
+
+- Build src/features/schedule/components/AdminCalendarView.tsx:
+  • Header: "Calendar — all upcoming meetings"
+  • 7-day calendar grid (re-use CalendarGrid in read-only mode)
+  • Each tile shows: scheduled_at (time), requester.name, target.name,
+    duration_minutes, status badge
+  • No "Book this slot" button (admin does not book)
+  • Date range navigator: prev week / this week / next week
+    — keep window <= 60 days; quietly clamp on the client to match the
+    backend cap.
+  • Hook: useAdminCalendar(from, days) — calls /admin/schedule/calendar.
+    NOT /schedule/bookings (that's participant-scoped).
+
+- Build src/features/schedule/components/ParticipantBookingView.tsx by extracting
+  the existing flow from SchedulePage.tsx (no behaviour change, just relocation).
+
+Tests:
+- MSW fixture for /admin/schedule/calendar: 5 bookings across 3 days, plus
+  empty + 500 cases.
+- Snapshot test: admin sees AdminCalendarView, lp sees ParticipantBookingView.
+- Existing tests for booking flow must still pass for non-admin.
+- Ensure days=120 client-side clamps to 60 (backend would 422 otherwise).
+
+All four gates green.
+
+Outputs: commit `feat(schedule): admin sees read-only calendar; participants book as before`.
+```
+
+### 6.6 — Session 6: Dashboard — role-specific home
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 6: replace placeholder Dashboard with role-specific home.
+
+PRD context to load:
+- frontend_prd.md §10.2 (per-role landing routes — note: admin already lands at /admin)
+- §7.12.1 — GET /admin/summary
+- §7.13.5 — GET /me/digest/recent (LP view)
+- §7.6.4 — GET /connections (count for KPI)
+- §7.7.3 — GET /interactions/profile-viewers (count)
+
+Read for pattern reference:
+- src/features/admin/routes/AdminHomePage.tsx — KPI cards pattern (re-use)
+- src/components/ui/Card.tsx, Badge.tsx
+
+Current behaviour: src/features/dashboard/routes/DashboardPage.tsx renders
+hardcoded demo cards (Card / Button / Badge samples). Replace.
+
+Implementation:
+
+src/features/dashboard/routes/DashboardPage.tsx becomes a router:
+
+  const role = useRole();
+  switch (role) {
+    case 'admin':
+    case 'super_admin':
+      return <AdminDashboard />;        // KPI cards: pending connections, MIS due,
+                                        // pending digests, recent inbound pitches.
+                                        // Re-uses /admin/summary; basically a slim
+                                        // version of AdminHomePage.
+    case 'lp':
+    case 'potential_lp':
+      return <LPDashboard />;           // 3 cards: latest digest, new matches,
+                                        // upcoming meetings. Buttons to drill in.
+    case 'vc':
+      return <VCDashboard />;           // 3 cards: new matches, recent searches,
+                                        // upcoming meetings.
+    case 'startup_inprogress':
+    case 'startup_onboarded':
+      return <StartupOnboardingDashboard />;
+                                        // 1 card: "Complete your profile" with
+                                        // checklist (deck uploaded, profile filled,
+                                        // sector tagged) + a primary CTA per gap.
+    case 'startup_funded':
+      return <StartupFundedDashboard />;
+                                        // 4 cards: pitch evaluation status, MIS
+                                        // submission status, new connection requests,
+                                        // upcoming meetings.
+    case 'partner':
+      return <PartnerDashboard />;      // 2 cards: referral count, recent referrals.
+    case 'advisor':
+      return <AdvisorDashboard />;      // empty for now (no advisor backend); render
+                                        // "Welcome — your advisor flows ship in a
+                                        // future release."
+    default:
+      return <Navigate to="/signin" />;
+  }
+
+For each sub-component:
+- File: src/features/dashboard/components/<Name>.tsx
+- Reuse existing API hooks where possible (no new endpoints)
+- All sub-components must be lazy-loaded if any of their hooks fetch heavy data
+
+Tests:
+- Snapshot per role
+- Empty-state coverage for each (e.g. LP with zero digests)
+
+All four gates green.
+
+Outputs: commit `feat(dashboard): role-specific home replacing demo cards`.
+```
+
+### 6.7 — Session 7: Closing checks + queue.md update
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 7: close out + tag.
+
+1. Update .claude/queue.md to add Stage 6 section under Stage 5:
+
+   ## Stage 6 — Role-based page corrections (Opus: 7 sessions, post-v1.0)
+   - [x] **stage-6.1-nav-cleanup** — remove admin from participant nav items
+   - [x] **stage-6.2-admin-pitches** — /admin/pitches/inbound list + drawer
+   - [x] **stage-6.3-admin-mis** — /admin/mis-overview list
+   - [~] **stage-6.4-documents** — gated on P-XX decision
+   - [x] **stage-6.5-schedule-split** — admin sees calendar, others book
+   - [x] **stage-6.6-dashboard-roles** — role-specific home
+   - [x] **stage-6.8-public-pitch-form** — /pitch landing page (Phase 7.2.a)
+
+2. Run a Playwright smoke as 4 different roles (admin / lp / startup_funded /
+   partner) and verify the sidebar items match the expected list per role.
+   Plus an unauthenticated smoke of /pitch (added in 6.8) — confirm the page
+   renders without auth and submit posts to /api/v1/public/pitch.
+
+3. Tag v1.1-roles-corrected and push.
+
+All four gates green; tests must include explicit role-isolation cases.
+```
+
+> Gate after Stage 6: human verifies sidebar visibly differs per role on the staging build. Tag `v1.1-roles-corrected`.
+
+### 6.8 — Session 8 (NEW from Phase 7.2.a): Public pitch landing page
+
+**Backend status (2026-05-03).** ✅ UNBLOCKED. `POST /api/v1/public/pitch` shipped in `one-community-1` Phase 7.2 Build 1 (commit `0f34d91`). The endpoint is **public, unauthenticated, and rate-limited 3/hour per IP**. Without a frontend page, it is currently unreachable in the wild — Stage 6 closes that gap.
+
+**Why this isn't in the original Stage 6 spec.** Stage 6 was scoped to "role-based page corrections" before Phase 7.2 was finalised. The public web-form path is a brand-new public-facing surface that didn't exist when Stage 6 was written. Add as 6.8 so the `/pitch` flow is exercisable end-to-end alongside the v1.1 cut.
+
+**Prompt:**
+
+```
+Implement Stage 6 Session 8: public pitch submission landing page.
+
+UNBLOCKED — Phase 7.2.a endpoint live: POST /api/v1/public/pitch
+  - Auth: NONE (this is a public surface)
+  - Rate limit: 3/hour per IP (slowapi); 4th call returns 429 + envelope
+  - Returns: 202 Accepted, { data: { pitch_id, status, drive_folder_id }, error: null }
+    where status ∈ { 'received', 'duplicate' }
+    drive_folder_id may be null when Drive create failed best-effort
+  - 4xx validation errors return the standard envelope; FastAPI 422 body shape
+
+PRD context to load:
+- frontend_prd.md §10 (role-based routing) — note the /pitch route is
+  EXPLICITLY outside the auth shell
+- one-community-1/CLAUDE.md §7.2.a, §7.2.c for backend contract +
+  field-name divergences (revenue_inr/burn_rate_inr are MONTHLY values
+  per inbound_service._to_startup_fields)
+
+Read for pattern reference:
+- src/auth/routes/SignInPage.tsx — the only existing route outside the
+  authenticated shell (no Sidebar/RoleGuard)
+- src/components/forms/* — input + select primitives
+- src/lib/api-client.ts — fetch wrapper (use the public path; do NOT send
+  Authorization header on this call)
+
+Implementation:
+
+1. Routing:
+   - New route: /pitch (NOT /public/pitch — keep the URL clean for marketing).
+   - Lives outside the authenticated layout shell:
+     • No Sidebar / NavList
+     • No RoleGuard (it's public)
+     • Simple top bar with Warmup Ventures logo + a single "Already a member? Sign in" link
+   - File: src/features/public-pitch/routes/PublicPitchPage.tsx
+   - Lazy-load per [P-19] — keep the public bundle small.
+
+2. API client:
+   - File: src/api/public/pitch.ts
+   - submitPublicPitch(payload: PublicPitchInput): Promise<PublicPitchResponse>
+   - Zod schema with .passthrough() per §13 G8
+   - Do NOT attach Authorization header (use the public-mode of api-client, or
+     a bare fetch — pick whichever matches existing public-call convention)
+   - Handle 429 specifically — return a typed { kind: 'rate_limited' } variant
+
+3. Form fields (mirror Phase 7.2.a InboundPitchRequest):
+   REQUIRED:
+     - company_name (string, max 200)
+     - founder_name (string, max 200)
+     - email (regex validate — backend uses regex, NOT EmailStr)
+     - sector (free-text or select; backend stores as TEXT)
+     - stage (select — see enum below)
+     - tagline (string, max 280)
+     - description (textarea, max 4000)
+     - founding_year (int, 1900..currentYear)
+
+   OPTIONAL:
+     - phone (E.164-ish, accept "+91 ..." or "+1 ...")
+     - website_url (url)
+     - team_size (int)
+     - ask_amount_cr (number — INR crores)
+     - revenue_model (string)
+     - revenue_inr (number — MONTHLY INR; backend maps to revenue_monthly)
+     - growth_pct (number)
+     - burn_rate_inr (number — MONTHLY INR; backend maps to burn_monthly)
+     - runway_months (int)
+     - current_balance_inr (number)
+     - gross_margin_pct (number)
+     - customer_count (int)
+     - deck_url (url — Drive / Dropbox / etc.)
+
+   stage select options (from one-community-1 0004_startups.py startup_stage ENUM):
+     ideation, pre_seed, seed, early_growth, pre_a, series_a, pre_b, series_b, late_growth
+
+   Add a small note next to revenue_inr / burn_rate_inr explaining
+   "Monthly INR (we'll annualise downstream)" — this matches backend's
+   monthly-semantics decision.
+
+4. Submit handler:
+   - On 202 + status='received': show a success card with the pitch_id and
+     copy "Thanks — we'll review and reach out within 5 business days. Quote
+     this reference if you email us: <pitch_id>."
+   - On 202 + status='duplicate': show a friendly card "We already have your
+     pitch on file (reference <pitch_id>). We'll be in touch shortly."
+   - On 429: "You've hit the submission limit (3 per hour from this IP).
+     Please try again in an hour, or email pitch@warmupventures.com."
+   - On 4xx validation: render field-level errors inline (parse FastAPI's
+     422 detail array)
+   - On 5xx: generic error + "Try again" button + the same email fallback
+
+5. Confirmation surface:
+   - Replace the form with a confirmation card on success (don't navigate).
+   - Include a "Have questions? Email pitch@warmupventures.com" hint
+     (referencing the Phase 7.2.b email gateway).
+
+6. SEO + accessibility:
+   - Title: "Pitch your startup — Warmup Ventures"
+   - Meta description (one sentence)
+   - OG tags for share previews
+   - Form labels properly associated (axe-clean)
+
+7. Tests:
+   - MSW handler for /api/v1/public/pitch covering: received, duplicate, 429,
+     422 validation errors, 503
+   - Component tests:
+     • All required fields validated client-side
+     • Submit posts the right payload (assert on JSON body)
+     • Success state renders pitch_id
+     • Duplicate state renders friendly copy
+     • 429 state renders rate-limit copy
+     • Field-level error mapping from 422 detail array
+   - Playwright: load /pitch unauthenticated → fill required fields → submit →
+     assert success card visible
+
+8. Bundle size: confirm the public route adds < 30KB gzipped to the public
+   chunk (it shouldn't drag in the authenticated layout).
+
+All four gates green.
+
+Outputs: commit `feat(public): pitch submission landing page (POST /public/pitch)`.
+```
+
+> Gate after 6.8: human visits `/pitch` in incognito and successfully submits a test pitch end-to-end. Backend admin email arrives at `ADMIN_INBOUND_EMAIL`. The pitch shows up in `GET /api/v1/admin/pitches/inbound` (verify via the 6.2 page once shipped).
+
+---
+
 ## Time budget summary
 
 | Stage                                           | Your time              | Opus sessions       |
