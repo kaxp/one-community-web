@@ -8,6 +8,7 @@ import {
   queueAdminCalendarError,
   queueSlotsError,
   setMswSlotsFixture,
+  SEED_DATE_A,
 } from '@/test/msw-fixtures/schedule-handlers';
 
 vi.mock('sonner', async () => {
@@ -38,7 +39,7 @@ function signedIn(role: 'lp' | 'admin' | 'super_admin' = 'lp') {
   });
 }
 
-function renderPage(route = '/schedule?from_date=2026-04-26&days=7') {
+function renderPage(route = `/schedule?from_date=${SEED_DATE_A}&days=7`) {
   return renderWithProviders(
     <Routes>
       <Route path="/schedule" element={<SchedulePage />} />
@@ -130,8 +131,7 @@ describe('SchedulePage — participant booking flow', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('slot-grid')).toBeInTheDocument());
-    // Seed fixture provides a 2026-04-26T10:00 IST slot.
-    expect(screen.getByTestId('slot-2026-04-26T10:00:00+05:30')).toBeInTheDocument();
+    expect(screen.getByTestId(`slot-${SEED_DATE_A}T10:00:00+05:30`)).toBeInTheDocument();
     // Bookings list also renders the seed booking row (Priya Rao).
     await waitFor(() => expect(screen.getByText(/Priya Rao/i)).toBeInTheDocument());
   });
@@ -159,7 +159,7 @@ describe('SchedulePage — participant booking flow', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('slot-grid')).toBeInTheDocument());
-    await user.click(screen.getByTestId('slot-2026-04-26T10:00:00+05:30'));
+    await user.click(screen.getByTestId(`slot-${SEED_DATE_A}T10:00:00+05:30`));
 
     await waitFor(() =>
       expect(screen.getByRole('dialog', { name: /book a meeting/i })).toBeInTheDocument(),

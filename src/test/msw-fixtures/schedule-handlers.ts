@@ -23,8 +23,14 @@ function makeSlot(date: string, hh: number, mm: number): Slot {
   };
 }
 
-const SEED_DATE_A = '2026-04-26';
-const SEED_DATE_B = '2026-04-27';
+function futureDateStr(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+}
+// Always 2 / 3 days ahead so the isPast guard in SlotGrid never disables them.
+export const SEED_DATE_A = futureDateStr(2);
+export const SEED_DATE_B = futureDateStr(3);
 
 const SEED_SLOTS: Slot[] = [
   makeSlot(SEED_DATE_A, 10, 0),

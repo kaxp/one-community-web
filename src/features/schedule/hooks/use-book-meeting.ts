@@ -13,7 +13,6 @@ export function useBookMeeting() {
   return useMutation<BookResponse, ApiError, BookForm>({
     mutationFn: (form) => {
       const body: BookRequest = {
-        target_id: form.target_id,
         scheduled_at: form.scheduled_at,
         duration_minutes: form.duration_minutes,
         ...(form.purpose !== undefined ? { purpose: form.purpose } : {}),
