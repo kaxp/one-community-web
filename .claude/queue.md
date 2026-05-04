@@ -114,9 +114,9 @@ _Spot-check gate_
 - [x] **stage-6.4-documents** — gated on P-24 decision → resolved (b): Documents nav hidden from admin/super_admin; route stays registered for deep-links
 - [x] **stage-6.5-schedule-split** — admin sees read-only 7-day AdminCalendarView; participants see ParticipantBookingView (extracted from old SchedulePage)
 - [x] **stage-6.6-dashboard-roles** — role-specific DashboardPage replacing Stage 1 brand smoke-test placeholder (7 sub-dashboards, zero new endpoints)
-- [ ] **stage-6.8-public-pitch-form** — /pitch landing page (Phase 7.2.a: POST /api/v1/public/pitch unauthenticated form + SEO + Playwright smoke)
+- [x] **stage-6.8-public-pitch-form** — /pitch public landing page (Phase 7.2.a: POST /api/v1/public/pitch; 20-field form; received/duplicate/rate-limited/server-error states; 18 unit tests + 2 Playwright specs; authenticated /pitch renamed to /my-pitch)
 
-> Gate after Stage 6: tag `v1.1-roles-corrected` and push. Stage 6.8 ships as Stage 7 once backend smoke-tests pass.
+> Gate after Stage 6: tag `v1.1-roles-corrected` after this PR merges to develop.
 
 ---
 
