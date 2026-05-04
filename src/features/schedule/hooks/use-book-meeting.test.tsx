@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { useBookMeeting } from './use-book-meeting';
 import { qk } from '@/api/query-keys';
 import { useAuthStore } from '@/auth/auth-store';
-import { queueBookError } from '@/test/msw-fixtures/schedule-handlers';
+import { queueBookError, SEED_DATE_A } from '@/test/msw-fixtures/schedule-handlers';
 
 function signedIn() {
   useAuthStore.getState().setSession({
@@ -39,7 +39,7 @@ describe('useBookMeeting', () => {
 
     const { result } = renderHook(() => useBookMeeting(), { wrapper: makeWrapper(client) });
     result.current.mutate({
-      scheduled_at: '2026-04-26T10:00:00+05:30',
+      scheduled_at: `${SEED_DATE_A}T10:00:00+05:30`,
       duration_minutes: 30,
       purpose: 'Quick chat',
     });
