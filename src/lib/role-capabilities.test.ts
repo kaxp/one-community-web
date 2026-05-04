@@ -62,6 +62,34 @@ describe('role-capabilities', () => {
     expect(item?.roles).toEqual(['admin', 'super_admin']);
   });
 
+  describe('documents nav — hidden from admin only (decisions.md [P-24])', () => {
+    it('admin does NOT see Documents in nav', () => {
+      const keys = navForRole('admin').map((i) => i.key);
+      expect(keys).not.toContain('documents');
+    });
+
+    it('super_admin does NOT see Documents in nav', () => {
+      const keys = navForRole('super_admin').map((i) => i.key);
+      expect(keys).not.toContain('documents');
+    });
+
+    it('lp sees Documents in nav', () => {
+      expect(navForRole('lp').map((i) => i.key)).toContain('documents');
+    });
+
+    it('startup_inprogress sees Documents in nav', () => {
+      expect(navForRole('startup_inprogress').map((i) => i.key)).toContain('documents');
+    });
+
+    it('partner sees Documents in nav', () => {
+      expect(navForRole('partner').map((i) => i.key)).toContain('documents');
+    });
+
+    it('advisor sees Documents in nav', () => {
+      expect(navForRole('advisor').map((i) => i.key)).toContain('documents');
+    });
+  });
+
   describe('admin nav — MIS replaced by admin-mis (Stage 6 S3)', () => {
     it('admin does NOT see MIS in nav', () => {
       const keys = navForRole('admin').map((i) => i.key);

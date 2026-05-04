@@ -364,6 +364,12 @@ ARCHIVED-PENDING-END -->
 
 ## § Resolved
 
+### [P-24] Documents page — purpose and audience  ✅ resolved 2026-05-04
+
+- **Decision:** Option (b) — hide the Documents nav item from admin and super_admin only; all participant roles keep the placeholder visible.
+- **Rationale:** Per human direction. Admins access files via Notion + Drive links on the inbound-pitches and MIS overview pages; showing them a "coming soon" document vault is a confusing dead-end.
+- **Touches:** `src/lib/role-capabilities.ts` — `documents` NAV_ITEM `roles` changed from `['*']` to the explicit participant list. `src/lib/role-capabilities.test.ts` — assertions added.
+
 ### [P-1] Brand / design tokens  ✅ resolved 2026-04-24
 
 - **Decision:** Dashboard follows the visual language of https://www.warmupventures.com/ — a clean, light-themed, professional SaaS aesthetic. Tokens:
