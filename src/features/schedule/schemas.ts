@@ -89,6 +89,39 @@ export const zCancelResponse = z.object({
 });
 export type CancelResponse = z.infer<typeof zCancelResponse>;
 
+// Phase 7 / Stage 6 Session 5 — admin calendar.
+const zCalendarParty = z
+  .object({
+    user_id: zUUID,
+    name: z.string(),
+    email: z.string().nullable().optional(),
+    role: z.string().nullable().optional(),
+  })
+  .passthrough();
+export type CalendarParty = z.infer<typeof zCalendarParty>;
+
+export const zAdminCalendarItem = z
+  .object({
+    booking_id: zUUID,
+    scheduled_at: zISODateTime,
+    duration_minutes: z.number().nullable(),
+    status: z.string().nullable(),
+    calendar_event_id: z.string().nullable(),
+    notes: z.string().nullable(),
+    requester: zCalendarParty,
+    target: zCalendarParty,
+  })
+  .passthrough();
+export type AdminCalendarItem = z.infer<typeof zAdminCalendarItem>;
+
+export const zAdminCalendarResponse = z
+  .object({
+    items: z.array(zAdminCalendarItem),
+    next_cursor: z.null(),
+  })
+  .passthrough();
+export type AdminCalendarResponse = z.infer<typeof zAdminCalendarResponse>;
+
 // RHF input shape used by the booking ExecutionDialog. `scheduled_at` is
 // pre-populated from the clicked slot's `start` (already ISO with TZ); the
 // user only edits target_id / duration / purpose. The textarea returns ''

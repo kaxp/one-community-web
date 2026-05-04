@@ -6,7 +6,7 @@ import { profileHandlers } from './msw-fixtures/profile-handlers';
 import { connectionsHandlers } from './msw-fixtures/connections-handlers';
 import { pitchHandlers } from './msw-fixtures/pitch-handlers';
 import { misHandlers } from './msw-fixtures/mis-handlers';
-import { scheduleHandlers } from './msw-fixtures/schedule-handlers';
+import { adminScheduleHandlers, scheduleHandlers } from './msw-fixtures/schedule-handlers';
 import { travelHandlers } from './msw-fixtures/travel-handlers';
 import { matchmakingHandlers } from './msw-fixtures/matchmaking-handlers';
 import { profileViewersHandlers } from './msw-fixtures/profile-viewers-handlers';
@@ -35,6 +35,7 @@ export const handlers: HttpHandler[] = [
   ...connectionsHandlers,
   ...pitchHandlers,
   ...misHandlers,
+  ...adminScheduleHandlers,
   ...scheduleHandlers,
   ...travelHandlers,
   ...matchmakingHandlers,
