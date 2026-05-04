@@ -23,6 +23,7 @@ function cellKey(dateKey: string, timeKey: string): string {
 // viewer TZ for coherence.
 export function SlotGrid({ slots, fromDate, days, onSlotClick }: Props) {
   const tz = viewerTimeZone();
+  const now = new Date();
 
   const { dateKeys, timeKeys, byCell } = useMemo(() => {
     // Build the column axis from the slot set so the grid only shows columns
@@ -97,16 +98,24 @@ export function SlotGrid({ slots, fromDate, days, onSlotClick }: Props) {
                     </td>
                   );
                 }
+                const isPast = new Date(slot.start) <= now;
                 return (
                   <td key={t} className="border-l border-border px-1 py-1">
                     <button
                       type="button"
-                      onClick={() => onSlotClick(slot)}
+                      disabled={isPast}
+                      onClick={isPast ? undefined : () => onSlotClick(slot)}
                       data-testid={`slot-${slot.start}`}
-                      aria-label={`Available at ${format(toZonedTime(slot.start, tz), 'h:mm a')} on ${format(toZonedTime(slot.start, tz), 'EEE, d MMM')}`}
+                      aria-label={
+                        isPast
+                          ? `Past slot at ${format(toZonedTime(slot.start, tz), 'h:mm a')} on ${format(toZonedTime(slot.start, tz), 'EEE, d MMM')}`
+                          : `Available at ${format(toZonedTime(slot.start, tz), 'h:mm a')} on ${format(toZonedTime(slot.start, tz), 'EEE, d MMM')}`
+                      }
                       className={cn(
-                        'block w-full min-h-9 rounded-md border border-success/40 bg-success/10 px-2 py-1 text-xs font-medium text-success transition-colors',
-                        'hover:bg-success/20 focus:outline-none focus:ring-2 focus:ring-success',
+                        'block w-full min-h-9 rounded-md border px-2 py-1 text-xs font-medium transition-colors',
+                        isPast
+                          ? 'cursor-not-allowed border-border/40 bg-surface-muted/60 text-ink-muted line-through opacity-50'
+                          : 'border-success/40 bg-success/10 text-success hover:bg-success/20 focus:outline-none focus:ring-2 focus:ring-success',
                       )}
                     >
                       Book

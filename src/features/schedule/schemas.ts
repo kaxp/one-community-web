@@ -63,7 +63,6 @@ const zDuration = z
   .refine((v) => v === 30 || v === 60, { message: 'Choose 30 or 60 minutes' });
 
 export const zBookRequest = z.object({
-  target_id: zUUID,
   scheduled_at: zISODateTime,
   duration_minutes: zDuration,
   purpose: z.string().max(500).optional(),
@@ -122,12 +121,10 @@ export const zAdminCalendarResponse = z
   .passthrough();
 export type AdminCalendarResponse = z.infer<typeof zAdminCalendarResponse>;
 
-// RHF input shape used by the booking ExecutionDialog. `scheduled_at` is
-// pre-populated from the clicked slot's `start` (already ISO with TZ); the
-// user only edits target_id / duration / purpose. The textarea returns ''
-// when empty — coerce to undefined so the wire body simply omits `purpose`.
+// RHF input shape used by the booking dialog. `scheduled_at` is pre-populated
+// from the clicked slot's `start` (already ISO with TZ). Target is always the
+// admin — resolved server-side, not supplied by the user.
 export const zBookForm = z.object({
-  target_id: zUUID,
   scheduled_at: zISODateTime,
   duration_minutes: zDuration,
   purpose: z

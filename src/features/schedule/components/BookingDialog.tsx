@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -11,11 +11,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FormField } from '@/components/forms/FormField';
 import { ErrorState } from '@/components/error-state/ErrorState';
-import { useConnections } from '@/features/connections/hooks/use-connections';
 import { useBookMeeting } from '@/features/schedule/hooks/use-book-meeting';
 import { fmtBookingDateTime } from '@/features/schedule/lib/format-tz';
 import { zBookForm, type BookForm, type Slot, DURATION_OPTIONS } from '@/features/schedule/schemas';
@@ -27,35 +25,12 @@ interface Props {
   onClose(): void;
 }
 
-// PRD §7.10.2 — booking modal opened by clicking a slot in <SlotGrid>. The
-// `scheduled_at` is fixed by the slot's `start` (already ISO+TZ, no client-side
-// transformation needed). Target picker reads from the user's accepted
-// connections — meetings outside the connection graph are an edge case the
-// product can address later (paste-UUID is the escape hatch).
 export function BookingDialog({ slot, onClose }: Props) {
   const open = slot !== null;
-  const connections = useConnections();
-  const acceptedItems = useMemo(
-    () => (connections.data?.pages ?? []).flatMap((p) => p.items),
-    [connections.data?.pages],
-  );
-
-  const [filter, setFilter] = useState('');
-  const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return acceptedItems;
-    return acceptedItems.filter(
-      (c) =>
-        c.counterpart.name.toLowerCase().includes(q) ||
-        (c.counterpart.organisation ?? '').toLowerCase().includes(q),
-    );
-  }, [acceptedItems, filter]);
-
   const mutation = useBookMeeting();
   const form = useForm<BookForm>({
     resolver: zodResolver(zBookForm),
     defaultValues: {
-      target_id: '',
       scheduled_at: slot?.start ?? '',
       duration_minutes: 30,
       purpose: '',
@@ -66,12 +41,10 @@ export function BookingDialog({ slot, onClose }: Props) {
   useEffect(() => {
     if (slot) {
       form.reset({
-        target_id: '',
         scheduled_at: slot.start,
         duration_minutes: 30,
         purpose: '',
       });
-      setFilter('');
       mutation.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,73 +82,6 @@ export function BookingDialog({ slot, onClose }: Props) {
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <fieldset disabled={mutation.isPending} className="contents">
-            <FormField
-              label="Search your connections"
-              htmlFor="booking-target-search"
-              hint="Type a name or organisation"
-            >
-              <Input
-                id="booking-target-search"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                placeholder="e.g. Kapil"
-              />
-            </FormField>
-
-            <FormField
-              label="Target"
-              htmlFor="booking-target"
-              error={form.formState.errors.target_id?.message}
-            >
-              {connections.isLoading ? (
-                <p className="text-xs text-ink-muted">Loading your connections…</p>
-              ) : filtered.length === 0 ? (
-                <p className="text-xs text-ink-muted">
-                  No matches. You can paste a user_id below if you have one.
-                </p>
-              ) : (
-                <ul
-                  id="booking-target"
-                  className="max-h-44 overflow-y-auto rounded-md border border-border"
-                  role="listbox"
-                  aria-label="Pick a target"
-                >
-                  {filtered.map((c) => {
-                    const checked = form.watch('target_id') === c.counterpart.user_id;
-                    return (
-                      <li key={c.connection_id}>
-                        <label
-                          className="flex cursor-pointer items-center gap-2 border-b border-border px-3 py-2 text-sm last:border-b-0 hover:bg-surface-muted"
-                          data-testid={`target-${c.counterpart.user_id}`}
-                        >
-                          <input
-                            type="radio"
-                            value={c.counterpart.user_id}
-                            checked={checked}
-                            onChange={() =>
-                              form.setValue('target_id', c.counterpart.user_id, {
-                                shouldValidate: true,
-                              })
-                            }
-                          />
-                          <div className="flex flex-col">
-                            <span className="font-medium text-ink-heading">
-                              {c.counterpart.name}
-                            </span>
-                            {c.counterpart.organisation ? (
-                              <span className="text-xs text-ink-muted">
-                                {c.counterpart.organisation}
-                              </span>
-                            ) : null}
-                          </div>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </FormField>
-
             <fieldset className="flex flex-col gap-2">
               <legend className="text-sm font-medium text-ink-heading">Duration</legend>
               <div className="flex gap-2">
