@@ -10,8 +10,25 @@ import { seedAuth } from './_helpers';
 // flow so four role checks complete without re-running signin four times.
 // Each test reloads to /dashboard, which guarantees the Zustand store and
 // React Query hydrate from the freshly written auth.
+//
+// Why the beforeEach: `seedAuth` calls page.evaluate() to write to
+// localStorage. That call fails with a SecurityError when the page is at
+// about:blank (a fresh Playwright context has no origin). Navigating to '/'
+// first and waiting for the MSW service worker to become active gives
+// page.evaluate a real document to run against — the same precondition that
+// the other specs satisfy implicitly by going through signin() first.
 
 test.describe('Role-nav isolation smoke (Stage 6)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    // Wait for the MSW service worker to become the active controller before
+    // seedAuth tries to write localStorage and before we load /dashboard.
+    await page.waitForFunction(
+      () => navigator.serviceWorker && navigator.serviceWorker.controller !== null,
+      { timeout: 30_000 },
+    );
+  });
+
   // ──────────────────────────────────────────────────────────────────
   // Admin
   // ──────────────────────────────────────────────────────────────────
