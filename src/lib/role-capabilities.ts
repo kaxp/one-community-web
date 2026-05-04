@@ -137,9 +137,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
     roles: ['lp', 'potential_lp', 'vc', 'admin', 'super_admin'],
   },
   {
+    // Stage 6 S8: /pitch is now the public submission landing page.
+    // Authenticated startup members manage their profile at /my-pitch.
     key: 'pitch',
     label: 'My pitch',
-    path: '/pitch',
+    path: '/my-pitch',
     icon: 'FileText',
     roles: ['startup_inprogress', 'startup_onboarded', 'startup_funded'],
   },
