@@ -59,7 +59,11 @@ const SEED_BOOKINGS: Booking[] = [
 ];
 
 // Stage 6 S5 — admin calendar seed: 5 meetings across 3 days.
-const TODAY = '2026-05-04';
+// Dates are dynamic so the admin calendar view (which starts from today) always
+// includes them in its window — same pattern as SEED_DATE_A/B.
+const TODAY = futureDateStr(0);
+const ADMIN_DAY2 = futureDateStr(1);
+const ADMIN_DAY3 = futureDateStr(2);
 const ADMIN_CALENDAR_SEED: AdminCalendarItem[] = [
   {
     booking_id: '00000000-0000-4000-8000-000000000c01',
@@ -103,7 +107,7 @@ const ADMIN_CALENDAR_SEED: AdminCalendarItem[] = [
   },
   {
     booking_id: '00000000-0000-4000-8000-000000000c03',
-    scheduled_at: `2026-05-05T11:00:00+05:30`,
+    scheduled_at: `${ADMIN_DAY2}T11:00:00+05:30`,
     duration_minutes: 30,
     status: 'pending',
     calendar_event_id: null,
@@ -123,7 +127,7 @@ const ADMIN_CALENDAR_SEED: AdminCalendarItem[] = [
   },
   {
     booking_id: '00000000-0000-4000-8000-000000000c04',
-    scheduled_at: `2026-05-06T09:30:00+05:30`,
+    scheduled_at: `${ADMIN_DAY3}T09:30:00+05:30`,
     duration_minutes: 30,
     status: 'confirmed',
     calendar_event_id: 'ev_cal4@google.com',
@@ -143,7 +147,7 @@ const ADMIN_CALENDAR_SEED: AdminCalendarItem[] = [
   },
   {
     booking_id: '00000000-0000-4000-8000-000000000c05',
-    scheduled_at: `2026-05-06T16:00:00+05:30`,
+    scheduled_at: `${ADMIN_DAY3}T16:00:00+05:30`,
     duration_minutes: 60,
     status: 'confirmed',
     calendar_event_id: 'ev_cal5@google.com',

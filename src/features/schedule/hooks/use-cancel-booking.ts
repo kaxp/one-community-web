@@ -10,8 +10,8 @@ import type { CancelResponse } from '@/features/schedule/schemas';
 // optimistic local state.
 export function useCancelBooking() {
   const qc = useQueryClient();
-  return useMutation<CancelResponse, ApiError, { booking_id: string }>({
-    mutationFn: ({ booking_id }) => deleteScheduleBooking(booking_id),
+  return useMutation<CancelResponse, ApiError, { booking_id: string; reason?: string }>({
+    mutationFn: ({ booking_id, reason }) => deleteScheduleBooking(booking_id, reason),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: qk.meetings.bookingsAll });
       void qc.invalidateQueries({ queryKey: qk.meetings.slotsAll });

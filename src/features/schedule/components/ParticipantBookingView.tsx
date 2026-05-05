@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { useSlots } from '@/features/schedule/hooks/use-slots';
+import { useBookings } from '@/features/schedule/hooks/use-bookings';
 import { SlotGrid } from '@/features/schedule/components/SlotGrid';
 import { BookingsList } from '@/features/schedule/components/BookingsList';
 import { BookingDialog } from '@/features/schedule/components/BookingDialog';
@@ -36,6 +37,7 @@ export function ParticipantBookingView() {
   const days = clampDays(Number.parseInt(params.get('days') ?? '', 10));
 
   const slotsQ = useSlots({ fromDate, days });
+  const bookingsQ = useBookings();
   const [pickedSlot, setPickedSlot] = useState<Slot | null>(null);
   const tz = viewerTimeZone();
 
@@ -53,6 +55,15 @@ export function ParticipantBookingView() {
   };
 
   const slots = useMemo(() => slotsQ.data ?? [], [slotsQ.data]);
+
+  const confirmedBookingStarts = useMemo(
+    () =>
+      (bookingsQ.data?.pages ?? [])
+        .flatMap((p) => p.items)
+        .filter((b) => b.status === 'confirmed')
+        .map((b) => b.scheduled_at),
+    [bookingsQ.data?.pages],
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,7 +142,13 @@ export function ParticipantBookingView() {
                 : {})}
             />
           ) : (
-            <SlotGrid slots={slots} fromDate={fromDate} days={days} onSlotClick={setPickedSlot} />
+            <SlotGrid
+              slots={slots}
+              fromDate={fromDate}
+              days={days}
+              onSlotClick={setPickedSlot}
+              confirmedBookingStarts={confirmedBookingStarts}
+            />
           )}
         </CardContent>
       </Card>

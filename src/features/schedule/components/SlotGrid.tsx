@@ -7,10 +7,11 @@ import { viewerTimeZone } from '@/features/schedule/lib/format-tz';
 
 interface Props {
   slots: Slot[];
-  // Render an N-day window starting from this date (viewer-local).
   fromDate: string;
   days: number;
   onSlotClick(slot: Slot): void;
+  /** ISO datetime strings of the viewer's own confirmed bookings — shown as blue "Booked" pills. */
+  confirmedBookingStarts?: string[];
 }
 
 function cellKey(dateKey: string, timeKey: string): string {
@@ -21,11 +22,17 @@ function cellKey(dateKey: string, timeKey: string): string {
 // TZ so that "10:00 AM" means what the viewer reads on their wall clock. The
 // backend's `date` field is IST-relative, so we re-derive both axes in the
 // viewer TZ for coherence.
-export function SlotGrid({ slots, fromDate, days, onSlotClick }: Props) {
+export function SlotGrid({
+  slots,
+  fromDate,
+  days,
+  onSlotClick,
+  confirmedBookingStarts = [],
+}: Props) {
   const tz = viewerTimeZone();
   const now = new Date();
 
-  const { dateKeys, timeKeys, byCell } = useMemo(() => {
+  const { dateKeys, timeKeys, byCell, bookedCells } = useMemo(() => {
     // Build the column axis from the slot set so the grid only shows columns
     // that actually exist (the backend returns business-hour slots, not 24h).
     const timeBuckets = new Set<string>(); // 'HH:mm' (sortable)
@@ -47,9 +54,18 @@ export function SlotGrid({ slots, fromDate, days, onSlotClick }: Props) {
       d.setDate(start.getDate() + i);
       dKeys.push(format(d, 'yyyy-MM-dd'));
     }
+    // Build a set of cell keys for the viewer's confirmed bookings.
+    const bookedSet = new Set<string>();
+    for (const iso of confirmedBookingStarts) {
+      const zoned = toZonedTime(iso, tz);
+      bookedSet.add(cellKey(format(zoned, 'yyyy-MM-dd'), format(zoned, 'HH:mm')));
+      // Also ensure the time column exists so the booked cell is visible.
+      timeBuckets.add(format(zoned, 'HH:mm'));
+    }
+
     const tKeys = Array.from(timeBuckets).sort();
-    return { dateKeys: dKeys, timeKeys: tKeys, byCell: cellMap };
-  }, [slots, fromDate, days, tz]);
+    return { dateKeys: dKeys, timeKeys: tKeys, byCell: cellMap, bookedCells: bookedSet };
+  }, [slots, fromDate, days, tz, confirmedBookingStarts]);
 
   if (timeKeys.length === 0) {
     return null;
@@ -88,6 +104,18 @@ export function SlotGrid({ slots, fromDate, days, onSlotClick }: Props) {
               {timeKeys.map((t) => {
                 const slot = byCell.get(cellKey(dKey, t));
                 if (!slot) {
+                  if (bookedCells.has(cellKey(dKey, t))) {
+                    return (
+                      <td key={t} className="border-l border-border px-1 py-1">
+                        <span
+                          aria-label={`Your booking at ${t} on ${dKey}`}
+                          className="flex min-h-9 w-full items-center justify-center rounded-md border border-brand/40 bg-brand/10 px-2 py-1 text-xs font-medium text-brand"
+                        >
+                          Booked
+                        </span>
+                      </td>
+                    );
+                  }
                   return (
                     <td
                       key={t}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,23 +30,21 @@ function statusVariant(status: BookingStatus): 'success' | 'default' | 'secondar
 
 function CancelDialog({ booking, onClose }: { booking: Booking | null; onClose: () => void }) {
   const cancel = useCancelBooking();
+  const reasonRef = useRef<HTMLTextAreaElement>(null);
 
   const onConfirm = () => {
     if (!booking) return;
+    const reason = reasonRef.current?.value.trim();
     cancel.mutate(
-      { booking_id: booking.booking_id },
+      { booking_id: booking.booking_id, ...(reason ? { reason } : {}) },
       {
         onSuccess: () => {
-          toast.success('Cancelled');
+          toast.success('Meeting cancelled');
           onClose();
         },
         onError: (err: ApiError) => {
-          if (err.code === 'forbidden') {
-            toast.error('Only the organiser, target, or admin can cancel');
-            return;
-          }
           if (err.code === 'conflict') {
-            toast.error('Booking already cancelled');
+            toast.error('This meeting was already cancelled');
             onClose();
             return;
           }
@@ -71,10 +69,19 @@ function CancelDialog({ booking, onClose }: { booking: Booking | null; onClose: 
               {' · '}
               {fmtBookingDateTime(booking.scheduled_at)}
             </p>
-            <p className="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-ink-body">
-              We&apos;ll remove the Google Calendar event for you. If your Google Calendar still
-              shows the event afterwards, delete it manually — the GCal sync is best-effort.
-            </p>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="cancel-reason" className="text-xs font-medium text-ink-muted">
+                Reason (optional) — sent to the other participant
+              </label>
+              <textarea
+                id="cancel-reason"
+                ref={reasonRef}
+                rows={3}
+                maxLength={500}
+                placeholder="e.g. Schedule conflict, will reschedule soon…"
+                className="rounded-md border border-border bg-surface p-3 text-sm text-ink-heading focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              />
+            </div>
           </div>
         ) : null}
         <DialogFooter>
