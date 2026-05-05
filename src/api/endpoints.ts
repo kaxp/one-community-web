@@ -495,9 +495,14 @@ export async function getScheduleBookings(args: {
 
 // PRD §7.10.4 — `DELETE /schedule/book/{booking_id}`. Ownership: requester /
 // target / admin. GCal delete is best-effort (§13 G9) — caller refetches.
-export async function deleteScheduleBooking(bookingId: string): Promise<CancelResponse> {
+export async function deleteScheduleBooking(
+  bookingId: string,
+  reason?: string,
+): Promise<CancelResponse> {
   const url = `/schedule/book/${bookingId}`;
-  const resp = await apiClient.delete<ApiEnvelope<CancelResponse>>(url);
+  const resp = await apiClient.delete<ApiEnvelope<CancelResponse>>(url, {
+    data: reason ? { reason } : undefined,
+  });
   return zCancelResponse.parse(unwrap(resp.data, url));
 }
 
