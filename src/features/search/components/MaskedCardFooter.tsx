@@ -42,6 +42,7 @@ export function MaskedCardFooter({ targetUserId, targetName }: Props) {
       className="mt-1 flex flex-col gap-2 rounded-md border border-brand/20 bg-brand/5 p-3 text-sm"
       data-testid={`masked-footer-${targetUserId}`}
       data-locked="true"
+      onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-start gap-2">
         <Lock className="mt-0.5 h-4 w-4 text-brand" aria-hidden />
