@@ -336,3 +336,19 @@ export const zMISOverviewListResponse = z
   })
   .passthrough();
 export type MISOverviewListResponse = z.infer<typeof zMISOverviewListResponse>;
+
+// ── App runtime config (feature flags) ──────────────────────────────────────
+
+export const zAppConfigItem = z.object({
+  key: z.string(),
+  label: z.string(),
+  description: z.string(),
+  enabled: z.boolean(),
+  updated_at: z.string().nullable().optional(),
+});
+export type AppConfigItem = z.infer<typeof zAppConfigItem>;
+
+export const zAppConfigListResponse = z.object({
+  items: z.array(zAppConfigItem),
+});
+export type AppConfigListResponse = z.infer<typeof zAppConfigListResponse>;

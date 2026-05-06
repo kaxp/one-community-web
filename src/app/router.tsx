@@ -127,6 +127,11 @@ const AdminTracxnPage = lazy(() =>
     default: m.AdminTracxnPage,
   })),
 );
+const AdminAppConfigPage = lazy(() =>
+  import('@/features/admin/routes/AdminAppConfigPage').then((m) => ({
+    default: m.AdminAppConfigPage,
+  })),
+);
 const AdminAnalyticsPage = lazy(() =>
   import('@/features/analytics/routes/AdminAnalyticsPage').then((m) => ({
     default: m.AdminAnalyticsPage,
@@ -465,6 +470,15 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminTracxnPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // Runtime feature flags — admin-only dashboard settings.
+                      path: '/admin/app-config',
+                      element: (
+                        <Susp>
+                          <AdminAppConfigPage />
                         </Susp>
                       ),
                     },
