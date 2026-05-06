@@ -12,8 +12,6 @@ interface Props {
   className?: string;
 }
 
-// PRD §7.4.1 — input gets debounced 400ms by the parent before firing the search
-// query. The form-submit path is the user-explicit "Search now" button.
 export function SearchBar({ value, onChange, onSubmit, isPending, disabled, className }: Props) {
   return (
     <form
@@ -36,6 +34,7 @@ export function SearchBar({ value, onChange, onSubmit, isPending, disabled, clas
           id="search-query"
           type="search"
           autoComplete="off"
+          enterKeyHint="search"
           placeholder="Ask me about Warmup Ventures data"
           value={value}
           onChange={(e) => onChange(e.target.value)}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,6 @@ import { FilterChips } from '@/features/search/components/FilterChips';
 import { ResultCard } from '@/features/search/components/ResultCard';
 import { useSearch } from '@/features/search/hooks/use-search';
 import { useSearchSubmit } from '@/features/search/hooks/use-search-submit';
-import { useDebouncedValue } from '@/lib/use-debounced-value';
 import {
   filtersFromSearchParams,
   filtersToSearchParams,
@@ -21,31 +20,23 @@ import type { SearchResponse } from '@/features/search/schemas';
 import { useRole } from '@/auth/use-auth';
 import { isMaskedSearchRole } from '@/lib/role-capabilities';
 
-const DEBOUNCE_MS = 400;
-
 export function SearchPage() {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(params.get('q') ?? '');
+  // submittedQuery drives the actual search — only updated on explicit submit
+  // (Search button click or mobile keyboard "Go/Search" key).
+  const [submittedQuery, setSubmittedQuery] = useState(params.get('q') ?? '');
   const filters = useMemo(() => filtersFromSearchParams(params), [params]);
-  const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS);
   // Partners see Crunchbase-style locked cards (decisions.md [P-20] / [P-21]).
   // The backend strips fields from the response; the UI renders the full card
   // structure with blurred placeholders for the withheld values.
   const role = useRole();
   const isMasked = isMaskedSearchRole(role);
 
-  // Update the URL when the debounced query stabilises.
-  useEffect(() => {
-    const next = new URLSearchParams(filtersToSearchParams(filters));
-    if (debouncedQuery.trim().length > 0) next.set('q', debouncedQuery.trim());
-    if (next.toString() !== params.toString()) setParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery, filters]);
-
   const search = useSearch({
-    query: debouncedQuery.trim(),
+    query: submittedQuery.trim(),
     filters,
-    enabled: debouncedQuery.trim().length > 0,
+    enabled: submittedQuery.trim().length > 0,
   });
 
   // The explicit "Search" button surfaces a mutation state for `isPending`
@@ -53,8 +44,13 @@ export function SearchPage() {
   const submitMutation = useSearchSubmit({ query, filters });
 
   const onSubmit = () => {
+    const trimmed = query.trim();
     submitMutation.reset();
     submitMutation.mutate();
+    setSubmittedQuery(trimmed);
+    const sp = new URLSearchParams(filtersToSearchParams(filters));
+    if (trimmed.length > 0) sp.set('q', trimmed);
+    if (sp.toString() !== params.toString()) setParams(sp, { replace: true });
   };
 
   const onFiltersChange = (next: SearchFilters) => {
@@ -100,10 +96,11 @@ export function SearchPage() {
         state={search}
         firstPage={firstPage}
         totalLoaded={totalLoaded}
-        query={debouncedQuery.trim()}
+        query={submittedQuery.trim()}
         filters={filters}
         onClearFilters={() => onFiltersChange({})}
         isMasked={isMasked}
+        suppressError={submitMutation.isError}
       />
     </div>
   );
@@ -117,6 +114,7 @@ interface SearchResultsProps {
   filters: SearchFilters;
   onClearFilters: () => void;
   isMasked: boolean;
+  suppressError?: boolean;
 }
 
 function SearchResults({
@@ -127,6 +125,7 @@ function SearchResults({
   filters,
   onClearFilters,
   isMasked,
+  suppressError,
 }: SearchResultsProps) {
   if (query.length === 0) {
     return (
@@ -145,7 +144,7 @@ function SearchResults({
       </div>
     );
   }
-  if (state.isError) {
+  if (state.isError && !suppressError) {
     return (
       <ErrorState
         error={state.error}
