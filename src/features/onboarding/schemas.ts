@@ -94,6 +94,8 @@ export const zCardScanParsed = z.object({
   organisation: z.string().nullable(),
   designation: z.string().nullable(),
   linkedin_url: z.string().nullable(),
+  website: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
   raw_text: z.string().nullable().optional(),
 });
 export type CardScanParsed = z.infer<typeof zCardScanParsed>;
@@ -159,6 +161,12 @@ export const zContactReviewForm = z.object({
     .trim()
     .max(2000)
     .refine((v) => v === '' || /^https?:\/\//i.test(v), { message: 'Enter a valid URL' }),
+  website: z
+    .string()
+    .trim()
+    .max(2000)
+    .refine((v) => v === '' || /^https?:\/\//i.test(v), { message: 'Enter a valid URL' }),
+  address: z.string().trim().max(500),
   category: zScanCategory,
 });
 export type ContactReviewForm = z.infer<typeof zContactReviewForm>;
