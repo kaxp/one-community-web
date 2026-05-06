@@ -16,7 +16,10 @@ import { ProfileHeader } from '@/features/profile/components/ProfileHeader';
 import { StartupProfileBlock } from '@/features/profile/components/StartupBlock';
 import { LPProfileBlock } from '@/features/profile/components/LPBlock';
 import { ContactCard } from '@/features/profile/components/ContactCard';
+import { StartupRichDetailBlock } from '@/features/profile/components/StartupRichDetailBlock';
+import { LpRichDetailBlock } from '@/features/profile/components/LpRichDetailBlock';
 import { RequestConnectDialog } from '@/features/connections/components/RequestConnectDialog';
+import { useStartupDetail, useLpDetail } from '@/features/search/hooks/use-search-detail';
 
 export function ProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -130,6 +133,10 @@ function ProfileBody({
   const isStartupTarget = useMemo(() => isStartupRole(profile.role), [profile.role]);
   const isLPTarget = useMemo(() => isLpRole(profile.role), [profile.role]);
 
+  // Rich detail — parallel query; non-blocking (errors are silently swallowed).
+  const startupDetail = useStartupDetail(isStartupTarget ? profile.user_id : undefined);
+  const lpDetail = useLpDetail(isLPTarget ? profile.user_id : undefined);
+
   return (
     <div className="flex flex-col gap-6">
       <Button
@@ -180,6 +187,13 @@ function ProfileBody({
       ) : null}
 
       {profile.contact ? <ContactCard contact={profile.contact} /> : null}
+
+      {/* Rich detail from /search/detail — more fields than the profile endpoint.
+          Non-blocking: renders nothing while loading or on error. */}
+      {isStartupTarget && startupDetail.data ? (
+        <StartupRichDetailBlock detail={startupDetail.data} />
+      ) : null}
+      {isLPTarget && lpDetail.data ? <LpRichDetailBlock detail={lpDetail.data} /> : null}
 
       <RequestConnectDialog
         open={dialogOpen}

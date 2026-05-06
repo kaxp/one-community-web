@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { stageLabel, fmtCr, fmtChequeRange } from '@/features/search/lib/labels';
@@ -50,7 +51,19 @@ function FieldOrLocked({
 
 export function ResultCard({ item, targetType, query, isMasked = false }: Props) {
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
   const log = useLogInteraction();
+
+  const handleCardClick = useCallback(() => {
+    log({
+      target_id: item.user_id,
+      interaction_type: 'search_click',
+      target_type: targetType,
+      source: 'search_card',
+      metadata: { query },
+    });
+    void navigate(`/profile/${item.user_id}`);
+  }, [item.user_id, targetType, query, log, navigate]);
 
   // Fire `search_view` once when the card scrolls into view (or immediately if
   // IntersectionObserver isn't available — e.g., jsdom).
@@ -89,7 +102,12 @@ export function ResultCard({ item, targetType, query, isMasked = false }: Props)
   if (targetType === 'startup') {
     const s = asStartup(item);
     return (
-      <Card ref={cardRef} data-testid={`result-card-${s.user_id}`}>
+      <Card
+        ref={cardRef}
+        data-testid={`result-card-${s.user_id}`}
+        className="cursor-pointer transition-shadow hover:shadow-md"
+        onClick={handleCardClick}
+      >
         <CardContent className="flex flex-col gap-3 p-5">
           <header className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -158,7 +176,12 @@ export function ResultCard({ item, targetType, query, isMasked = false }: Props)
 
   const lp = asLP(item);
   return (
-    <Card ref={cardRef} data-testid={`result-card-${lp.user_id}`}>
+    <Card
+      ref={cardRef}
+      data-testid={`result-card-${lp.user_id}`}
+      className="cursor-pointer transition-shadow hover:shadow-md"
+      onClick={handleCardClick}
+    >
       <CardContent className="flex flex-col gap-3 p-5">
         <header className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0 flex-1">

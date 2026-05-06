@@ -104,3 +104,88 @@ export function filtersFromSearchParams(params: URLSearchParams): SearchFilters 
   if (geography.length) out.geography = geography;
   return out;
 }
+
+// ── Detail page schemas (/search/detail/startup/:id + /search/detail/lp/:id) ─
+// All fields are nullable/optional — the backend gates them by role and
+// connection status, so the same schema parses any viewer's response.
+
+export const zFounderDetail = z.object({
+  name: z.string().nullable().optional(),
+  position: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  linkedin_url: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+});
+export type FounderDetail = z.infer<typeof zFounderDetail>;
+
+export const zSearchDetailStartup = z.object({
+  user_id: zUUID,
+  company_name: z.string().nullable().optional(),
+  sector: z.string().nullable().optional(),
+  stage: z.string().nullable().optional(),
+  one_liner: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  founding_year: z.number().int().nullable().optional(),
+  team_size: z.number().int().nullable().optional(),
+  website_url: z.string().nullable().optional(),
+  company_linkedin_url: z.string().nullable().optional(),
+  tracxn_url: z.string().nullable().optional(),
+  pitch_deck_url: z.string().nullable().optional(),
+  drive_folder_url: z.string().nullable().optional(),
+  revenue_model: z.string().nullable().optional(),
+  traction: z.string().nullable().optional(),
+  founders: z.array(zFounderDetail).optional(),
+  connection_status: z.string().nullable().optional(),
+  // Financials — gated by role / connection
+  funding_target_cr: z.number().nullable().optional(),
+  existing_investors: z.string().nullable().optional(),
+  last_round_valuation: z.string().nullable().optional(),
+  money_raised: z.string().nullable().optional(),
+  valuation_sought: z.string().nullable().optional(),
+  mrr_arr: z.string().nullable().optional(),
+  revenue_monthly: z.number().nullable().optional(),
+  burn_monthly: z.number().nullable().optional(),
+  runway_months: z.number().int().nullable().optional(),
+  growth_pct: z.number().nullable().optional(),
+  gross_margin_pct: z.number().nullable().optional(),
+  customer_count: z.number().int().nullable().optional(),
+  debt_amount: z.array(z.string()).nullable().optional(),
+  debt_raise: z.string().nullable().optional(),
+  // Admin-only
+  ai_pitch_summary: z.string().nullable().optional(),
+  ai_signal: z.string().nullable().optional(),
+  ai_pitch_score: z.number().nullable().optional(),
+  deal_manager: z.string().nullable().optional(),
+  deal_originator: z.string().nullable().optional(),
+  partner_on_call: z.array(z.string()).nullable().optional(),
+  notion_status: z.string().nullable().optional(),
+  investment_memo_url: z.string().nullable().optional(),
+});
+export type SearchDetailStartup = z.infer<typeof zSearchDetailStartup>;
+
+export const zSearchDetailLp = z.object({
+  user_id: zUUID,
+  name: z.string().nullable().optional(),
+  organisation: z.string().nullable().optional(),
+  designation: z.string().nullable().optional(),
+  avatar_url: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  connection_status: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  fund_name: z.string().nullable().optional(),
+  lp_type: z.string().nullable().optional(),
+  sectors: z.array(z.string()).optional(),
+  stages: z.array(z.string()).optional(),
+  geography: z.array(z.string()).optional(),
+  co_invest_interest: z.boolean().nullable().optional(),
+  // Gated by role / connection
+  aum_cr: z.number().nullable().optional(),
+  cheque_range_min: z.number().nullable().optional(),
+  cheque_range_max: z.number().nullable().optional(),
+  expected_ticket: z.string().nullable().optional(),
+  linkedin_url: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+});
+export type SearchDetailLp = z.infer<typeof zSearchDetailLp>;

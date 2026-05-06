@@ -59,7 +59,11 @@ export function SearchPage() {
     setParams(sp, { replace: true });
   };
 
-  const isFetching = search.isFetching || submitMutation.isPending;
+  // Button shows pending only while the mutation is in-flight.
+  // search.isFetching drives the results-area skeleton via `state`, not the
+  // button — the query may refetch in the background after the mutation
+  // resolves, and keeping the button spinning through that confuses users.
+  const isButtonPending = submitMutation.isPending;
   const firstPage = search.data?.pages[0];
   const totalLoaded = (search.data?.pages ?? []).reduce((n, p) => n + p.results.length, 0);
 
@@ -77,7 +81,12 @@ export function SearchPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <SearchBar value={query} onChange={setQuery} onSubmit={onSubmit} isPending={isFetching} />
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            onSubmit={onSubmit}
+            isPending={isButtonPending}
+          />
           <FilterChips filters={filters} onChange={onFiltersChange} />
           {submitMutation.isError ? (
             <ErrorState

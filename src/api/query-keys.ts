@@ -23,6 +23,8 @@ export const qk = {
   },
   search: {
     query: (body: unknown) => ['search', 'query', body] as const,
+    detailStartup: (id: string) => ['search', 'detail', 'startup', id] as const,
+    detailLp: (id: string) => ['search', 'detail', 'lp', id] as const,
   },
   profile: {
     all: ['profile'] as const,

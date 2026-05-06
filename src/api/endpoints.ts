@@ -24,7 +24,11 @@ import {
   type ProfileUpdateResponse,
 } from '@/features/onboarding/schemas';
 import {
+  zSearchDetailLp,
+  zSearchDetailStartup,
   zSearchResponse,
+  type SearchDetailLp,
+  type SearchDetailStartup,
   type SearchRequest,
   type SearchResponse,
 } from '@/features/search/schemas';
@@ -291,6 +295,18 @@ export async function searchUnified(body: SearchRequest): Promise<SearchResponse
   }
   const resp = await apiClient.post<ApiEnvelope<SearchResponse>>('/search', payload);
   return zSearchResponse.parse(unwrap(resp.data, '/search'));
+}
+
+export async function getSearchDetailStartup(userId: string): Promise<SearchDetailStartup> {
+  const path = `/search/detail/startup/${userId}`;
+  const resp = await apiClient.get<ApiEnvelope<SearchDetailStartup>>(path);
+  return zSearchDetailStartup.parse(unwrap(resp.data, path));
+}
+
+export async function getSearchDetailLp(userId: string): Promise<SearchDetailLp> {
+  const path = `/search/detail/lp/${userId}`;
+  const resp = await apiClient.get<ApiEnvelope<SearchDetailLp>>(path);
+  return zSearchDetailLp.parse(unwrap(resp.data, path));
 }
 
 export async function logInteraction(body: InteractionLogRequest): Promise<InteractionLogResponse> {
