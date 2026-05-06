@@ -97,6 +97,8 @@ describe('onboarding card-scan schemas', () => {
       organisation: '',
       designation: '',
       linkedin_url: '',
+      website: '',
+      address: '',
       category: 'vc',
     });
     expect(result.success).toBe(true);

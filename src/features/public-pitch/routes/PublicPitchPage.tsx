@@ -275,7 +275,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
       </Section>
 
       <Section title="Financials (optional)">
-        <p className="text-xs text-ink-muted -mt-2">
+        <p className="text-xs text-ink-muted mt-1">
           All monetary fields are in INR. Revenue and burn are <strong>monthly</strong> figures.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">

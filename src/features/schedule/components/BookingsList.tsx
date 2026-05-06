@@ -34,9 +34,9 @@ function CancelDialog({ booking, onClose }: { booking: Booking | null; onClose: 
 
   const onConfirm = () => {
     if (!booking) return;
-    const reason = reasonRef.current?.value.trim() || undefined;
+    const reason = reasonRef.current?.value.trim();
     cancel.mutate(
-      { booking_id: booking.booking_id, reason },
+      { booking_id: booking.booking_id, ...(reason ? { reason } : {}) },
       {
         onSuccess: () => {
           toast.success('Meeting cancelled');

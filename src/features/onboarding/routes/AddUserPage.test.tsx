@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
+import { fireEvent } from '@testing-library/react';
 import { renderWithProviders, screen, waitFor } from '@/test/test-utils';
 import { AddUserPage } from './AddUserPage';
 import { useAuthStore } from '@/auth/auth-store';
@@ -24,9 +25,8 @@ vi.mock('sonner', async () => {
 });
 
 // Mock the OCR interim service so the page test doesn't actually run
-// tesseract.js. We exercise the dropzone path indirectly via the paste
-// textarea, since jsdom + react-dropzone's drop-event simulation is
-// fragile and the OCR hook has its own dedicated test file.
+// tesseract.js. We trigger the camera input with a File object so jsdom
+// doesn't need to simulate a dropzone drop event (which is fragile).
 const recognizeMock = vi.hoisted(() => vi.fn());
 vi.mock('@/api/interim/ocr-client', () => ({
   OCRServiceInterim: { recognize: recognizeMock },
@@ -80,24 +80,33 @@ function renderPage() {
 
 const RAW = 'Kapil Sahu\nPrincipal, Warmup Ventures\n+91-9876543210\nkapil@example.com';
 
+/** Fire a change event on the hidden camera input to simulate a file pick. */
+function uploadViaCamera(file: File) {
+  const cameraInput = screen.getByTestId('add-user-camera-input');
+  fireEvent.change(cameraInput, { target: { files: [file] } });
+}
+
 describe('AddUserPage', () => {
-  it('renders the dropzone + paste textarea on mount', async () => {
+  it('renders the autofill card and contact form on mount', async () => {
     signedInAsLP();
     renderPage();
 
-    expect(screen.getByText(/Drop a card image/i)).toBeInTheDocument();
-    expect(screen.getByTestId('add-user-raw-input')).toBeInTheDocument();
+    expect(screen.getByText(/Autofill from business card/i)).toBeInTheDocument();
+    expect(screen.getByText(/Drop a card image or click to upload/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Full name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Phone/i)).toBeInTheDocument();
   });
 
-  it('paste flow: typing OCR text + Parse → review form prefills with parsed values', async () => {
+  it('camera scan: OCR + parse → form prefills with parsed values', async () => {
     signedInAsLP();
-    const user = userEvent.setup();
+    recognizeMock.mockResolvedValue({ raw_text: RAW, confidence: 0.95 });
     renderPage();
 
-    await user.type(screen.getByTestId('add-user-raw-input'), RAW);
-    await user.click(screen.getByTestId('add-user-parse-paste'));
+    uploadViaCamera(new File(['content'], 'card.jpg', { type: 'image/jpeg' }));
 
-    await waitFor(() => expect(screen.getByText(/Confirm contact details/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Card scanned — form autofilled below/i)).toBeInTheDocument(),
+    );
     expect((screen.getByLabelText(/Full name/i) as HTMLInputElement).value).toContain('Kapil');
     expect((screen.getByLabelText(/Phone/i) as HTMLInputElement).value).toContain('+919876543210');
   });
@@ -105,40 +114,36 @@ describe('AddUserPage', () => {
   it('flags missing required fields red and null parsed fields amber', async () => {
     signedInAsLP();
     setMswCardScanParsed({ name: null, phone: null, organisation: null });
-    const user = userEvent.setup();
+    recognizeMock.mockResolvedValue({ raw_text: RAW, confidence: 0.95 });
     renderPage();
 
-    await user.type(screen.getByTestId('add-user-raw-input'), RAW);
-    await user.click(screen.getByTestId('add-user-parse-paste'));
+    uploadViaCamera(new File(['content'], 'card.jpg', { type: 'image/jpeg' }));
 
-    await waitFor(() => expect(screen.getByText(/Confirm contact details/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Card scanned — form autofilled below/i)).toBeInTheDocument(),
+    );
 
-    // Two missing-required flags + one low-confidence amber.
+    // Two missing-required flags (name + phone) + one low-confidence amber (organisation).
     expect(screen.getAllByText(/Missing — required/i).length).toBe(2);
     expect(screen.getAllByText(/Low confidence/i).length).toBeGreaterThan(0);
   });
 
-  it('submit success: toasts "user created" and resets to upload', async () => {
+  it('submit success: toasts "user created" and resets the form', async () => {
     signedInAsLP();
     const successSpy = vi.mocked(toast.success);
     successSpy.mockClear();
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByTestId('add-user-raw-input'), RAW);
-    await user.click(screen.getByTestId('add-user-parse-paste'));
-
-    await waitFor(() => expect(screen.getByText(/Confirm contact details/i)).toBeInTheDocument());
+    await user.type(screen.getByLabelText(/Full name/i), 'Kapil Sahu');
+    await user.type(screen.getByLabelText(/Phone/i), '+919876543210');
     await user.click(screen.getByTestId('add-user-submit'));
 
     await waitFor(() =>
       expect(successSpy).toHaveBeenCalledWith(expect.stringContaining('user created')),
     );
-    // Page returns to the upload step.
-    // After [I-15] the upload card title also covers camera capture.
-    await waitFor(() =>
-      expect(screen.getByText(/Upload or capture card image/i)).toBeInTheDocument(),
-    );
+    // After reset, scan inputs reappear (parsed is cleared).
+    await waitFor(() => expect(screen.getByTestId('add-user-camera-button')).toBeInTheDocument());
   });
 
   it('submit success when user_created=false: toasts the admin-followup copy', async () => {
@@ -149,10 +154,8 @@ describe('AddUserPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByTestId('add-user-raw-input'), RAW);
-    await user.click(screen.getByTestId('add-user-parse-paste'));
-
-    await waitFor(() => expect(screen.getByText(/Confirm contact details/i)).toBeInTheDocument());
+    await user.type(screen.getByLabelText(/Full name/i), 'Kapil Sahu');
+    await user.type(screen.getByLabelText(/Phone/i), '+919876543210');
     await user.click(screen.getByTestId('add-user-submit'));
 
     await waitFor(() =>
@@ -165,12 +168,9 @@ describe('AddUserPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByTestId('add-user-raw-input'), RAW);
-    await user.click(screen.getByTestId('add-user-parse-paste'));
+    await user.type(screen.getByLabelText(/Full name/i), 'Kapil Sahu');
+    await user.type(screen.getByLabelText(/Phone/i), '+919876543210');
 
-    await waitFor(() => expect(screen.getByText(/Confirm contact details/i)).toBeInTheDocument());
-
-    // Queue the duplicate AFTER the initial parse already succeeded.
     queueCardScanConfirmError({
       status: 409,
       code: 'duplicate_contact',
@@ -196,10 +196,8 @@ describe('AddUserPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByTestId('add-user-raw-input'), RAW);
-    await user.click(screen.getByTestId('add-user-parse-paste'));
-
-    await waitFor(() => expect(screen.getByText(/Confirm contact details/i)).toBeInTheDocument());
+    await user.type(screen.getByLabelText(/Full name/i), 'Kapil Sahu');
+    await user.type(screen.getByLabelText(/Phone/i), '+919876543210');
 
     queueCardScanConfirmError({
       status: 409,
