@@ -289,6 +289,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: 'Megaphone',
     roles: ['admin', 'super_admin'],
   },
+  {
+    key: 'admin-app-config',
+    label: 'App settings',
+    path: '/admin/app-config',
+    icon: 'Settings2',
+    roles: ['admin', 'super_admin'],
+  },
 ];
 
 export function navForRole(role: UserRole | null | undefined): NavItem[] {

@@ -874,3 +874,22 @@ export async function getAdminCalendar(args: {
   const resp = await apiClient.get<ApiEnvelope<AdminCalendarResponse>>(url);
   return zAdminCalendarResponse.parse(unwrap(resp.data, url));
 }
+
+// ── App runtime config (feature flags) ──────────────────────────────────────
+import {
+  zAppConfigListResponse,
+  type AppConfigItem,
+  type AppConfigListResponse,
+} from '@/features/admin/schemas';
+
+export async function getAppConfig(): Promise<AppConfigListResponse> {
+  const url = '/admin/app-config';
+  const resp = await apiClient.get<ApiEnvelope<AppConfigListResponse>>(url);
+  return zAppConfigListResponse.parse(unwrap(resp.data, url));
+}
+
+export async function patchAppConfigKey(key: string, enabled: boolean): Promise<AppConfigItem> {
+  const url = `/admin/app-config/${encodeURIComponent(key)}`;
+  const resp = await apiClient.patch<ApiEnvelope<AppConfigItem>>(url, { enabled });
+  return zAppConfigListResponse.shape.items.element.parse(unwrap(resp.data, url));
+}

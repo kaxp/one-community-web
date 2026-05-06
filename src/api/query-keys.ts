@@ -84,6 +84,7 @@ export const qk = {
     misOverview: (range: string) => ['admin', 'mis-overview', { range }] as const,
     calendarAll: ['admin', 'calendar'] as const,
     calendar: (from: string, days: number) => ['admin', 'calendar', { from, days }] as const,
+    appConfig: ['admin', 'app-config'] as const,
   },
   digest: {
     pending: ['digest', 'pending'] as const,
