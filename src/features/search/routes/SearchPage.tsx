@@ -100,6 +100,7 @@ export function SearchPage() {
         filters={filters}
         onClearFilters={() => onFiltersChange({})}
         isMasked={isMasked}
+        suppressError={submitMutation.isError}
       />
     </div>
   );
@@ -113,6 +114,7 @@ interface SearchResultsProps {
   filters: SearchFilters;
   onClearFilters: () => void;
   isMasked: boolean;
+  suppressError?: boolean;
 }
 
 function SearchResults({
@@ -123,6 +125,7 @@ function SearchResults({
   filters,
   onClearFilters,
   isMasked,
+  suppressError,
 }: SearchResultsProps) {
   if (query.length === 0) {
     return (
@@ -141,7 +144,7 @@ function SearchResults({
       </div>
     );
   }
-  if (state.isError) {
+  if (state.isError && !suppressError) {
     return (
       <ErrorState
         error={state.error}
