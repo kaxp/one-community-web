@@ -142,7 +142,11 @@ export function LPProfilePage() {
 
             return (
               <div className="grid gap-4 md:grid-cols-2">
-                <FormField label="Fund name" htmlFor="lp-fund" className="md:col-span-2">
+                <FormField
+                  label="Fund name/Company name"
+                  htmlFor="lp-fund"
+                  className="md:col-span-2"
+                >
                   <Input id="lp-fund" placeholder="Acme Capital" {...register('fund_name')} />
                 </FormField>
                 <FormField label="AUM (₹ Cr)" htmlFor="lp-aum">
