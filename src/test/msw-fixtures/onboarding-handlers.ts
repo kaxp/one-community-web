@@ -157,6 +157,7 @@ export const onboardingHandlers: HttpHandler[] = [
       parsed,
       user_created,
       user_id,
+      pending_approval: false,
     };
     records[scan_id] = {
       scan_id,

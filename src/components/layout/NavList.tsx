@@ -26,23 +26,26 @@ export function NavList({ onItemClick, className }: Props) {
   const items = navForRole(role);
   return (
     <nav className={cn('flex flex-col gap-1', className)} aria-label="Primary">
-      {items.map((item) => (
-        <NavLink
-          key={item.key}
-          to={item.path}
-          end={item.path === '/dashboard'}
-          onClick={onItemClick}
-          className={({ isActive }) =>
-            cn(
-              'flex min-h-11 items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2 text-sm font-medium text-ink-body transition-colors hover:bg-surface hover:text-ink-heading',
-              isActive && 'border-brand bg-brand/10 text-brand',
-            )
-          }
-        >
-          <NavIcon name={item.icon} className="h-4 w-4" />
-          <span>{item.label}</span>
-        </NavLink>
-      ))}
+      {items.map((item) => {
+        const label = (role && item.labelFor?.[role]) ?? item.label;
+        return (
+          <NavLink
+            key={item.key}
+            to={item.path}
+            end={item.path === '/dashboard'}
+            onClick={onItemClick}
+            className={({ isActive }) =>
+              cn(
+                'flex min-h-11 items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2 text-sm font-medium text-ink-body transition-colors hover:bg-surface hover:text-ink-heading',
+                isActive && 'border-brand bg-brand/10 text-brand',
+              )
+            }
+          >
+            <NavIcon name={item.icon} className="h-4 w-4" />
+            <span>{label}</span>
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }

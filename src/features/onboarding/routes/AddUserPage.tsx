@@ -22,6 +22,8 @@ import {
 } from '@/features/onboarding/schemas';
 import { toE164 } from '@/lib/phone';
 import type { ApiError } from '@/api/errors';
+import { can } from '@/lib/role-capabilities';
+import { useRole } from '@/auth/use-auth';
 
 const CATEGORY_LABEL: Record<ScanCategory, string> = {
   lp: 'LP',
@@ -31,7 +33,9 @@ const CATEGORY_LABEL: Record<ScanCategory, string> = {
   partner: 'Partner',
 };
 
-function defaultsFrom(parsed: CardScanParsed | null): ContactReviewForm {
+const NON_ADMIN_CATEGORIES: readonly ScanCategory[] = ['potential_lp', 'vc', 'startup'];
+
+function defaultsFrom(parsed: CardScanParsed | null, isAdmin: boolean): ContactReviewForm {
   return {
     name: parsed?.name ?? '',
     phone: parsed?.phone ?? '',
@@ -41,7 +45,7 @@ function defaultsFrom(parsed: CardScanParsed | null): ContactReviewForm {
     linkedin_url: parsed?.linkedin_url ?? '',
     website: parsed?.website ?? '',
     address: parsed?.address ?? '',
-    category: 'lp',
+    category: isAdmin ? 'lp' : 'potential_lp',
   };
 }
 
@@ -77,6 +81,10 @@ function FieldFlag({ parsedValue, required = false }: FieldFlagProps) {
 // "autofill from business card" panel above it. Scanning pre-fills the
 // form fields; the user can also fill everything manually and skip the scan.
 export function AddUserPage() {
+  const role = useRole();
+  const isAdmin = can(role, 'admin.any');
+  const visibleCategories = isAdmin ? SCAN_CATEGORIES : NON_ADMIN_CATEGORIES;
+
   // `parsed` is null until a card scan succeeds. Used to show FieldFlags
   // and the "autofilled" success banner.
   const [parsed, setParsed] = useState<CardScanParsed | null>(null);
@@ -97,7 +105,7 @@ export function AddUserPage() {
 
   const form = useForm<ContactReviewForm>({
     resolver: zodResolver(zContactReviewForm),
-    defaultValues: defaultsFrom(null),
+    defaultValues: defaultsFrom(null, isAdmin),
   });
 
   // True while OCR or the AI parse call is running — disables the form and
@@ -117,7 +125,7 @@ export function AddUserPage() {
       {
         onSuccess: (data) => {
           setParsed(data.parsed);
-          form.reset(defaultsFrom(data.parsed));
+          form.reset(defaultsFrom(data.parsed, isAdmin));
           setIsParsingCard(false);
           toast.success('Card scanned — fields autofilled. Review and save.');
         },
@@ -148,7 +156,7 @@ export function AddUserPage() {
     setParsed(null);
     setRawText('');
     setIsParsingCard(false);
-    form.reset(defaultsFrom(null));
+    form.reset(defaultsFrom(null, isAdmin));
   };
 
   const onConfirmSubmit = (values: ContactReviewForm) => {
@@ -177,10 +185,12 @@ export function AddUserPage() {
       },
       {
         onSuccess: (data) => {
-          if (data.user_created) {
+          if (data.pending_approval) {
+            toast.success('Referral submitted — admin will review and approve.');
+          } else if (data.user_created) {
             toast.success('Contact added — user created.');
           } else {
-            toast.success('Contact saved — admin will follow up to provision the account.');
+            toast.success('Contact saved — user already exists.');
           }
           clearScan();
         },
@@ -207,9 +217,13 @@ export function AddUserPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Add a contact</h1>
+        <h1 className="text-3xl font-semibold text-ink-heading">
+          {isAdmin ? 'Add a contact' : 'Refer someone'}
+        </h1>
         <p className="text-sm text-ink-muted">
-          Fill in the details below, or snap a business card to autofill the form automatically.
+          {isAdmin
+            ? 'Fill in the details below, or snap a business card to autofill the form automatically.'
+            : 'Know someone who should join? Fill in their details and submit — our team will review and reach out.'}
         </p>
       </header>
 
@@ -461,7 +475,7 @@ export function AddUserPage() {
               <fieldset className="flex flex-col gap-2">
                 <legend className="text-sm font-medium text-ink-heading">Category</legend>
                 <div className="flex flex-wrap gap-2">
-                  {SCAN_CATEGORIES.map((c) => (
+                  {visibleCategories.map((c) => (
                     <Label
                       key={c}
                       className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-muted"
@@ -494,8 +508,10 @@ export function AddUserPage() {
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                     <span>Saving…</span>
                   </>
-                ) : (
+                ) : isAdmin ? (
                   'Save contact'
+                ) : (
+                  'Submit referral'
                 )}
               </Button>
             </div>

@@ -87,6 +87,11 @@ const AddUserPage = lazy(() =>
 const AdminHomePage = lazy(() =>
   import('@/features/admin/routes/AdminHomePage').then((m) => ({ default: m.AdminHomePage })),
 );
+const AdminReferralsPage = lazy(() =>
+  import('@/features/admin/routes/AdminReferralsPage').then((m) => ({
+    default: m.AdminReferralsPage,
+  })),
+);
 const AdminDigestPage = lazy(() =>
   import('@/features/digest/routes/AdminDigestPage').then((m) => ({ default: m.AdminDigestPage })),
 );
@@ -417,6 +422,14 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminConnectionsPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      path: '/admin/referrals',
+                      element: (
+                        <Susp>
+                          <AdminReferralsPage />
                         </Susp>
                       ),
                     },

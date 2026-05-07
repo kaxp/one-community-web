@@ -75,6 +75,8 @@ export function isMaskedSearchRole(role: UserRole | null | undefined): boolean {
 export interface NavItem {
   key: string;
   label: string;
+  /** Role-specific label overrides — takes precedence over `label` when the user's role is present. */
+  labelFor?: Partial<Record<UserRole, string>>;
   path: string;
   icon: string;
   roles: readonly (UserRole | '*')[];
@@ -132,9 +134,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
   {
     key: 'add-user',
     label: 'Add contact',
+    labelFor: { lp: 'Refer', potential_lp: 'Refer', vc: 'Refer' },
     path: '/add-user',
     icon: 'UserPlus',
     roles: ['lp', 'potential_lp', 'vc', 'admin', 'super_admin'],
+  },
+  {
+    key: 'admin-referrals',
+    label: 'Referrals',
+    path: '/admin/referrals',
+    icon: 'UserCheck',
+    roles: ['admin', 'super_admin'],
   },
   {
     // Stage 6 S8: /pitch is now the public submission landing page.
