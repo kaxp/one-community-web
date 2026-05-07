@@ -22,6 +22,7 @@ let nextGetError: ErrorEnvelope | null = null;
 let nextOcrError: ErrorEnvelope | null = null;
 let parsedOverride: Partial<CardScanParsed> | null = null;
 let createUserOnConfirm = true;
+let pendingApprovalOnConfirm = false;
 let nextOcrPayload: { raw_text: string; confidence: number } | null = null;
 const records: Record<string, CardScanRecord> = {};
 
@@ -43,6 +44,7 @@ export function resetMswOnboardingState() {
   nextOcrError = null;
   parsedOverride = null;
   createUserOnConfirm = true;
+  pendingApprovalOnConfirm = false;
   nextOcrPayload = null;
   for (const k of Object.keys(records)) delete records[k];
 }
@@ -55,6 +57,10 @@ export function setMswCardScanParsed(next: Partial<CardScanParsed> | null) {
 
 export function setMswCardScanCreatesUser(value: boolean) {
   createUserOnConfirm = value;
+}
+
+export function setMswCardScanPendingApproval(value: boolean) {
+  pendingApprovalOnConfirm = value;
 }
 
 export function queueCardScanParseError(err: ErrorEnvelope) {
@@ -157,6 +163,7 @@ export const onboardingHandlers: HttpHandler[] = [
       parsed,
       user_created,
       user_id,
+      pending_approval: isConfirm && pendingApprovalOnConfirm,
     };
     records[scan_id] = {
       scan_id,

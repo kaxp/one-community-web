@@ -85,7 +85,7 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     await expect(nav.getByRole('link', { name: /^Suggestions$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Connections$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Pending$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Add contact$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Refer$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Schedule$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Documents$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^My digest$/i })).toBeVisible();

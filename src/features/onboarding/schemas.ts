@@ -127,6 +127,7 @@ export const zCardScanResponse = z.object({
   parsed: zCardScanParsed,
   user_created: z.boolean(),
   user_id: zUUID.nullable(),
+  pending_approval: z.boolean().default(false),
 });
 export type CardScanResponse = z.infer<typeof zCardScanResponse>;
 

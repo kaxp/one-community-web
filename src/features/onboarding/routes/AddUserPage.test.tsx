@@ -9,6 +9,7 @@ import {
   queueCardScanConfirmError,
   setMswCardScanCreatesUser,
   setMswCardScanParsed,
+  setMswCardScanPendingApproval,
 } from '@/test/msw-fixtures/onboarding-handlers';
 import { toast } from 'sonner';
 
@@ -146,9 +147,10 @@ describe('AddUserPage', () => {
     await waitFor(() => expect(screen.getByTestId('add-user-camera-button')).toBeInTheDocument());
   });
 
-  it('submit success when user_created=false: toasts the admin-followup copy', async () => {
+  it('submit success with pending_approval: toasts referral-submitted copy', async () => {
     signedInAsLP();
     setMswCardScanCreatesUser(false);
+    setMswCardScanPendingApproval(true);
     const successSpy = vi.mocked(toast.success);
     successSpy.mockClear();
     const user = userEvent.setup();
@@ -159,7 +161,7 @@ describe('AddUserPage', () => {
     await user.click(screen.getByTestId('add-user-submit'));
 
     await waitFor(() =>
-      expect(successSpy).toHaveBeenCalledWith(expect.stringContaining('admin will follow up')),
+      expect(successSpy).toHaveBeenCalledWith(expect.stringContaining('Referral submitted')),
     );
   });
 
