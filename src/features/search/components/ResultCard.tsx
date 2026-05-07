@@ -62,7 +62,7 @@ export function ResultCard({ item, targetType, query, isMasked = false }: Props)
       source: 'search_card',
       metadata: { query },
     });
-    void navigate(`/profile/${item.user_id}`);
+    void navigate(`/search/profile/${item.user_id}`, { state: { targetType } });
   }, [item.user_id, targetType, query, log, navigate]);
 
   // Fire `search_view` once when the card scrolls into view (or immediately if

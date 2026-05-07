@@ -28,6 +28,11 @@ const LPProfilePage = lazy(() =>
 const SearchPage = lazy(() =>
   import('@/features/search/routes/SearchPage').then((m) => ({ default: m.SearchPage })),
 );
+const SearchDetailPage = lazy(() =>
+  import('@/features/search/routes/SearchDetailPage').then((m) => ({
+    default: m.SearchDetailPage,
+  })),
+);
 const AdminConnectionsPage = lazy(() =>
   import('@/features/admin/routes/AdminConnectionsPage').then((m) => ({
     default: m.AdminConnectionsPage,
@@ -214,6 +219,18 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <SearchPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // Detail page for search result cards. Uses
+                      // /search/detail/startup|lp/:id endpoints directly —
+                      // keeps Notion-migrated startups (no onboarded account)
+                      // out of the existing /profile/:id flow.
+                      path: '/search/profile/:id',
+                      element: (
+                        <Susp>
+                          <SearchDetailPage />
                         </Susp>
                       ),
                     },
