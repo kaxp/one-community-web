@@ -23,18 +23,26 @@ export class ApiError extends Error {
   public readonly userMessage: string;
   public readonly status: number;
   public readonly detail?: unknown;
+  public readonly retryAfterSeconds?: number;
 
-  constructor(code: string, userMessage: string, status: number, detail?: unknown) {
+  constructor(
+    code: string,
+    userMessage: string,
+    status: number,
+    detail?: unknown,
+    retryAfterSeconds?: number,
+  ) {
     super(userMessage);
     this.name = 'ApiError';
     this.code = code;
     this.userMessage = userMessage;
     this.status = status;
     this.detail = detail;
+    if (retryAfterSeconds !== undefined) this.retryAfterSeconds = retryAfterSeconds;
   }
 
-  static fromEnvelope(env: ApiErrorEnvelope, status: number): ApiError {
+  static fromEnvelope(env: ApiErrorEnvelope, status: number, retryAfterSeconds?: number): ApiError {
     const friendly = USER_MESSAGES[env.code] ?? env.message;
-    return new ApiError(env.code, friendly, status, env.detail);
+    return new ApiError(env.code, friendly, status, env.detail, retryAfterSeconds);
   }
 }

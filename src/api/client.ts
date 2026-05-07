@@ -42,8 +42,10 @@ apiClient.interceptors.response.use(
   (err: AxiosError<{ error?: ApiErrorEnvelope }>) => {
     const status = err.response?.status ?? 0;
     const envelope = err.response?.data?.error;
+    const retryAfter = status === 429 ? err.response?.headers['retry-after'] : undefined;
+    const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) || undefined : undefined;
     const apiErr = envelope
-      ? ApiError.fromEnvelope(envelope, status)
+      ? ApiError.fromEnvelope(envelope, status, retryAfterSeconds)
       : new ApiError('network_error', 'Network error — please retry.', status);
 
     if (status >= 500 || apiErr.code === 'network_error') {

@@ -31,6 +31,12 @@ import { nextRouteForUser } from '@/features/auth/lib/post-signin-navigate';
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
+function formatRetryAfter(seconds: number): string {
+  if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+  const mins = Math.ceil(seconds / 60);
+  return `${mins} minute${mins !== 1 ? 's' : ''}`;
+}
+
 export function SignInPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -158,7 +164,18 @@ export function SignInPage() {
                     {...phoneForm.register('phone')}
                   />
                 </FormField>
-                {otpSend.isError ? <ErrorState error={otpSend.error} compact /> : null}
+                {otpSend.isError ? (
+                  otpSend.error.code === 'rate_limit_exceeded' ? (
+                    <p className="text-sm text-destructive">
+                      Too many attempts.{' '}
+                      {otpSend.error.retryAfterSeconds
+                        ? `Try again in ${formatRetryAfter(otpSend.error.retryAfterSeconds)}.`
+                        : 'Please wait before trying again.'}
+                    </p>
+                  ) : (
+                    <ErrorState error={otpSend.error} compact />
+                  )
+                ) : null}
                 <Button type="submit" disabled={otpSend.isPending}>
                   {otpSend.isPending ? (
                     <>
@@ -205,14 +222,28 @@ export function SignInPage() {
                   >
                     Change number
                   </Button>
-                  <Button
-                    type="button"
-                    variant="link"
-                    onClick={handleResend}
-                    disabled={resendSecondsLeft > 0 || verifying}
-                  >
-                    {resendSecondsLeft > 0 ? `Resend in ${resendSecondsLeft}s` : 'Resend OTP'}
-                  </Button>
+                  <div className="flex flex-col items-end gap-1">
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={handleResend}
+                      disabled={
+                        resendSecondsLeft > 0 ||
+                        verifying ||
+                        otpSend.error?.code === 'rate_limit_exceeded'
+                      }
+                    >
+                      {resendSecondsLeft > 0 ? `Resend in ${resendSecondsLeft}s` : 'Resend OTP'}
+                    </Button>
+                    {otpSend.isError && otpSend.error.code === 'rate_limit_exceeded' ? (
+                      <p className="text-xs text-destructive">
+                        Too many attempts.{' '}
+                        {otpSend.error.retryAfterSeconds
+                          ? `Try again in ${formatRetryAfter(otpSend.error.retryAfterSeconds)}.`
+                          : 'Please wait.'}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
                 <Button
                   type="button"
