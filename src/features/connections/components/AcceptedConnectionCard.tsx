@@ -43,7 +43,7 @@ export function AcceptedConnectionCard({ row }: Props) {
         </CardContent>
       </Card>
       {showFeedback ? (
-        <FeedbackPrompt introId={row.intro_id as string} counterpartName={c.name} />
+        <FeedbackPrompt introId={row.intro_id as string} counterpartName={c.name ?? 'User'} />
       ) : null}
     </div>
   );

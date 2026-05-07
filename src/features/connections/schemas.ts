@@ -29,7 +29,7 @@ export type CounterpartContact = z.infer<typeof zCounterpartContact>;
 
 const zAcceptedCounterpart = z.object({
   user_id: zUUID,
-  name: z.string(),
+  name: z.string().nullable(),
   role: zUserRole,
   organisation: z.string().nullable().optional(),
   avatar_url: z.string().nullable().optional(),
@@ -56,7 +56,7 @@ export type AcceptedConnectionsResponse = z.infer<typeof zAcceptedConnectionsRes
 // Pending list — contact is never present (PRD §7.6.5 response field rules).
 const zPendingCounterpart = z.object({
   user_id: zUUID,
-  name: z.string(),
+  name: z.string().nullable(),
   role: zUserRole,
   organisation: z.string().nullable().optional(),
   avatar_url: z.string().nullable().optional(),

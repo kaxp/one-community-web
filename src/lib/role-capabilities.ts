@@ -200,6 +200,20 @@ export const NAV_ITEMS: readonly NavItem[] = [
     ],
   },
   {
+    key: 'fund-1',
+    label: 'Fund I',
+    path: '/fund-1',
+    icon: 'Landmark',
+    roles: ['lp', 'potential_lp', 'admin', 'super_admin'],
+  },
+  {
+    key: 'fund-2',
+    label: 'Fund II',
+    path: '/fund-2',
+    icon: 'Landmark',
+    roles: ['lp', 'potential_lp', 'admin', 'super_admin'],
+  },
+  {
     key: 'digest',
     label: 'My digest',
     path: '/digest',
