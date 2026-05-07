@@ -29,8 +29,16 @@ function ExternalLinkRow({ label, href }: { label: string; href: string | null |
 }
 
 export function StartupRichDetailBlock({ detail }: Props) {
+  const hasAbout =
+    detail.founding_year != null ||
+    detail.team_size != null ||
+    detail.city ||
+    detail.revenue_model ||
+    detail.traction;
+
   const hasFinancials =
     detail.funding_target_cr != null ||
+    detail.raising_raw ||
     detail.mrr_arr ||
     detail.revenue_monthly != null ||
     detail.burn_monthly != null ||
@@ -53,6 +61,37 @@ export function StartupRichDetailBlock({ detail }: Props) {
 
   return (
     <>
+      {/* About — founding year, team size, city, revenue model, traction */}
+      {hasAbout ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>About</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <InfoRow
+              label="Founded"
+              value={detail.founding_year != null ? String(detail.founding_year) : null}
+              isMasked={false}
+            />
+            <InfoRow
+              label="Team size"
+              value={detail.team_size != null ? String(detail.team_size) : null}
+              isMasked={false}
+            />
+            <InfoRow label="City" value={detail.city} isMasked={false} />
+            <InfoRow label="Revenue model" value={detail.revenue_model} isMasked={false} />
+            {detail.traction ? (
+              <div className="sm:col-span-2 flex flex-col gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  Traction
+                </span>
+                <p className="text-sm text-ink-body">{detail.traction}</p>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* Founders */}
       {hasFounders ? (
         <Card>
@@ -122,8 +161,11 @@ export function StartupRichDetailBlock({ detail }: Props) {
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <InfoRow
-              label="Asking"
-              value={detail.funding_target_cr != null ? fmtCr(detail.funding_target_cr) : null}
+              label="Raising"
+              value={
+                detail.raising_raw ??
+                (detail.funding_target_cr != null ? fmtCr(detail.funding_target_cr) : null)
+              }
               isMasked={false}
             />
             <InfoRow label="MRR / ARR" value={detail.mrr_arr} isMasked={false} />
