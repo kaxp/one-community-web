@@ -31,10 +31,13 @@ export function TopBar() {
       <div className="flex items-center gap-3">
         {user ? (
           <div className="hidden items-center gap-2 md:flex">
-            <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-2 py-1 text-sm">
+            <Link
+              to="/my-profile"
+              className="flex items-center gap-2 rounded-md border border-border bg-surface px-2 py-1 text-sm transition-colors hover:bg-surface-muted"
+            >
               <UserIcon className="h-4 w-4 text-ink-muted" aria-hidden />
               <span className="text-ink-heading">{user.name ?? user.phone}</span>
-            </div>
+            </Link>
             <RoleBadge role={user.role} />
           </div>
         ) : null}

@@ -41,6 +41,9 @@ const AdminConnectionsPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import('@/features/profile/routes/ProfilePage').then((m) => ({ default: m.ProfilePage })),
 );
+const MyProfilePage = lazy(() =>
+  import('@/features/profile/routes/MyProfilePage').then((m) => ({ default: m.MyProfilePage })),
+);
 const ConnectionsPage = lazy(() =>
   import('@/features/connections/routes/ConnectionsPage').then((m) => ({
     default: m.ConnectionsPage,
@@ -196,6 +199,14 @@ export const router = createBrowserRouter(
               element: <AppShell />,
               children: [
                 { path: '/dashboard', element: <DashboardPage /> },
+                {
+                  path: '/my-profile',
+                  element: (
+                    <Susp>
+                      <MyProfilePage />
+                    </Susp>
+                  ),
+                },
                 {
                   // Partner is admitted with masked results (backend strips
                   // fields via _STARTUP_VISIBLE_FIELDS["partner"]). PRD §7.4.1.
