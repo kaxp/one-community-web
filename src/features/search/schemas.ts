@@ -12,11 +12,16 @@ export const zSearchFilters = z
   .strict();
 export type SearchFilters = z.infer<typeof zSearchFilters>;
 
+// Values the type-selector can produce. null/undefined = auto-classify (GPT).
+export const SEARCH_TARGET_TYPES = ['startup', 'lp'] as const;
+export type SearchTargetType = (typeof SEARCH_TARGET_TYPES)[number];
+
 export const zSearchRequest = z.object({
   query: z.string().trim().min(1, 'Enter a query').max(500),
   filters: zSearchFilters.optional(),
   limit: z.number().int().min(1).max(100).optional(),
   cursor: z.string().nullable().optional(),
+  target_type: z.enum(SEARCH_TARGET_TYPES).nullable().optional(),
 });
 export type SearchRequest = z.infer<typeof zSearchRequest>;
 

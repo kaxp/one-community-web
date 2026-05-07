@@ -2,7 +2,12 @@ import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { searchUnified } from '@/api/endpoints';
 import { qk } from '@/api/query-keys';
 import type { ApiError } from '@/api/errors';
-import type { SearchFilters, SearchRequest, SearchResponse } from '@/features/search/schemas';
+import type {
+  SearchFilters,
+  SearchRequest,
+  SearchResponse,
+  SearchTargetType,
+} from '@/features/search/schemas';
 
 const SEARCH_PAGE_LIMIT = 20;
 
@@ -10,11 +15,10 @@ interface UseSearchArgs {
   query: string;
   filters: SearchFilters;
   enabled: boolean;
+  targetType?: SearchTargetType | null;
 }
 
-// Per PRD §7.4.1 the query is debounced 400ms upstream of this hook (see SearchPage).
-// Cursor pagination via `next_cursor` (CLAUDE.md §5.5).
-export function useSearch({ query, filters, enabled }: UseSearchArgs) {
+export function useSearch({ query, filters, enabled, targetType }: UseSearchArgs) {
   return useInfiniteQuery<
     SearchResponse,
     ApiError,
@@ -22,12 +26,13 @@ export function useSearch({ query, filters, enabled }: UseSearchArgs) {
     readonly unknown[],
     string | null
   >({
-    queryKey: qk.search.query({ query, filters }),
+    queryKey: qk.search.query({ query, filters, targetType }),
     enabled: enabled && query.trim().length > 0,
     initialPageParam: null,
     queryFn: ({ pageParam }) => {
       const body: SearchRequest = { query, filters, limit: SEARCH_PAGE_LIMIT };
       if (pageParam !== null && pageParam !== undefined) body.cursor = pageParam;
+      if (targetType) body.target_type = targetType;
       return searchUnified(body);
     },
     getNextPageParam: (last) => last.next_cursor ?? undefined,
