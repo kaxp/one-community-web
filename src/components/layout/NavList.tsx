@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import * as Icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useRole } from '@/auth/use-auth';
-import { navForRole } from '@/lib/role-capabilities';
+import { navForRole, resolvedLabel } from '@/lib/role-capabilities';
 import { cn } from '@/lib/cn';
 
 const ICON_REGISTRY = Icons as unknown as Record<string, LucideIcon>;
@@ -27,7 +27,7 @@ export function NavList({ onItemClick, className }: Props) {
   return (
     <nav className={cn('flex flex-col gap-1', className)} aria-label="Primary">
       {items.map((item) => {
-        const label = (role && item.labelFor?.[role]) ?? item.label;
+        const label = resolvedLabel(item, role);
         return (
           <NavLink
             key={item.key}

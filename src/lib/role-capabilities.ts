@@ -314,3 +314,7 @@ export function navForRole(role: UserRole | null | undefined): NavItem[] {
     (item) => item.roles.includes('*') || (item.roles as readonly string[]).includes(role),
   );
 }
+
+export function resolvedLabel(item: NavItem, role: UserRole | null | undefined): string {
+  return (role && item.labelFor?.[role]) ?? item.label;
+}

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test/test-utils';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { useAuthStore } from '@/auth/auth-store';
-import { navForRole } from '@/lib/role-capabilities';
+import { navForRole, resolvedLabel } from '@/lib/role-capabilities';
 
 function signInAs(role: 'lp' | 'admin') {
   useAuthStore.getState().setSession({
@@ -37,7 +37,7 @@ describe('MobileNavDrawer (CLAUDE.md §7.11 + PRD §10.1)', () => {
     await user.click(screen.getByRole('button', { name: /open navigation/i }));
 
     const dialog = await screen.findByRole('dialog');
-    const expected = navForRole('lp').map((i) => i.label);
+    const expected = navForRole('lp').map((i) => resolvedLabel(i, 'lp'));
     expect(expected.length).toBeGreaterThan(2);
     for (const label of expected) {
       expect(within(dialog).getByText(label)).toBeInTheDocument();
