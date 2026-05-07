@@ -43,7 +43,9 @@ export function useSearch({
       return searchUnified(body);
     },
     getNextPageParam: (last) => last.next_cursor ?? undefined,
-    staleTime: 0,
-    gcTime: 60_000,
+    // 5-min staleTime: navigating back from a detail page shows the cached
+    // list instantly without re-firing the 20-30 s search pipeline.
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }

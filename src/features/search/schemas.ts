@@ -133,6 +133,7 @@ export const zSearchDetailStartup = z.object({
   description: z.string().nullable().optional(),
   founding_year: z.number().int().nullable().optional(),
   team_size: z.number().int().nullable().optional(),
+  city: z.string().nullable().optional(),
   website_url: z.string().nullable().optional(),
   company_linkedin_url: z.string().nullable().optional(),
   tracxn_url: z.string().nullable().optional(),
@@ -144,6 +145,7 @@ export const zSearchDetailStartup = z.object({
   connection_status: z.string().nullable().optional(),
   // Financials — gated by role / connection
   funding_target_cr: z.number().nullable().optional(),
+  raising_raw: z.string().nullable().optional(),
   existing_investors: z.string().nullable().optional(),
   last_round_valuation: z.string().nullable().optional(),
   money_raised: z.string().nullable().optional(),
