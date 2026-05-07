@@ -5,10 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
-import { Skeleton } from '@/components/ui/skeleton';
 import { SearchBar } from '@/features/search/components/SearchBar';
-import { FilterChips } from '@/features/search/components/FilterChips';
 import { ResultCard } from '@/features/search/components/ResultCard';
+import { SearchLoadingState } from '@/features/search/components/SearchLoadingState';
 import { TypeSelector, type SearchTypeOption } from '@/features/search/components/TypeSelector';
 import { useSearch } from '@/features/search/hooks/use-search';
 import { useSearchSubmit } from '@/features/search/hooks/use-search-submit';
@@ -22,6 +21,26 @@ import {
 import type { UserRole } from '@/types/enums';
 import { useRole } from '@/auth/use-auth';
 import { isMaskedSearchRole, isStartupRole } from '@/lib/role-capabilities';
+
+/** Parses "top 5", "first 10", "show me 3 startups" → number, else null. */
+function extractCountFromQuery(q: string): number | null {
+  const patterns = [
+    /\btop\s+(\d+)\b/i,
+    /\bfirst\s+(\d+)\b/i,
+    /\bshow\s+(?:me\s+)?(\d+)\b/i,
+    /\b(\d+)\s+(?:startups?|lps?|investors?|funds?|companies|company)\b/i,
+  ];
+  for (const p of patterns) {
+    const m = q.match(p);
+    if (m) {
+      const raw = m[1] ?? m[2];
+      if (!raw) continue;
+      const n = parseInt(raw, 10);
+      if (n >= 1 && n <= 100) return n;
+    }
+  }
+  return null;
+}
 
 // Startup roles search for LPs (investors); everyone else searches for startups.
 function defaultTargetType(role: UserRole | null): SearchTargetType {
@@ -59,14 +78,20 @@ export function SearchPage() {
     }
   }, [query]);
 
+  const queryLimit = useMemo(
+    () => extractCountFromQuery(submittedQuery.trim()) ?? 20,
+    [submittedQuery],
+  );
+
   const search = useSearch({
     query: submittedQuery.trim(),
     filters,
     enabled: submittedQuery.trim().length > 0,
     targetType,
+    limit: queryLimit,
   });
 
-  const submitMutation = useSearchSubmit({ query, filters, targetType });
+  const submitMutation = useSearchSubmit({ query, filters, targetType, limit: queryLimit });
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const buildParams = (q: string, f: SearchFilters, t: SearchTypeOption) => {
@@ -117,8 +142,7 @@ export function SearchPage() {
         <CardHeader>
           <CardTitle>Search the community</CardTitle>
           <CardDescription>
-            Semantic search across LPs and startups. Type a query, refine with filters, and explore
-            matches.
+            Semantic search across LPs and startups. Type a query and explore matches.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -129,7 +153,6 @@ export function SearchPage() {
             onSubmit={onSubmit}
             isPending={isButtonPending}
           />
-          <FilterChips filters={filters} onChange={onFiltersChange} />
           {submitMutation.isError ? (
             <ErrorState
               error={submitMutation.error}
@@ -187,13 +210,7 @@ function SearchResults({
     );
   }
   if (state.isLoading || (state.isFetching && !firstPage)) {
-    return (
-      <div className="grid gap-3 md:grid-cols-2" data-testid="search-loading">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-40 w-full" />
-        ))}
-      </div>
-    );
+    return <SearchLoadingState />;
   }
   if (state.isError && !suppressError) {
     return (

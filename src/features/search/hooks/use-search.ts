@@ -9,16 +9,23 @@ import type {
   SearchTargetType,
 } from '@/features/search/schemas';
 
-const SEARCH_PAGE_LIMIT = 20;
+const DEFAULT_LIMIT = 20;
 
 interface UseSearchArgs {
   query: string;
   filters: SearchFilters;
   enabled: boolean;
   targetType?: SearchTargetType | null;
+  limit?: number;
 }
 
-export function useSearch({ query, filters, enabled, targetType }: UseSearchArgs) {
+export function useSearch({
+  query,
+  filters,
+  enabled,
+  targetType,
+  limit = DEFAULT_LIMIT,
+}: UseSearchArgs) {
   return useInfiniteQuery<
     SearchResponse,
     ApiError,
@@ -26,11 +33,11 @@ export function useSearch({ query, filters, enabled, targetType }: UseSearchArgs
     readonly unknown[],
     string | null
   >({
-    queryKey: qk.search.query({ query, filters, targetType }),
+    queryKey: qk.search.query({ query, filters, targetType, limit }),
     enabled: enabled && query.trim().length > 0,
     initialPageParam: null,
     queryFn: ({ pageParam }) => {
-      const body: SearchRequest = { query, filters, limit: SEARCH_PAGE_LIMIT };
+      const body: SearchRequest = { query, filters, limit };
       if (pageParam !== null && pageParam !== undefined) body.cursor = pageParam;
       if (targetType) body.target_type = targetType;
       return searchUnified(body);

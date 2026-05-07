@@ -22,6 +22,9 @@ interface Props {
   onOpenChange(open: boolean): void;
   targetId: string;
   targetName: string;
+  onSuccess?: () => void;
+  /** AI match reason — shown as a hint to help the user craft their opening message. */
+  messageHint?: string | null;
 }
 
 const MAX_MESSAGE = 200;
@@ -31,7 +34,14 @@ const MAX_MESSAGE = 200;
 // 409: toast "already exists", close.
 // 404: toast "user not found", close — caller can decide to navigate away.
 // 422: surface inline form error (let RHF render).
-export function RequestConnectDialog({ open, onOpenChange, targetId, targetName }: Props) {
+export function RequestConnectDialog({
+  open,
+  onOpenChange,
+  targetId,
+  targetName,
+  onSuccess,
+  messageHint,
+}: Props) {
   const mutation = useRequestConnection();
   const form = useForm<RequestConnectForm>({
     resolver: zodResolver(zRequestConnectForm),
@@ -62,6 +72,7 @@ export function RequestConnectDialog({ open, onOpenChange, targetId, targetName 
           toast.success('Request sent — awaiting admin approval');
           setSubmittedSuccessfully(true);
           onOpenChange(false);
+          onSuccess?.();
         },
         onError: (err) => {
           if (err.code === 'conflict') {
@@ -95,6 +106,12 @@ export function RequestConnectDialog({ open, onOpenChange, targetId, targetName 
           <fieldset disabled={mutation.isPending} className="contents">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="connect-message">Message (optional)</Label>
+              {messageHint ? (
+                <p className="rounded-md border border-brand/20 bg-brand/5 px-3 py-2 text-xs italic text-brand">
+                  <span className="not-italic font-medium">Why this match: </span>
+                  {messageHint}
+                </p>
+              ) : null}
               <textarea
                 id="connect-message"
                 rows={4}
