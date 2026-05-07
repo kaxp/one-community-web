@@ -13,11 +13,13 @@ import {
 import {
   zCardScanRecord,
   zCardScanResponse,
+  zLPProfileGetResponse,
   zLPProfileResponse,
   zProfileUpdateResponse,
   type CardScanRecord,
   type CardScanRequest,
   type CardScanResponse,
+  type LPProfileGetResponse,
   type LPProfileRequest,
   type LPProfileResponse,
   type ProfileUpdateRequest,
@@ -230,6 +232,11 @@ export async function patchProfile(body: ProfileUpdateRequest): Promise<ProfileU
     stripUndefined(body),
   );
   return zProfileUpdateResponse.parse(unwrap(resp.data, '/onboarding/profile'));
+}
+
+export async function getLPProfile(): Promise<LPProfileGetResponse> {
+  const resp = await apiClient.get<ApiEnvelope<LPProfileGetResponse>>('/onboarding/lp-profile');
+  return zLPProfileGetResponse.parse(unwrap(resp.data, '/onboarding/lp-profile'));
 }
 
 export async function postLPProfile(body: LPProfileRequest): Promise<LPProfileResponse> {

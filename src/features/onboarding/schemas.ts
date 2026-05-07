@@ -79,6 +79,20 @@ export const zLPProfileResponse = z.object({
 });
 export type LPProfileResponse = z.infer<typeof zLPProfileResponse>;
 
+export const zLPProfileGetResponse = z.object({
+  fund_name: z.string().nullable(),
+  aum_crore: z.number().nullable(),
+  thesis: z.string().nullable(),
+  preferred_sectors: z.array(z.string()),
+  preferred_stages: z.array(z.string()),
+  geography: z.array(z.string()),
+  ticket_size_min_cr: z.number().nullable(),
+  ticket_size_max_cr: z.number().nullable(),
+  co_invest_interest: z.boolean(),
+  profile_complete: z.boolean(),
+});
+export type LPProfileGetResponse = z.infer<typeof zLPProfileGetResponse>;
+
 // PRD §7.2.1 — `POST /onboarding/card-scan`. The wire body accepts either
 // the OCR raw text (initial parse) OR the full reviewed contact + category
 // (final create-or-update). Backend distinguishes by presence of `parsed`.
