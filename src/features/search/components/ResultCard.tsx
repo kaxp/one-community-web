@@ -62,8 +62,12 @@ export function ResultCard({ item, targetType, query, isMasked = false }: Props)
       source: 'search_card',
       metadata: { query },
     });
-    void navigate(`/search/profile/${item.user_id}`, { state: { targetType } });
-  }, [item.user_id, targetType, query, log, navigate]);
+    const ai_reason =
+      targetType === 'startup'
+        ? ((item as StartupResultItem).ai_reason ?? null)
+        : ((item as LPResultItem).ai_reason ?? null);
+    void navigate(`/search/profile/${item.user_id}`, { state: { targetType, ai_reason } });
+  }, [item, targetType, query, log, navigate]);
 
   // Fire `search_view` once when the card scrolls into view (or immediately if
   // IntersectionObserver isn't available — e.g., jsdom).

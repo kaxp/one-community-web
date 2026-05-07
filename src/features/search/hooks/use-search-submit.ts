@@ -8,9 +8,10 @@ interface Args {
   query: string;
   filters: SearchFilters;
   targetType?: SearchTargetType | null;
+  limit?: number;
 }
 
-export function useSearchSubmit({ query, filters, targetType }: Args) {
+export function useSearchSubmit({ query, filters, targetType, limit = 20 }: Args) {
   const qc = useQueryClient();
   return useMutation<SearchResponse, ApiError, void>({
     mutationFn: async () => {
@@ -21,10 +22,10 @@ export function useSearchSubmit({ query, filters, targetType }: Args) {
       const resp = await searchUnified({
         query: trimmed,
         filters,
-        limit: 20,
+        limit,
         ...(targetType ? { target_type: targetType } : {}),
       });
-      qc.setQueryData(qk.search.query({ query: trimmed, filters, targetType }), {
+      qc.setQueryData(qk.search.query({ query: trimmed, filters, targetType, limit }), {
         pages: [resp],
         pageParams: [null],
       });
