@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Loader2 } from 'lucide-react';
@@ -166,6 +166,7 @@ export function AdminConnectionsPage() {
 
   const list = useAdminConnections({ status: tab });
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const items = useMemo(
     () => (list.data?.pages ?? []).flatMap((page) => page.items),
@@ -183,7 +184,13 @@ export function AdminConnectionsPage() {
           const secondary = partySecondary(p);
           return (
             <div className="flex flex-col gap-1">
-              <span className="font-medium text-ink-heading">{primary}</span>
+              <button
+                type="button"
+                onClick={() => navigate(`/search/profile/${p.user_id}`)}
+                className="text-left font-medium text-ink-heading hover:text-brand hover:underline"
+              >
+                {primary}
+              </button>
               {secondary ? <span className="text-xs text-ink-muted">{secondary}</span> : null}
               <RoleBadge role={p.role} className="self-start" />
             </div>
@@ -199,7 +206,13 @@ export function AdminConnectionsPage() {
           const secondary = partySecondary(p);
           return (
             <div className="flex flex-col gap-1">
-              <span className="font-medium text-ink-heading">{primary}</span>
+              <button
+                type="button"
+                onClick={() => navigate(`/search/profile/${p.user_id}`)}
+                className="text-left font-medium text-ink-heading hover:text-brand hover:underline"
+              >
+                {primary}
+              </button>
               {secondary ? <span className="text-xs text-ink-muted">{secondary}</span> : null}
               <RoleBadge role={p.role} className="self-start" />
             </div>
@@ -242,7 +255,7 @@ export function AdminConnectionsPage() {
         },
       },
     ],
-    [],
+    [navigate],
   );
 
   return (
