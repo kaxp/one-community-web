@@ -57,7 +57,7 @@ describe('ProfilePage', () => {
 
     await waitFor(() => expect(screen.getByText('Kapil Sahu')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /request to connect/i })).toBeInTheDocument();
-    expect(screen.queryByText(/pending admin approval/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/awaiting admin approval/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Connected$/i)).not.toBeInTheDocument();
     // No accepted connection ⇒ no contact card.
     expect(screen.queryByText(/^Contact$/i)).not.toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('ProfilePage', () => {
     renderProfileAt();
 
     await waitFor(() => expect(screen.getByText('Kapil Sahu')).toBeInTheDocument());
-    expect(screen.getByText(/pending admin approval/i)).toBeInTheDocument();
+    expect(screen.getByText(/awaiting admin approval/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /request to connect/i })).not.toBeInTheDocument();
   });
 

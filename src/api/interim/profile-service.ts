@@ -174,7 +174,11 @@ function buildView(args: {
     vc_profile: null,
     contact,
     can_request_connect: !hasRequested && !hasConnected,
-    viewer_interaction: { has_requested: hasRequested, has_connected: hasConnected },
+    viewer_interaction: {
+      has_requested: hasRequested,
+      has_connected: hasConnected,
+      connection_status: pendingItem?.status ?? (accepted ? 'accepted' : null),
+    },
   });
 }
 

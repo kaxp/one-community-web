@@ -54,7 +54,11 @@ const PENDING: ProfileView = {
   ...STARTUP_FIXTURE_BASE,
   contact: null,
   can_request_connect: false,
-  viewer_interaction: { has_requested: true, has_connected: false },
+  viewer_interaction: {
+    has_requested: true,
+    has_connected: false,
+    connection_status: 'pending_admin',
+  },
 };
 
 const ACCEPTED_WITH_CONTACT: ProfileView = {

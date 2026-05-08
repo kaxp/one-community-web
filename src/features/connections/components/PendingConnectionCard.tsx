@@ -194,12 +194,18 @@ export function PendingConnectionCard({ row }: Props) {
               <p className="text-xs text-ink-muted">{c.organisation}</p>
             ) : null}
           </div>
-          {/* Only show role badge for incoming requests — outgoing are always "Startup" which is obvious */}
-          {row.direction === 'incoming' ? (
-            <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-ink-muted">
-              {isStartup ? 'Startup' : c.role === 'lp' ? 'LP' : c.role}
-            </span>
-          ) : null}
+          {/* Always show the counterpart type label so each card is self-explanatory */}
+          <span className="shrink-0 rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-ink-muted">
+            {isStartup
+              ? 'Startup'
+              : c.role === 'lp'
+                ? 'LP'
+                : c.role === 'potential_lp'
+                  ? 'Potential LP'
+                  : c.role === 'vc'
+                    ? 'VC'
+                    : c.role}
+          </span>
         </header>
 
         {row.message ? (

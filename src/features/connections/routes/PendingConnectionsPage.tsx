@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { ConnectionStatus } from '@/features/connections/schemas';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,16 @@ import { PENDING_DIRECTIONS, type PendingDirection } from '@/features/connection
 import { cn } from '@/lib/cn';
 
 const DEFAULT_DIRECTION: PendingDirection = 'incoming';
+
+// Pending statuses appear first; final states (accepted/declined/rejected) at the bottom.
+const STATUS_SORT_ORDER: Record<ConnectionStatus, number> = {
+  pending_admin: 0,
+  pending_target: 1,
+  approved: 2,
+  accepted: 3,
+  declined: 4,
+  rejected_admin: 5,
+};
 
 const DIRECTION_LABEL: Record<PendingDirection, string> = {
   incoming: 'Incoming',
@@ -47,7 +58,10 @@ export function PendingConnectionsPage() {
     [list.data?.pages],
   );
   const items = useMemo(
-    () => allItems.filter((row) => row.direction === direction),
+    () =>
+      allItems
+        .filter((row) => row.direction === direction)
+        .sort((a, b) => (STATUS_SORT_ORDER[a.status] ?? 99) - (STATUS_SORT_ORDER[b.status] ?? 99)),
     [allItems, direction],
   );
 

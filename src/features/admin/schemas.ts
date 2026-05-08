@@ -79,7 +79,7 @@ export type AdminRecentDigest = z.infer<typeof zRecentDigestRow>;
 
 const zRecentActionRow = z.object({
   admin_id: zUUID,
-  admin_name: z.string(),
+  admin_name: z.string().nullable(),
   action: z.string(),
   target_type: z.string(),
   target_id: zUUID,
