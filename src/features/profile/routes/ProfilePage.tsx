@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock, Lock, Sparkles, UserSearch, XCircle } from 'lucide-react';
+import { ArrowLeft, Sparkles, UserSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,73 +20,6 @@ import { StartupRichDetailBlock } from '@/features/profile/components/StartupRic
 import { LpRichDetailBlock } from '@/features/profile/components/LpRichDetailBlock';
 import { RequestConnectDialog } from '@/features/connections/components/RequestConnectDialog';
 import { useStartupDetail, useLpDetail } from '@/features/search/hooks/use-search-detail';
-
-function ConnectionStatusPill({ status }: { status: string }) {
-  if (status === 'pending_admin') {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs font-medium text-warning"
-        role="status"
-      >
-        <Lock className="h-3.5 w-3.5" aria-hidden />
-        Awaiting admin approval
-      </span>
-    );
-  }
-  if (status === 'pending_target') {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-xs font-medium text-brand"
-        role="status"
-      >
-        <Clock className="h-3.5 w-3.5" aria-hidden />
-        Awaiting response
-      </span>
-    );
-  }
-  if (status === 'rejected_admin') {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full border border-error/30 bg-error/10 px-3 py-1 text-xs font-medium text-error"
-        role="status"
-      >
-        <XCircle className="h-3.5 w-3.5" aria-hidden />
-        Not approved by admin
-      </span>
-    );
-  }
-  if (status === 'declined') {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full border border-ink-muted/30 bg-surface-muted px-3 py-1 text-xs font-medium text-ink-muted"
-        role="status"
-      >
-        <XCircle className="h-3.5 w-3.5" aria-hidden />
-        Declined
-      </span>
-    );
-  }
-  if (status === 'accepted') {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-xs font-medium text-success"
-        role="status"
-      >
-        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-        Connected
-      </span>
-    );
-  }
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs font-medium text-warning"
-      role="status"
-    >
-      <Lock className="h-3.5 w-3.5" aria-hidden />
-      Request pending
-    </span>
-  );
-}
 
 export function ProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -188,14 +121,20 @@ function ProfileBody({
   const [dialogOpen, setDialogOpen] = useState(false);
   // Capability + state-derived rules per PRD §7.5.1 UI flow.
   const canRequestRole = can(role, 'connections.request');
-  const showRequestButton =
+  const cs = profile.viewer_interaction.connection_status ?? null;
+  const isRejected = cs === 'rejected_admin' || cs === 'declined';
+  const isPending = cs === 'pending_admin' || cs === 'pending_target';
+  // Show active button only when there is no connection history at all.
+  const showActiveButton =
     canRequestRole &&
     profile.can_request_connect &&
     !profile.viewer_interaction.has_requested &&
     !profile.viewer_interaction.has_connected;
-  const showPendingStatus =
-    profile.viewer_interaction.has_requested && !profile.viewer_interaction.has_connected;
-  const showConnectedStatus = profile.viewer_interaction.has_connected;
+  // Pending: button visible but disabled (greyed).
+  const showDisabledButton = canRequestRole && isPending;
+  // Rejected/declined: button hidden entirely — user cannot re-request.
+  // isRejected → render nothing.
+  const showConnectedStatus = profile.viewer_interaction.has_connected || cs === 'accepted';
 
   const isStartupTarget = useMemo(() => isStartupRole(profile.role), [profile.role]);
   const isLPTarget = useMemo(() => isLpRole(profile.role), [profile.role]);
@@ -221,15 +160,16 @@ function ProfileBody({
         <CardContent className="p-6">
           <ProfileHeader profile={profile} isMasked={isMasked} />
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            {showRequestButton ? (
+            {showActiveButton ? (
               <Button onClick={() => setDialogOpen(true)}>Request to connect</Button>
             ) : null}
-            {showPendingStatus ? (
-              <ConnectionStatusPill
-                status={profile.viewer_interaction.connection_status ?? 'pending_admin'}
-              />
+            {showDisabledButton ? (
+              <Button disabled>
+                {cs === 'pending_target' ? 'Awaiting response' : 'Awaiting admin approval'}
+              </Button>
             ) : null}
-            {showConnectedStatus ? (
+            {/* Rejected/declined: no button shown — user cannot re-request */}
+            {!isRejected && showConnectedStatus ? (
               <span
                 className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-xs font-medium text-success"
                 role="status"
