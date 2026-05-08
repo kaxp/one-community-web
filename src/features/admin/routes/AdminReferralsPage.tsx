@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { zUUID } from '@/lib/zod-helpers';
@@ -9,6 +9,14 @@ import type { ApiEnvelope } from '@/types/api';
 import type { ApiError } from '@/api/errors';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { RoleBadge } from '@/components/role-badge';
 import { ErrorState } from '@/components/error-state/ErrorState';
 
@@ -22,6 +30,7 @@ const zReferralItem = z.object({
   contact_phone: z.string().nullable(),
   contact_email: z.string().nullable(),
   contact_role: z.string().nullable(),
+  admin_note: z.string().nullable().optional(),
   created_at: z.string(),
 });
 type ReferralItem = z.infer<typeof zReferralItem>;
@@ -46,18 +55,95 @@ async function approveReferral(scanId: string) {
   return zReferralActionResponse.parse(resp.data.data);
 }
 
-async function rejectReferral(scanId: string) {
-  const resp = await apiClient.post<ApiEnvelope<unknown>>(`/admin/referrals/${scanId}/reject`);
+async function rejectReferral(scanId: string, note: string | undefined) {
+  const resp = await apiClient.post<ApiEnvelope<unknown>>(`/admin/referrals/${scanId}/reject`, {
+    note: note || null,
+  });
   return zReferralActionResponse.parse(resp.data.data);
 }
 
 const QK_REFERRALS = ['admin', 'referrals'] as const;
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── RejectDialog ──────────────────────────────────────────────────────────────
+
+function RejectDialog({
+  scanId,
+  open,
+  onOpenChange,
+  onDone,
+}: {
+  scanId: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onDone: () => void;
+}) {
+  const [note, setNote] = useState('');
+  const qc = useQueryClient();
+
+  const reject = useMutation<unknown, ApiError, { scanId: string; note: string | undefined }>({
+    mutationFn: ({ scanId: id, note: n }) => rejectReferral(id, n),
+    onSuccess: () => {
+      toast.success('Referral rejected.');
+      void qc.invalidateQueries({ queryKey: QK_REFERRALS });
+      onOpenChange(false);
+      setNote('');
+      onDone();
+    },
+    onError: (e) => toast.error(e.userMessage),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        onOpenChange(v);
+        if (!v) setNote('');
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reject referral</DialogTitle>
+          <DialogDescription>
+            Optionally add a note explaining the rejection. The person who submitted this referral
+            will see this message.
+          </DialogDescription>
+        </DialogHeader>
+        <textarea
+          className="min-h-[100px] w-full resize-none rounded-md border border-border bg-surface p-3 text-sm text-ink-body placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+          placeholder="Reason for rejection (optional)"
+          rows={4}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              onOpenChange(false);
+              setNote('');
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={reject.isPending}
+            onClick={() => reject.mutate({ scanId, note: note.trim() || undefined })}
+          >
+            {reject.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+            Reject
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── ReferralRow ───────────────────────────────────────────────────────────────
 
 function ReferralRow({ item, onAction }: { item: ReferralItem; onAction: () => void }) {
   const qc = useQueryClient();
-  const [acting, setActing] = useState<'approve' | 'reject' | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
 
   const approve = useMutation<unknown, ApiError, string>({
     mutationFn: approveReferral,
@@ -67,83 +153,69 @@ function ReferralRow({ item, onAction }: { item: ReferralItem; onAction: () => v
       onAction();
     },
     onError: (e) => toast.error(e.userMessage),
-    onSettled: () => setActing(null),
   });
-
-  const reject = useMutation<unknown, ApiError, string>({
-    mutationFn: rejectReferral,
-    onSuccess: () => {
-      toast.success('Referral rejected.');
-      void qc.invalidateQueries({ queryKey: QK_REFERRALS });
-      onAction();
-    },
-    onError: (e) => toast.error(e.userMessage),
-    onSettled: () => setActing(null),
-  });
-
-  const busy = approve.isPending || reject.isPending;
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink-heading">
-          <span>{item.contact_name ?? '—'}</span>
-          {item.contact_role ? (
-            <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs text-ink-muted capitalize">
-              {item.contact_role.replace('_', ' ')}
-            </span>
-          ) : null}
+    <>
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink-heading">
+            <span>{item.contact_name ?? '—'}</span>
+            {item.contact_role ? (
+              <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs text-ink-muted capitalize">
+                {item.contact_role.replace(/_/g, ' ')}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-ink-muted">
+            {item.contact_phone ? <span>{item.contact_phone}</span> : null}
+            {item.contact_email ? <span>{item.contact_email}</span> : null}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
+            <span>Referred by</span>
+            <span className="font-medium text-ink-body">{item.referrer_name ?? 'Unknown'}</span>
+            {item.referrer_role ? <RoleBadge role={item.referrer_role as never} /> : null}
+            <span>·</span>
+            <span>{new Date(item.created_at).toLocaleDateString()}</span>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-ink-muted">
-          {item.contact_phone ? <span>{item.contact_phone}</span> : null}
-          {item.contact_email ? <span>{item.contact_email}</span> : null}
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
-          <span>Referred by</span>
-          <span className="font-medium text-ink-body">{item.referrer_name ?? 'Unknown'}</span>
-          {item.referrer_role ? <RoleBadge role={item.referrer_role as never} /> : null}
-          <span>·</span>
-          <span>{new Date(item.created_at).toLocaleDateString()}</span>
+
+        <div className="flex shrink-0 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={approve.isPending}
+            onClick={() => setRejectOpen(true)}
+            className="text-error hover:border-error hover:text-error"
+          >
+            Reject
+          </Button>
+          <Button
+            size="sm"
+            disabled={approve.isPending}
+            onClick={() => approve.mutate(item.scan_id)}
+          >
+            {approve.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            )}
+            Approve
+          </Button>
         </div>
       </div>
 
-      <div className="flex shrink-0 gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={busy}
-          onClick={() => {
-            setActing('reject');
-            reject.mutate(item.scan_id);
-          }}
-          className="text-error hover:border-error hover:text-error"
-        >
-          {acting === 'reject' && busy ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <XCircle className="h-3.5 w-3.5" />
-          )}
-          Reject
-        </Button>
-        <Button
-          size="sm"
-          disabled={busy}
-          onClick={() => {
-            setActing('approve');
-            approve.mutate(item.scan_id);
-          }}
-        >
-          {acting === 'approve' && busy ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          )}
-          Approve
-        </Button>
-      </div>
-    </div>
+      <RejectDialog
+        scanId={item.scan_id}
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        onDone={onAction}
+      />
+    </>
   );
 }
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export function AdminReferralsPage() {
   const { data, isLoading, isError, error, refetch } = useQuery<ReferralItem[], ApiError>({

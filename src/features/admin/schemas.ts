@@ -23,9 +23,10 @@ export type AdminTabStatus = (typeof ADMIN_TAB_STATUSES)[number];
 
 const zPartyRef = z.object({
   user_id: zUUID,
-  name: z.string(),
+  name: z.string().nullable(),
   role: zUserRole,
   organisation: z.string().nullable().optional(),
+  company_name: z.string().nullable().optional(),
 });
 export type AdminConnectionParty = z.infer<typeof zPartyRef>;
 

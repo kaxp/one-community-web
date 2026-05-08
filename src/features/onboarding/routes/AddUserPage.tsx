@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { Camera, CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +26,126 @@ import { toE164 } from '@/lib/phone';
 import type { ApiError } from '@/api/errors';
 import { can } from '@/lib/role-capabilities';
 import { useRole } from '@/auth/use-auth';
+import { apiClient } from '@/api/client';
+import type { ApiEnvelope } from '@/types/api';
+import { qk } from '@/api/query-keys';
+import { fmtDate } from '@/lib/date';
+import { zUUID, zISODateTime } from '@/lib/zod-helpers';
+
+// ── My referrals schemas + fetch ─────────────────────────────────────────────
+
+const zMyReferralItem = z.object({
+  scan_id: zUUID,
+  contact_name: z.string().nullable(),
+  contact_phone: z.string().nullable(),
+  contact_email: z.string().nullable(),
+  contact_role: z.string().nullable(),
+  referral_status: z.string(),
+  admin_note: z.string().nullable().optional(),
+  created_at: zISODateTime,
+});
+type MyReferralItem = z.infer<typeof zMyReferralItem>;
+
+async function fetchMyReferrals(): Promise<MyReferralItem[]> {
+  const resp = await apiClient.get<ApiEnvelope<{ items: MyReferralItem[] }>>(
+    '/onboarding/my-referrals',
+  );
+  return z.array(zMyReferralItem).parse(resp.data.data?.items ?? []);
+}
+
+// ── My referrals section ─────────────────────────────────────────────────────
+
+function MyReferralsSection() {
+  const { data, isLoading, isError, error, refetch } = useQuery<MyReferralItem[], ApiError>({
+    queryKey: qk.onboarding.myReferrals,
+    queryFn: fetchMyReferrals,
+  });
+
+  type StatusCfg = { label: string; icon: React.ReactNode; className: string };
+  const statusConfig: Record<string, StatusCfg> = {
+    pending: {
+      label: 'Awaiting review',
+      icon: <Clock className="h-3.5 w-3.5" aria-hidden />,
+      className: 'border-warning/30 bg-warning/10 text-warning',
+    },
+    approved: {
+      label: 'Approved',
+      icon: <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />,
+      className: 'border-success/30 bg-success/10 text-success',
+    },
+    rejected: {
+      label: 'Rejected',
+      icon: <XCircle className="h-3.5 w-3.5" aria-hidden />,
+      className: 'border-error/30 bg-error/10 text-error',
+    },
+  };
+  const fallbackCfg: StatusCfg = {
+    label: 'Awaiting review',
+    icon: <Clock className="h-3.5 w-3.5" aria-hidden />,
+    className: 'border-warning/30 bg-warning/10 text-warning',
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>My referrals</CardTitle>
+        <CardDescription>Referrals you have submitted and their current status.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {isLoading ? (
+          <div className="flex items-center gap-3 py-2 text-sm text-ink-muted">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            Loading…
+          </div>
+        ) : isError ? (
+          <ErrorState error={error} compact onRetry={() => void refetch()} />
+        ) : !data?.length ? (
+          <p className="py-4 text-center text-sm text-ink-muted">No referrals submitted yet.</p>
+        ) : (
+          data.map((item) => {
+            const cfg = statusConfig[item.referral_status] ?? fallbackCfg;
+            return (
+              <div
+                key={item.scan_id}
+                className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-ink-heading">
+                      {item.contact_name ?? '—'}
+                    </span>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink-muted">
+                      {item.contact_role ? (
+                        <span className="capitalize">{item.contact_role.replace(/_/g, ' ')}</span>
+                      ) : null}
+                      {item.contact_email ? <span>{item.contact_email}</span> : null}
+                      {item.contact_phone ? <span>{item.contact_phone}</span> : null}
+                    </div>
+                    <span className="text-xs text-ink-muted">
+                      Submitted {fmtDate(item.created_at)}
+                    </span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cfg.className}`}
+                  >
+                    {cfg.icon}
+                    {cfg.label}
+                  </span>
+                </div>
+                {item.referral_status === 'rejected' && item.admin_note ? (
+                  <p className="rounded-md border border-error/20 bg-error/5 px-3 py-2 text-xs text-error">
+                    <span className="font-medium">Admin note: </span>
+                    {item.admin_note}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 const CATEGORY_LABEL: Record<ScanCategory, string> = {
   lp: 'LP',
@@ -524,6 +646,9 @@ export function AddUserPage() {
         existingUserId={duplicateUserId}
         onClose={() => setDuplicateOpen(false)}
       />
+
+      {/* Show referral history only for non-admin users who submitted referrals */}
+      {!isAdmin ? <MyReferralsSection /> : null}
     </div>
   );
 }

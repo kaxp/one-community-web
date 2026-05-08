@@ -1,12 +1,21 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { DataTable } from '@/components/data-table/DataTable';
@@ -17,6 +26,7 @@ import { useAdminConnectionAction } from '@/features/admin/hooks/use-admin-conne
 import {
   ADMIN_TAB_STATUSES,
   type AdminConnection,
+  type AdminConnectionParty,
   type AdminConnectionStatus,
   type AdminTabStatus,
 } from '@/features/admin/schemas';
@@ -32,44 +42,114 @@ function isAdminTabStatus(value: string | null): value is AdminTabStatus {
   return (ADMIN_TAB_STATUSES as readonly string[]).includes(value ?? '');
 }
 
-// One <RowActions> instance per row, so each row has its own mutation state.
-// Concurrent clicks across rows don't share isPending / isError — each row
-// resolves independently. Toasts fire via per-call callbacks (only the clicked
-// button shows a toast; sibling buttons in the same row don't observe it).
+function isStartupRole(role: AdminConnectionParty['role']): boolean {
+  return role === 'startup_inprogress' || role === 'startup_onboarded' || role === 'startup_funded';
+}
+
+// For startup parties prefer company_name as the headline; for others use name.
+function partyPrimary(p: AdminConnectionParty): string {
+  if (isStartupRole(p.role)) return p.company_name ?? p.name ?? '—';
+  return p.name ?? '—';
+}
+
+// Secondary sub-label: for startups show founder name when company_name is primary;
+// for others show organisation.
+function partySecondary(p: AdminConnectionParty): string | null {
+  if (isStartupRole(p.role)) return p.company_name ? (p.name ?? null) : null;
+  return p.organisation ?? null;
+}
+
+// One <RowActions> instance per row, so each row has its own mutation state and
+// reject-dialog state. Concurrent clicks across rows don't share isPending.
 function RowActions({ connectionId }: { connectionId: string }) {
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [note, setNote] = useState('');
   const action = useAdminConnectionAction();
+
   const errorToast = (err: ApiError) =>
     err.code === 'conflict' ? 'Already handled — refreshing' : err.userMessage;
+
+  const handleRejectConfirm = () => {
+    action.mutate(
+      {
+        connection_id: connectionId,
+        current_status: 'pending_admin' as AdminConnectionStatus,
+        action: 'reject',
+        note: note.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Rejected');
+          setRejectOpen(false);
+          setNote('');
+        },
+        onError: (err) => {
+          toast.error(errorToast(err));
+        },
+      },
+    );
+  };
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <InlineExecutionButton
-        size="sm"
-        mutation={action}
-        input={{
-          connection_id: connectionId,
-          current_status: 'pending_admin' as AdminConnectionStatus,
-          action: 'approve' as const,
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <InlineExecutionButton
+          size="sm"
+          mutation={action}
+          input={{
+            connection_id: connectionId,
+            current_status: 'pending_admin' as AdminConnectionStatus,
+            action: 'approve' as const,
+          }}
+          onSuccessToast={() => 'Approved'}
+          onErrorToast={errorToast}
+        >
+          Approve
+        </InlineExecutionButton>
+        <Button variant="outline" size="sm" onClick={() => setRejectOpen(true)}>
+          Reject
+        </Button>
+      </div>
+
+      <Dialog
+        open={rejectOpen}
+        onOpenChange={(open) => {
+          setRejectOpen(open);
+          if (!open) setNote('');
         }}
-        onSuccessToast={() => 'Approved'}
-        onErrorToast={errorToast}
       >
-        Approve
-      </InlineExecutionButton>
-      <InlineExecutionButton
-        variant="outline"
-        size="sm"
-        mutation={action}
-        input={{
-          connection_id: connectionId,
-          current_status: 'pending_admin' as AdminConnectionStatus,
-          action: 'reject' as const,
-        }}
-        onSuccessToast={() => 'Rejected'}
-        onErrorToast={errorToast}
-      >
-        Reject
-      </InlineExecutionButton>
-    </div>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject connection request</DialogTitle>
+            <DialogDescription>
+              Optionally add a note explaining the rejection. The requester will see this message.
+            </DialogDescription>
+          </DialogHeader>
+          <textarea
+            className="min-h-[100px] w-full resize-none rounded-md border border-border bg-surface p-3 text-sm text-ink-body placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+            placeholder="Reason for rejection (optional)"
+            rows={4}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectOpen(false);
+                setNote('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={action.isPending} onClick={handleRejectConfirm}>
+              {action.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              Reject
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -97,28 +177,34 @@ export function AdminConnectionsPage() {
       {
         id: 'requester',
         header: 'Requester',
-        cell: ({ row }) => (
-          <div className="flex flex-col gap-1">
-            <span className="font-medium text-ink-heading">{row.original.requester.name}</span>
-            <span className="text-xs text-ink-muted">
-              {row.original.requester.organisation ?? '—'}
-            </span>
-            <RoleBadge role={row.original.requester.role} className="self-start" />
-          </div>
-        ),
+        cell: ({ row }) => {
+          const p = row.original.requester;
+          const primary = partyPrimary(p);
+          const secondary = partySecondary(p);
+          return (
+            <div className="flex flex-col gap-1">
+              <span className="font-medium text-ink-heading">{primary}</span>
+              {secondary ? <span className="text-xs text-ink-muted">{secondary}</span> : null}
+              <RoleBadge role={p.role} className="self-start" />
+            </div>
+          );
+        },
       },
       {
         id: 'target',
         header: 'Target',
-        cell: ({ row }) => (
-          <div className="flex flex-col gap-1">
-            <span className="font-medium text-ink-heading">{row.original.target.name}</span>
-            <span className="text-xs text-ink-muted">
-              {row.original.target.organisation ?? '—'}
-            </span>
-            <RoleBadge role={row.original.target.role} className="self-start" />
-          </div>
-        ),
+        cell: ({ row }) => {
+          const p = row.original.target;
+          const primary = partyPrimary(p);
+          const secondary = partySecondary(p);
+          return (
+            <div className="flex flex-col gap-1">
+              <span className="font-medium text-ink-heading">{primary}</span>
+              {secondary ? <span className="text-xs text-ink-muted">{secondary}</span> : null}
+              <RoleBadge role={p.role} className="self-start" />
+            </div>
+          );
+        },
       },
       {
         id: 'message',
@@ -199,7 +285,7 @@ export function AdminConnectionsPage() {
             {tab === 'pending_admin'
               ? 'New requests waiting for admin review.'
               : tab === 'pending_target'
-                ? 'Approved by admin, awaiting the target user’s response.'
+                ? "Approved by admin, awaiting the target user's response."
                 : tab === 'accepted'
                   ? 'Connections both sides have accepted.'
                   : 'Requests the target declined or admin rejected.'}
@@ -227,7 +313,7 @@ export function AdminConnectionsPage() {
               emptyState={
                 <EmptyState
                   title="No requests in this tab"
-                  description="When new requests come in, they’ll appear here."
+                  description="When new requests come in, they'll appear here."
                   action={
                     <Button
                       variant="outline"
