@@ -1,4 +1,4 @@
-import { Clock, Lock, Check, X, ArrowRight } from 'lucide-react';
+import { Clock, Lock, Check, CheckCircle2, X, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -133,6 +133,17 @@ function StatusPill({ row }: { row: PendingConnection }) {
         role="status"
       >
         Declined
+      </span>
+    );
+  }
+  if (row.status === 'accepted') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-xs font-medium text-success"
+        role="status"
+      >
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+        Connected
       </span>
     );
   }

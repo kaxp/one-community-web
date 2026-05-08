@@ -13,7 +13,7 @@ test.describe('Target user accepts pending connection (Stage 5.5)', () => {
     await signin(page, 'lp');
 
     await page.goto('/connections/pending?direction=incoming');
-    await expect(page.getByRole('heading', { name: /pending requests/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /my requests/i })).toBeVisible();
 
     // Capture the Priya Rao row + counterpart user_id from the seed.
     const priyaRow = page
