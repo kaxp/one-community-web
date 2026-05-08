@@ -370,6 +370,14 @@ export async function requestConnection(
   return zConnectionRequestResponse.parse(unwrap(resp.data, '/connections/request'));
 }
 
+// DELETE /connections/request/{id} — requester withdraws a pending_admin request.
+export async function cancelConnectionRequest(connectionId: string): Promise<void> {
+  const resp = await apiClient.delete<ApiEnvelope<{ cancelled: boolean }>>(
+    `/connections/request/${connectionId}`,
+  );
+  unwrap(resp.data, '/connections/request/:id');
+}
+
 // PRD §7.6.3 — `PATCH /connections/{id}/respond`. Target accepts/declines.
 export async function respondToConnection(id: string, body: RespondBody): Promise<RespondResponse> {
   const resp = await apiClient.patch<ApiEnvelope<RespondResponse>>(

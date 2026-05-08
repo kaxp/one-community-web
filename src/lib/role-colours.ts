@@ -12,11 +12,9 @@ export function roleColour(role: UserRole): { bg: string; text: string; label: s
     case 'vc':
       return { bg: 'bg-brand/10', text: 'text-brand', label: 'VC' };
     case 'startup_inprogress':
-      return { bg: 'bg-warning/10', text: 'text-warning', label: 'Startup (in progress)' };
     case 'startup_onboarded':
-      return { bg: 'bg-brand/10', text: 'text-brand', label: 'Startup (onboarded)' };
     case 'startup_funded':
-      return { bg: 'bg-success/10', text: 'text-success', label: 'Startup (funded)' };
+      return { bg: 'bg-brand/10', text: 'text-brand', label: 'Startup' };
     case 'partner':
       return { bg: 'bg-muted', text: 'text-ink-body', label: 'Partner' };
     case 'advisor':

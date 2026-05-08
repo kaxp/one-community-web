@@ -30,6 +30,7 @@ export type CounterpartContact = z.infer<typeof zCounterpartContact>;
 const zAcceptedCounterpart = z.object({
   user_id: zUUID,
   name: z.string().nullable(),
+  company_name: z.string().nullable().optional(),
   role: zUserRole,
   organisation: z.string().nullable().optional(),
   avatar_url: z.string().nullable().optional(),
@@ -60,6 +61,7 @@ const zPendingCounterpart = z.object({
   role: zUserRole,
   organisation: z.string().nullable().optional(),
   avatar_url: z.string().nullable().optional(),
+  company_name: z.string().nullable().optional(),
 });
 
 export const PENDING_DIRECTIONS = ['incoming', 'outgoing'] as const;
