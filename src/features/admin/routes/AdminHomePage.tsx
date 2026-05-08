@@ -174,7 +174,7 @@ export function AdminHomePage() {
                       <Sparkles className="mt-0.5 h-4 w-4 flex-none text-brand" aria-hidden />
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <p className="text-ink-heading">
-                          <span className="font-semibold">{a.admin_name}</span>{' '}
+                          <span className="font-semibold">{a.admin_name ?? 'Admin'}</span>{' '}
                           <span className="text-ink-muted">{a.action.replaceAll('_', ' ')}</span>{' '}
                           <span className="text-ink-muted">on</span>{' '}
                           <span>{a.target_type.replaceAll('_', ' ')}</span>

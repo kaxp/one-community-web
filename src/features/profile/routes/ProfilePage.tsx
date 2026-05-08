@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Lock, Sparkles, UserSearch } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Lock, Sparkles, UserSearch, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +20,73 @@ import { StartupRichDetailBlock } from '@/features/profile/components/StartupRic
 import { LpRichDetailBlock } from '@/features/profile/components/LpRichDetailBlock';
 import { RequestConnectDialog } from '@/features/connections/components/RequestConnectDialog';
 import { useStartupDetail, useLpDetail } from '@/features/search/hooks/use-search-detail';
+
+function ConnectionStatusPill({ status }: { status: string }) {
+  if (status === 'pending_admin') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs font-medium text-warning"
+        role="status"
+      >
+        <Lock className="h-3.5 w-3.5" aria-hidden />
+        Awaiting admin approval
+      </span>
+    );
+  }
+  if (status === 'pending_target') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-xs font-medium text-brand"
+        role="status"
+      >
+        <Clock className="h-3.5 w-3.5" aria-hidden />
+        Awaiting response
+      </span>
+    );
+  }
+  if (status === 'rejected_admin') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-error/30 bg-error/10 px-3 py-1 text-xs font-medium text-error"
+        role="status"
+      >
+        <XCircle className="h-3.5 w-3.5" aria-hidden />
+        Not approved by admin
+      </span>
+    );
+  }
+  if (status === 'declined') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-ink-muted/30 bg-surface-muted px-3 py-1 text-xs font-medium text-ink-muted"
+        role="status"
+      >
+        <XCircle className="h-3.5 w-3.5" aria-hidden />
+        Declined
+      </span>
+    );
+  }
+  if (status === 'accepted') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-xs font-medium text-success"
+        role="status"
+      >
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+        Connected
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs font-medium text-warning"
+      role="status"
+    >
+      <Lock className="h-3.5 w-3.5" aria-hidden />
+      Request pending
+    </span>
+  );
+}
 
 export function ProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -158,13 +225,9 @@ function ProfileBody({
               <Button onClick={() => setDialogOpen(true)}>Request to connect</Button>
             ) : null}
             {showPendingStatus ? (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs font-medium text-warning"
-                role="status"
-              >
-                <Lock className="h-3.5 w-3.5" aria-hidden />
-                Pending admin approval
-              </span>
+              <ConnectionStatusPill
+                status={profile.viewer_interaction.connection_status ?? 'pending_admin'}
+              />
             ) : null}
             {showConnectedStatus ? (
               <span

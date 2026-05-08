@@ -56,12 +56,12 @@ export const zContact = z
   .strict();
 export type Contact = z.infer<typeof zContact>;
 
-export const zViewerInteraction = z
-  .object({
-    has_requested: z.boolean(),
-    has_connected: z.boolean(),
-  })
-  .strict();
+export const zViewerInteraction = z.object({
+  has_requested: z.boolean(),
+  has_connected: z.boolean(),
+  // Actual connection status when has_requested=true — drives the correct pill label.
+  connection_status: z.string().nullable().optional(),
+});
 export type ViewerInteraction = z.infer<typeof zViewerInteraction>;
 
 export const zProfileView = z.object({
