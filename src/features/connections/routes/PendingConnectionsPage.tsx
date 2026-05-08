@@ -18,8 +18,8 @@ const DIRECTION_LABEL: Record<PendingDirection, string> = {
 };
 
 const DIRECTION_DESCRIPTION: Record<PendingDirection, string> = {
-  incoming: 'Requests where someone wants to connect with you. Accept or decline below.',
-  outgoing: 'Requests you sent. Track admin and target progress here.',
+  incoming: 'All connection requests addressed to you — respond to pending ones below.',
+  outgoing: 'All connection requests you sent — track their current stage here.',
 };
 
 function isDirection(v: string | null): v is PendingDirection {
@@ -54,7 +54,7 @@ export function PendingConnectionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Pending requests</h1>
+        <h1 className="text-3xl font-semibold text-ink-heading">My requests</h1>
         <p className="text-sm text-ink-muted">{DIRECTION_DESCRIPTION[direction]}</p>
       </div>
 
@@ -101,8 +101,8 @@ export function PendingConnectionsPage() {
           title={direction === 'incoming' ? 'No incoming requests' : 'No outgoing requests'}
           description={
             direction === 'incoming'
-              ? 'When someone requests to connect with you, it will appear here.'
-              : 'Requests you send will show up here while they are pending.'
+              ? 'Connection requests sent to you will appear here.'
+              : 'Connection requests you send will appear here.'
           }
         />
       ) : (
