@@ -14,11 +14,20 @@ interface Props {
   row: PendingConnection;
 }
 
-// Derive a readable display name for the counterpart: prefer company_name for
-// startups (their user name is often null before onboarding), fall back to
-// name, then a generic label.
+// Derive a readable display name for the counterpart. Priority:
+// 1. company_name (set for startups)
+// 2. name (set for LPs/VCs who completed onboarding)
+// 3. Role-based label so the card is still informative when onboarding is incomplete
 function displayName(c: PendingConnection['counterpart']): string {
-  return c.company_name ?? c.name ?? 'User';
+  if (c.company_name) return c.company_name;
+  if (c.name) return c.name;
+  const role = c.role;
+  if (role === 'startup_inprogress' || role === 'startup_onboarded' || role === 'startup_funded')
+    return 'Startup';
+  if (role === 'lp') return 'LP';
+  if (role === 'potential_lp') return 'Potential LP';
+  if (role === 'vc') return 'VC';
+  return 'Community member';
 }
 
 function Actions({ row }: { row: PendingConnection }) {

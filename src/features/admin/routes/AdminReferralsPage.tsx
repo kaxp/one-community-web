@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { zUUID } from '@/lib/zod-helpers';
+import { zUUID, zISODateTime } from '@/lib/zod-helpers';
 import { apiClient } from '@/api/client';
 import type { ApiEnvelope } from '@/types/api';
 import type { ApiError } from '@/api/errors';
@@ -42,6 +42,21 @@ const zReferralActionResponse = z.object({
   user_id: zUUID.nullable(),
 });
 
+const zReferralHistoryItem = z.object({
+  scan_id: zUUID,
+  referrer_name: z.string().nullable(),
+  referrer_role: z.string().nullable(),
+  contact_name: z.string().nullable(),
+  contact_phone: z.string().nullable(),
+  contact_email: z.string().nullable(),
+  contact_role: z.string().nullable(),
+  admin_note: z.string().nullable().optional(),
+  referral_status: z.string(),
+  created_at: zISODateTime,
+});
+type ReferralHistoryItem = z.infer<typeof zReferralHistoryItem>;
+const zReferralHistoryResponse = z.object({ items: z.array(zReferralHistoryItem) });
+
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 async function getReferrals(): Promise<ReferralItem[]> {
@@ -62,7 +77,16 @@ async function rejectReferral(scanId: string, note: string | undefined) {
   return zReferralActionResponse.parse(resp.data.data);
 }
 
+async function getReferralHistory(): Promise<ReferralHistoryItem[]> {
+  const resp = await apiClient.get<ApiEnvelope<{ items: ReferralHistoryItem[] }>>(
+    '/admin/referrals/history',
+  );
+  const data = zReferralHistoryResponse.parse(resp.data.data);
+  return data.items;
+}
+
 const QK_REFERRALS = ['admin', 'referrals'] as const;
+const QK_REFERRAL_HISTORY = ['admin', 'referrals', 'history'] as const;
 
 // ── RejectDialog ──────────────────────────────────────────────────────────────
 
@@ -215,12 +239,69 @@ function ReferralRow({ item, onAction }: { item: ReferralItem; onAction: () => v
   );
 }
 
+// ── History row ───────────────────────────────────────────────────────────────
+
+function HistoryRow({ item }: { item: ReferralHistoryItem }) {
+  const approved = item.referral_status === 'approved';
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink-heading">
+            <span>{item.contact_name ?? '—'}</span>
+            {item.contact_role ? (
+              <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs text-ink-muted capitalize">
+                {item.contact_role.replace(/_/g, ' ')}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-ink-muted">
+            {item.contact_phone ? <span>{item.contact_phone}</span> : null}
+            {item.contact_email ? <span>{item.contact_email}</span> : null}
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
+            <span>Referred by</span>
+            <span className="font-medium text-ink-body">{item.referrer_name ?? 'Unknown'}</span>
+            {item.referrer_role ? <RoleBadge role={item.referrer_role as never} /> : null}
+            <span>·</span>
+            <span>{new Date(item.created_at).toLocaleDateString()}</span>
+          </div>
+        </div>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+            approved
+              ? 'border-success/30 bg-success/10 text-success'
+              : 'border-error/30 bg-error/10 text-error'
+          }`}
+        >
+          {approved ? (
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+          ) : (
+            <XCircle className="h-3.5 w-3.5" aria-hidden />
+          )}
+          {approved ? 'Approved' : 'Rejected'}
+        </span>
+      </div>
+      {!approved && item.admin_note ? (
+        <p className="rounded-md border border-error/20 bg-error/5 px-3 py-2 text-xs text-error">
+          <span className="font-medium">Note: </span>
+          {item.admin_note}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function AdminReferralsPage() {
-  const { data, isLoading, isError, error, refetch } = useQuery<ReferralItem[], ApiError>({
+  const pending = useQuery<ReferralItem[], ApiError>({
     queryKey: QK_REFERRALS,
     queryFn: getReferrals,
+  });
+  const history = useQuery<ReferralHistoryItem[], ApiError>({
+    queryKey: QK_REFERRAL_HISTORY,
+    queryFn: getReferralHistory,
   });
 
   return (
@@ -233,27 +314,57 @@ export function AdminReferralsPage() {
         </p>
       </header>
 
+      {/* Pending */}
       <Card>
         <CardHeader>
           <CardTitle>Pending referrals</CardTitle>
           <CardDescription>
-            {isLoading ? 'Loading…' : `${data?.length ?? 0} pending`}
+            {pending.isLoading ? 'Loading…' : `${pending.data?.length ?? 0} pending`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {isLoading ? (
+          {pending.isLoading ? (
             <div className="flex items-center gap-3 py-4 text-sm text-ink-muted">
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               Loading referrals…
             </div>
-          ) : isError ? (
-            <ErrorState error={error} onRetry={() => void refetch()} />
-          ) : !data?.length ? (
+          ) : pending.isError ? (
+            <ErrorState error={pending.error} onRetry={() => void pending.refetch()} />
+          ) : !pending.data?.length ? (
             <p className="py-4 text-center text-sm text-ink-muted">No pending referrals.</p>
           ) : (
-            data.map((item) => (
-              <ReferralRow key={item.scan_id} item={item} onAction={() => void refetch()} />
+            pending.data.map((item) => (
+              <ReferralRow
+                key={item.scan_id}
+                item={item}
+                onAction={() => {
+                  void pending.refetch();
+                  void history.refetch();
+                }}
+              />
             ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Referral history</CardTitle>
+          <CardDescription>Previously approved and rejected referrals.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {history.isLoading ? (
+            <div className="flex items-center gap-3 py-4 text-sm text-ink-muted">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Loading history…
+            </div>
+          ) : history.isError ? (
+            <ErrorState error={history.error} onRetry={() => void history.refetch()} />
+          ) : !history.data?.length ? (
+            <p className="py-4 text-center text-sm text-ink-muted">No history yet.</p>
+          ) : (
+            history.data.map((item) => <HistoryRow key={item.scan_id} item={item} />)
           )}
         </CardContent>
       </Card>
