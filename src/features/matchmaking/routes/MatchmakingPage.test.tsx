@@ -58,8 +58,8 @@ describe('MatchmakingPage', () => {
     expect(within(grid).getByText(/Acme Technologies/)).toBeInTheDocument();
     expect(within(grid).getByText(/Boltline Robotics/)).toBeInTheDocument();
     expect(within(grid).getByText(/Cresta Health/)).toBeInTheDocument();
-    // Score badges render the percentage label.
-    expect(within(grid).getByText(/91% match/)).toBeInTheDocument();
+    // Score badges render the qualitative label (fmtScore: ≥0.75 → 'Strong match').
+    expect(within(grid).getByText(/Strong match/)).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no suggestions', async () => {

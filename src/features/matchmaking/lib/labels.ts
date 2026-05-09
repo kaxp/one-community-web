@@ -1,19 +1,20 @@
 import type { MatchSuggestion } from '@/features/matchmaking/schemas';
 
-// PRD §7.8.5 transformation note — score is 0..1 float. Three buckets per
-// the prompt: > 0.8 strong, 0.6–0.8 moderate, < 0.6 weak. `null` → muted.
+// score is 0..1 (normalised rank). Three qualitative buckets.
 export function scoreBadgeVariant(
   score: number | null,
 ): 'success' | 'warning' | 'secondary' | 'outline' {
   if (score === null) return 'outline';
-  if (score > 0.8) return 'success';
-  if (score >= 0.6) return 'warning';
+  if (score >= 0.75) return 'success';
+  if (score >= 0.4) return 'warning';
   return 'secondary';
 }
 
 export function fmtScore(score: number | null): string {
-  if (score === null || Number.isNaN(score)) return '—';
-  return `${Math.round(score * 100)}% match`;
+  if (score === null || Number.isNaN(score)) return 'Suggested';
+  if (score >= 0.75) return 'Strong match';
+  if (score >= 0.4) return 'Good match';
+  return 'Suggested';
 }
 
 export type Perspective = 'i_am_lp' | 'i_am_startup' | 'admin_view';

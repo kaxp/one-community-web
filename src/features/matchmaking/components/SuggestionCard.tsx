@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns';
+import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { InlineExecutionButton } from '@/components/execution-panel';
@@ -84,7 +85,12 @@ export function SuggestionCard({ suggestion, myUserId, onConflict }: Props) {
             <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
               {headerKind}
             </p>
-            <h3 className="text-base font-semibold text-ink-heading">{display}</h3>
+            <Link
+              to={`/search/profile/${suggestion.startup_id}`}
+              className="text-base font-semibold text-ink-heading hover:underline hover:text-brand"
+            >
+              {display}
+            </Link>
             {suggestion.sector ? (
               <Badge variant="secondary" className="mt-1">
                 {suggestion.sector}
@@ -101,12 +107,6 @@ export function SuggestionCard({ suggestion, myUserId, onConflict }: Props) {
 
         {suggestion.one_liner ? (
           <p className="text-sm text-ink-heading">{suggestion.one_liner}</p>
-        ) : null}
-
-        {suggestion.reason ? (
-          <p className="rounded-md border border-brand/20 bg-brand/5 p-2 text-xs italic text-brand">
-            “{suggestion.reason}”
-          </p>
         ) : null}
 
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
