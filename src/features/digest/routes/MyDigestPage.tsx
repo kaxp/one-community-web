@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { ArrowRight, Loader2, Newspaper, Plus, X } from 'lucide-react';
@@ -68,6 +68,24 @@ function DigestRowCard({ row, onClick }: { row: MyDigestRow; onClick: () => void
   );
 }
 
+// Shadow DOM host — isolates digest styles, lets links navigate normally,
+// and scrolls with full GPU compositing (no iframe lag).
+function DigestHtmlBody({ html }: { html: string }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    let shadow = el.shadowRoot;
+    if (!shadow) {
+      shadow = el.attachShadow({ mode: 'open' });
+    }
+    shadow.innerHTML = html;
+  }, [html]);
+
+  return <div ref={hostRef} className="w-full" />;
+}
+
 function DigestSnippetSheet({ row, onClose }: { row: MyDigestRow | null; onClose: () => void }) {
   const open = row !== null;
   const subject = row?.subject ?? row?.digest_type.replace(/_/g, ' ') ?? 'Digest preview';
@@ -75,7 +93,6 @@ function DigestSnippetSheet({ row, onClose }: { row: MyDigestRow | null; onClose
 
   return (
     <Sheet open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
-      {/* Wide sheet — newsletter content needs room to breathe. */}
       <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
         {/* Header bar */}
         <div className="flex flex-col gap-1.5 border-b border-border px-6 pb-4 pt-10 sm:pt-8">
@@ -90,17 +107,12 @@ function DigestSnippetSheet({ row, onClose }: { row: MyDigestRow | null; onClose
           </SheetDescription>
         </div>
 
-        {/* Body — iframe for HTML newsletter, plain-text fallback */}
-        <div className="flex-1 overflow-hidden">
+        {/* Body — Shadow DOM for HTML newsletter (no iframe lag, links work) */}
+        <div className="flex-1 overflow-y-auto overscroll-contain bg-white">
           {htmlBody ? (
-            <iframe
-              title={`digest-${row?.id ?? 'preview'}`}
-              sandbox="allow-same-origin"
-              srcDoc={htmlBody}
-              className="h-full min-h-[70vh] w-full border-0 bg-white"
-            />
+            <DigestHtmlBody html={htmlBody} />
           ) : row?.html_snippet ? (
-            <div className="h-full overflow-y-auto px-6 py-5">
+            <div className="px-6 py-5">
               <p className="whitespace-pre-line break-words text-sm leading-relaxed text-ink-body">
                 {row.html_snippet}
               </p>
