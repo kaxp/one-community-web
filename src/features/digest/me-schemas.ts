@@ -10,7 +10,10 @@ export const zMyDigestRow = z.object({
   digest_type: z.string(),
   subject: z.string().nullable(),
   segment: z.string().nullable(),
+  // 280-char plain-text preview used in the list card.
   html_snippet: z.string().nullable(),
+  // Full HTML newsletter body — rendered in an iframe in the detail sheet.
+  html_body: z.string().nullable().optional(),
   sent_at: zISODateTime.nullable(),
 });
 export type MyDigestRow = z.infer<typeof zMyDigestRow>;
