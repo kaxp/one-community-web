@@ -86,7 +86,7 @@ export function SuggestionCard({ suggestion, myUserId, onConflict }: Props) {
               {headerKind}
             </p>
             <Link
-              to={`/search/profile/${suggestion.startup_id}`}
+              to={`/search/profile/${suggestion.startup_user_id ?? suggestion.startup_id}`}
               className="text-base font-semibold text-ink-heading hover:underline hover:text-brand"
             >
               {display}
