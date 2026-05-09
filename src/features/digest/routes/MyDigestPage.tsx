@@ -71,34 +71,46 @@ function DigestRowCard({ row, onClick }: { row: MyDigestRow; onClick: () => void
 function DigestSnippetSheet({ row, onClose }: { row: MyDigestRow | null; onClose: () => void }) {
   const open = row !== null;
   const subject = row?.subject ?? row?.digest_type.replace(/_/g, ' ') ?? 'Digest preview';
+  const htmlBody = row?.html_body ?? null;
 
   return (
     <Sheet open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
-      {/* SheetContent ships with no padding by default (issues.md [I-18]); add
-          a generous responsive pad + scroll so the digest body is readable
-          and never edge-to-edge. The right close button needs the right pad. */}
-      <SheetContent className="flex w-full flex-col gap-4 overflow-y-auto p-5 pt-12 sm:max-w-2xl sm:p-8 sm:pt-12">
-        <div className="flex flex-col gap-2 border-b border-border pb-3">
-          <SheetTitle className="pr-6 text-base sm:text-lg">{subject}</SheetTitle>
-          <SheetDescription>
+      {/* Wide sheet — newsletter content needs room to breathe. */}
+      <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        {/* Header bar */}
+        <div className="flex flex-col gap-1.5 border-b border-border px-6 pb-4 pt-10 sm:pt-8">
+          <SheetTitle className="pr-8 text-base font-semibold leading-snug sm:text-lg">
+            {subject}
+          </SheetTitle>
+          <SheetDescription asChild>
             <span className="inline-flex flex-wrap items-center gap-2">
               {row?.digest_type ? <Badge variant="secondary">{row.digest_type}</Badge> : null}
               {row?.segment ? <Badge variant="outline">{row.segment}</Badge> : null}
             </span>
           </SheetDescription>
         </div>
-        {row?.html_snippet ? (
-          <>
-            <p className="whitespace-pre-line break-words text-sm leading-relaxed text-ink-body">
-              {row.html_snippet}
-            </p>
-            <p className="text-xs text-ink-muted">
-              Full digest preview becomes available once WhatsApp/email delivery is active.
-            </p>
-          </>
-        ) : (
-          <p className="text-sm text-ink-muted">No preview available for this digest.</p>
-        )}
+
+        {/* Body — iframe for HTML newsletter, plain-text fallback */}
+        <div className="flex-1 overflow-hidden">
+          {htmlBody ? (
+            <iframe
+              title={`digest-${row?.id ?? 'preview'}`}
+              sandbox="allow-same-origin"
+              srcDoc={htmlBody}
+              className="h-full min-h-[70vh] w-full border-0 bg-white"
+            />
+          ) : row?.html_snippet ? (
+            <div className="h-full overflow-y-auto px-6 py-5">
+              <p className="whitespace-pre-line break-words text-sm leading-relaxed text-ink-body">
+                {row.html_snippet}
+              </p>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center px-6 py-10">
+              <p className="text-sm text-ink-muted">No preview available for this digest.</p>
+            </div>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
