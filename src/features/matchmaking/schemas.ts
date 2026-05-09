@@ -13,6 +13,9 @@ export const zMatchSuggestion = z.object({
   id: zUUID,
   lp_id: zUUID,
   startup_id: zUUID,
+  // startup_user_id is users.id for the startup — needed for /search/profile/:id.
+  // startup_id is the startups table PK, which is a different UUID.
+  startup_user_id: z.string().nullable().optional(),
   score: z.number().nullable(),
   reason: z.string().nullable(),
   status: zSuggestionStatus,
