@@ -227,6 +227,11 @@ function SearchResults({
       (filters.sector?.length ?? 0) +
       (filters.stage?.length ?? 0) +
       (filters.geography?.length ?? 0);
+    // Prefer the backend's structured "we don't have X" message for entity
+    // lookups — it's more precise than the generic empty-state copy.
+    if (firstPage?.text && firstPage.intent === 'entity_lookup') {
+      return <EmptyState title={`No match for "${query}"`} description={firstPage.text} />;
+    }
     return (
       <EmptyState
         title={`No matches for "${query}"`}
@@ -246,9 +251,22 @@ function SearchResults({
     );
   }
 
+  // Show the GPT-fallback banner only for discovery queries — for entity
+  // lookups we intentionally skip GPT, so the banner would be misleading.
+  const showStage3Banner =
+    firstPage.stage3_applied === false && firstPage.intent !== 'entity_lookup';
+
   return (
     <div className="flex flex-col gap-4" data-testid="search-results">
-      {firstPage.stage3_applied === false ? (
+      {firstPage.text ? (
+        <div
+          className="rounded-md border border-brand/20 bg-brand/5 p-3 text-sm text-ink-body"
+          data-testid="search-answer-text"
+        >
+          {firstPage.text}
+        </div>
+      ) : null}
+      {showStage3Banner ? (
         <div
           className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-sm text-ink-body"
           role="status"

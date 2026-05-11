@@ -110,8 +110,11 @@ describe('AdminCalendarView', () => {
     // Verify that even if we pass 120 days, the request goes out with days=60.
     // We test this indirectly: load the calendar and confirm it loads (the hook
     // clamping means MSW receives days<=60 and returns the seed, not a 422).
+    // ``from`` defaults to today so the dynamic ADMIN_CALENDAR_SEED meetings
+    // (also dated TODAY) fall inside the rendered window regardless of when
+    // the test runs.
     signedIn('admin');
-    renderPage('/schedule?from=2026-05-04&days=120');
+    renderPage('/schedule?days=120');
     await screen.findByTestId('meeting-00000000-0000-4000-8000-000000000c01');
   });
 
