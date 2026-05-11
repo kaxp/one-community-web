@@ -72,6 +72,10 @@ const zSearchPayloadBase = z.object({
   stage3_applied: z.boolean(),
   rerank_cap: z.number().int(),
   next_cursor: z.string().nullable(),
+  // Hybrid search additions — intent drives UI affordances, text appears
+  // above results (e.g. "We don't have 'Uber' in our database").
+  intent: z.string().nullable().optional(),
+  text: z.string().nullable().optional(),
 });
 
 export const zSearchResponse = z.discriminatedUnion('target_type', [
