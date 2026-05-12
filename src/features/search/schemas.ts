@@ -67,6 +67,23 @@ export type LPResultItem = z.infer<typeof zLPResultItem>;
 
 export type SearchResultItem = StartupResultItem | LPResultItem;
 
+// Cosmic-style answer envelope (Phase 1 of conversational search).
+// Present for discovery queries when GPT synthesis succeeded; null otherwise.
+export const zSearchAnswerItem = z.object({
+  startup_id: z.string(),
+  explanation: z.string(),
+});
+export const zSearchAnswerGroup = z.object({
+  heading: z.string(),
+  items: z.array(zSearchAnswerItem),
+});
+export const zSearchAnswer = z.object({
+  intro: z.string(),
+  groups: z.array(zSearchAnswerGroup),
+  follow_up: z.string().nullable().optional(),
+});
+export type SearchAnswer = z.infer<typeof zSearchAnswer>;
+
 const zSearchPayloadBase = z.object({
   total: z.number().int(),
   stage3_applied: z.boolean(),
@@ -76,6 +93,9 @@ const zSearchPayloadBase = z.object({
   // above results (e.g. "We don't have 'Uber' in our database").
   intent: z.string().nullable().optional(),
   text: z.string().nullable().optional(),
+  // Synthesised answer envelope. Frontend renders this as a Cosmic-style
+  // grouped response when present; falls back to the card grid when null.
+  answer: zSearchAnswer.nullable().optional(),
 });
 
 export const zSearchResponse = z.discriminatedUnion('target_type', [

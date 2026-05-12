@@ -7,6 +7,7 @@ import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { SearchBar } from '@/features/search/components/SearchBar';
 import { ResultCard } from '@/features/search/components/ResultCard';
+import { SearchAnswerBlock } from '@/features/search/components/SearchAnswerBlock';
 import { SearchLoadingState } from '@/features/search/components/SearchLoadingState';
 import { TypeSelector, type SearchTypeOption } from '@/features/search/components/TypeSelector';
 import { useSearch } from '@/features/search/hooks/use-search';
@@ -135,36 +136,62 @@ export function SearchPage() {
   const firstPage = search.data?.pages[0];
   const totalLoaded = (search.data?.pages ?? []).reduce((n, p) => n + p.results.length, 0);
 
+  // Chat-style layout kicks in once the user has submitted a query.
+  // Pristine state shows the centred hero card; thread state moves the
+  // input to the bottom of the page (ChatGPT / Cosmic style).
+  const hasThread = submittedQuery.trim().length > 0;
+
+  const searchControls = (
+    <div className="flex flex-col gap-3">
+      <TypeSelector value={selectedType} onChange={onTypeChange} defaultType={defType} />
+      <SearchBar
+        value={query}
+        onChange={setQuery}
+        onSubmit={onSubmit}
+        isPending={isButtonPending}
+      />
+      {submitMutation.isError ? (
+        <ErrorState
+          error={submitMutation.error}
+          compact
+          onRetry={() => {
+            submitMutation.reset();
+            onSubmit();
+          }}
+        />
+      ) : null}
+    </div>
+  );
+
+  if (!hasThread) {
+    // Pristine state — centred hero card.
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="sr-only">Search</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>Search the community</CardTitle>
+            <CardDescription>
+              Conversational search across LPs and startups. Type a query and explore matches.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>{searchControls}</CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Thread state — user query bubble + answer/cards above, sticky search at bottom.
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5 pb-32">
       <h1 className="sr-only">Search</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Search the community</CardTitle>
-          <CardDescription>
-            Semantic search across LPs and startups. Type a query and explore matches.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <TypeSelector value={selectedType} onChange={onTypeChange} defaultType={defType} />
-          <SearchBar
-            value={query}
-            onChange={setQuery}
-            onSubmit={onSubmit}
-            isPending={isButtonPending}
-          />
-          {submitMutation.isError ? (
-            <ErrorState
-              error={submitMutation.error}
-              compact
-              onRetry={() => {
-                submitMutation.reset();
-                onSubmit();
-              }}
-            />
-          ) : null}
-        </CardContent>
-      </Card>
+
+      {/* User query bubble */}
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-brand/10 px-4 py-2.5 text-sm text-ink-heading sm:text-base">
+          {submittedQuery}
+        </div>
+      </div>
 
       <SearchResults
         state={search}
@@ -176,6 +203,11 @@ export function SearchPage() {
         isMasked={isMasked}
         suppressError={submitMutation.isError}
       />
+
+      {/* Sticky bottom input */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur md:left-64 md:px-8 md:py-4">
+        <div className="mx-auto max-w-4xl">{searchControls}</div>
+      </div>
     </div>
   );
 }
@@ -256,6 +288,16 @@ function SearchResults({
   const showStage3Banner =
     firstPage.stage3_applied === false && firstPage.intent !== 'entity_lookup';
 
+  // When the synthesiser produced a structured answer, render the Cosmic-style
+  // grouped response instead of the flat card grid. The answer's items already
+  // contain inline cards (looked up by startup_id) so showing both surfaces
+  // would duplicate content.
+  const synthAnswer = firstPage.target_type === 'startup' ? (firstPage.answer ?? null) : null;
+  const resultsByUserId =
+    synthAnswer && firstPage.target_type === 'startup'
+      ? Object.fromEntries(firstPage.results.map((r) => [r.user_id, r]))
+      : {};
+
   return (
     <div className="flex flex-col gap-4" data-testid="search-results">
       {firstPage.text ? (
@@ -276,24 +318,31 @@ function SearchResults({
           <span>AI ranking temporarily unavailable — showing vector similarity only.</span>
         </div>
       ) : null}
-      <p className="text-xs text-ink-muted">
-        Showing {totalLoaded} of {firstPage.total}{' '}
-        {firstPage.target_type === 'lp' ? 'LPs' : 'startups'}
-      </p>
-      <div className="grid gap-3 md:grid-cols-2">
-        {(state.data?.pages ?? []).flatMap((page) =>
-          page.results.map((item) => (
-            <ResultCard
-              key={item.user_id}
-              item={item}
-              targetType={page.target_type}
-              query={query}
-              isMasked={isMasked}
-            />
-          )),
-        )}
-      </div>
-      {state.hasNextPage ? (
+
+      {synthAnswer ? (
+        <SearchAnswerBlock answer={synthAnswer} resultsByUserId={resultsByUserId} />
+      ) : (
+        <>
+          <p className="text-xs text-ink-muted">
+            Showing {totalLoaded} of {firstPage.total}{' '}
+            {firstPage.target_type === 'lp' ? 'LPs' : 'startups'}
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {(state.data?.pages ?? []).flatMap((page) =>
+              page.results.map((item) => (
+                <ResultCard
+                  key={item.user_id}
+                  item={item}
+                  targetType={page.target_type}
+                  query={query}
+                  isMasked={isMasked}
+                />
+              )),
+            )}
+          </div>
+        </>
+      )}
+      {!synthAnswer && state.hasNextPage ? (
         <div className="flex justify-center">
           <Button
             variant="outline"
