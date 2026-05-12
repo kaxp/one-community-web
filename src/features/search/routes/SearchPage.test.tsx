@@ -50,10 +50,14 @@ async function typeAndSubmit(query: string) {
 }
 
 describe('SearchPage (PRD §7.4.1)', () => {
-  it('renders the empty CTA when no query is entered', async () => {
+  it('renders the centred hero card when no query is entered', async () => {
+    // After the conversational-search rebuild (Phase 1), the pristine state
+    // shows the hero Card with title "Search the community" instead of the
+    // older "Start a search" empty-state inside SearchResults — the
+    // SearchResults block is only mounted once the user has submitted.
     signInAsLP();
     renderWithProviders(<SearchPage />);
-    expect(await screen.findByText(/start a search/i)).toBeInTheDocument();
+    expect(await screen.findByText(/search the community/i)).toBeInTheDocument();
   });
 
   it('shows a startup result card on success', async () => {
