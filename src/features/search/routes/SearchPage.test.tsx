@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test/test-utils';
@@ -10,6 +10,14 @@ import {
 } from '@/test/msw-fixtures/search-handlers';
 import { mintMswToken } from '@/test/msw-fixtures/auth-handlers';
 import type { UserRole } from '@/types/enums';
+
+beforeEach(() => {
+  // Phase 2.5 added sessionStorage persistence for the conversation thread.
+  // Reset between tests so prior turns don't render in subsequent cases.
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.clear();
+  }
+});
 
 function signInAsLP() {
   useAuthStore.getState().setSession({

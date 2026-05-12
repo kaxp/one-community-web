@@ -22,22 +22,22 @@ export function ChatTurn({ userMessage, response, isMasked }: Props) {
   );
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* User bubble */}
+    <div className="flex flex-col gap-4">
+      {/* User bubble — minimal tinted pill, right-aligned */}
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-brand/10 px-4 py-2.5 text-sm text-ink-heading sm:text-base">
+        <div className="max-w-[85%] rounded-2xl bg-brand/10 px-4 py-2 text-[15px] text-ink-heading sm:text-base">
           {userMessage}
         </div>
       </div>
 
-      {/* Assistant reply */}
+      {/* Assistant reply — flows as prose, no outer container */}
       {isClarify ? (
-        <div
-          className="max-w-[90%] rounded-md border border-brand/20 bg-brand/5 p-3 text-sm text-ink-body"
+        <p
+          className="max-w-[90%] text-[15px] leading-relaxed text-ink-body"
           data-testid="chat-turn-clarification"
         >
           {response.clarification ?? 'Could you clarify what you’re looking for?'}
-        </div>
+        </p>
       ) : response.answer ? (
         <SearchAnswerBlock answer={response.answer} resultsByUserId={resultsByUserId} />
       ) : (

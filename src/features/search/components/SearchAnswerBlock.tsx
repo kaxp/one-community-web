@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import type { SearchAnswer, StartupResultItem } from '@/features/search/schemas';
 
 interface Props {
@@ -10,84 +9,74 @@ interface Props {
 }
 
 /**
- * Cosmic-style synthesised answer renderer.
+ * Cosmic / ChatGPT-style answer renderer.
  *
- * Layout: intro paragraph → grouped headings, each with a list of cards
- * showing company name + sector + concrete-fit explanation + "Know more"
- * deep link to the startup detail page. Closes with a follow-up prompt
- * when the synthesizer suggested one.
+ * Plain prose, no outer card, no per-item card backgrounds. The synthesized
+ * intro and follow-up read as natural text. Each result is an inline item:
+ * bold linked company name + small inline meta + the concrete explanation
+ * underneath. The "Know more" affordance is a small inline link rather than
+ * a button so the visual weight stays on the prose.
  *
- * Cards referenced by `startup_id` are looked up in `resultsByUserId` so
- * we keep all the role-masked data (sector, stage) without duplicating it
- * into the answer payload.
+ * Group headings are regular subheadings (not uppercase tracking-wide) so
+ * they sit in the prose hierarchy rather than feeling like UI chrome.
  */
 export function SearchAnswerBlock({ answer, resultsByUserId }: Props) {
   return (
-    <div
-      className="flex flex-col gap-6 rounded-lg border border-border bg-surface p-5 sm:p-6"
-      data-testid="search-answer-block"
-    >
-      {/* Intro */}
-      <p className="text-sm leading-relaxed text-ink-body sm:text-base">{answer.intro}</p>
+    <div className="flex flex-col gap-5" data-testid="search-answer-block">
+      {/* Intro — directive prose, no border */}
+      <p className="text-[15px] leading-relaxed text-ink-body sm:text-base">{answer.intro}</p>
 
-      {/* Groups */}
-      <div className="flex flex-col gap-6">
-        {answer.groups.map((group, gi) => (
-          <section key={`group-${gi}`} className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
-              {group.heading}
-            </h3>
-            <ul className="flex flex-col gap-3">
-              {group.items.map((item) => {
-                const card = resultsByUserId[item.startup_id];
-                const detailPath = `/search/profile/${item.startup_id}`;
-                return (
-                  <li
-                    key={item.startup_id}
-                    className="flex flex-col gap-2 rounded-md border border-border bg-surface-muted p-3 sm:p-4"
+      {/* Groups — each is a section of inline prose, no containers */}
+      {answer.groups.map((group, gi) => (
+        <section key={`group-${gi}`} className="flex flex-col gap-3">
+          <h3 className="text-[15px] font-semibold text-ink-heading">{group.heading}</h3>
+          <ul className="flex flex-col gap-3">
+            {answer.groups.length === 0 ? null : null}
+            {group.items.map((item) => {
+              const card = resultsByUserId[item.startup_id];
+              const detailPath = `/search/profile/${item.startup_id}`;
+              const companyName = card?.company_name ?? '—';
+              return (
+                <li
+                  key={item.startup_id}
+                  className="flex flex-col gap-1.5 border-l-2 border-border pl-3"
+                >
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <Link
+                      to={detailPath}
+                      className="text-[15px] font-semibold text-ink-heading hover:text-brand hover:underline"
+                    >
+                      {companyName}
+                    </Link>
+                    {card?.sector ? (
+                      <span className="text-xs text-ink-muted">{card.sector}</span>
+                    ) : null}
+                    {card?.stage ? (
+                      <Badge variant="outline" className="text-[10px]">
+                        {card.stage.replace(/_/g, ' ')}
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="text-[14px] leading-relaxed text-ink-body">{item.explanation}</p>
+                  <Link
+                    to={detailPath}
+                    className="inline-flex w-fit items-center gap-1 text-xs text-brand hover:underline"
+                    aria-label={`Know more about ${companyName}`}
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                        <Link
-                          to={detailPath}
-                          className="text-base font-semibold text-ink-heading hover:text-brand hover:underline"
-                        >
-                          {card?.company_name ?? '—'}
-                        </Link>
-                        {card?.sector ? (
-                          <Badge variant="secondary" className="text-[10px]">
-                            {card.sector}
-                          </Badge>
-                        ) : null}
-                        {card?.stage ? (
-                          <Badge variant="outline" className="text-[10px]">
-                            {card.stage.replace(/_/g, ' ')}
-                          </Badge>
-                        ) : null}
-                      </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link
-                          to={detailPath}
-                          aria-label={`Know more about ${card?.company_name ?? ''}`}
-                        >
-                          Know more
-                          <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden />
-                        </Link>
-                      </Button>
-                    </div>
-                    <p className="text-sm leading-relaxed text-ink-body">{item.explanation}</p>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))}
-      </div>
+                    Know more
+                    <ArrowUpRight className="h-3 w-3" aria-hidden />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
 
-      {/* Follow-up */}
+      {/* Follow-up — italic prose, no border */}
       {answer.follow_up ? (
         <p
-          className="border-t border-border pt-4 text-sm italic text-ink-muted"
+          className="text-[14px] italic leading-relaxed text-ink-muted"
           data-testid="search-answer-followup"
         >
           {answer.follow_up}
