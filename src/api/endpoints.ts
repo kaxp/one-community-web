@@ -26,9 +26,12 @@ import {
   type ProfileUpdateResponse,
 } from '@/features/onboarding/schemas';
 import {
+  zConversationResponse,
   zSearchDetailLp,
   zSearchDetailStartup,
   zSearchResponse,
+  type ConversationRequest,
+  type ConversationResponse,
   type SearchDetailLp,
   type SearchDetailStartup,
   type SearchRequest,
@@ -302,6 +305,17 @@ export async function searchUnified(body: SearchRequest): Promise<SearchResponse
   }
   const resp = await apiClient.post<ApiEnvelope<SearchResponse>>('/search', payload);
   return zSearchResponse.parse(unwrap(resp.data, '/search'));
+}
+
+// Conversational search (Phase 2). One call per turn; client persists
+// `conversation_id` across turns so the server can stitch context together.
+export async function searchConversation(body: ConversationRequest): Promise<ConversationResponse> {
+  const payload = stripUndefined(body);
+  const resp = await apiClient.post<ApiEnvelope<ConversationResponse>>(
+    '/search/conversation',
+    payload,
+  );
+  return zConversationResponse.parse(unwrap(resp.data, '/search/conversation'));
 }
 
 export async function getSearchDetailStartup(userId: string): Promise<SearchDetailStartup> {

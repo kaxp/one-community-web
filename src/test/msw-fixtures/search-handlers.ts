@@ -276,6 +276,66 @@ export const searchHandlers: HttpHandler[] = [
     return HttpResponse.json({ data: FORCED[scenario], error: null });
   }),
 
+  // Phase 2: conversational search endpoint. Wraps the same scenarios as
+  // /search but in the ConversationResponse envelope. A stable conversation_id
+  // is reused per-test-run so multi-turn tests can verify state continuity.
+  http.post('*/api/v1/search/conversation', async ({ request }) => {
+    if (scenario === 'error_500') {
+      return HttpResponse.json(
+        { data: null, error: { code: 'internal_error', message: 'Server error' } },
+        { status: 500 },
+      );
+    }
+    if (scenario === 'rate_limit') {
+      return HttpResponse.json(
+        { data: null, error: { code: 'rate_limit_exceeded', message: 'Too many requests' } },
+        { status: 429 },
+      );
+    }
+    const body = (await request.json()) as {
+      conversation_id?: string | null;
+      message: string;
+      target_type?: string | null;
+      limit?: number;
+    };
+    if (typeof body.message !== 'string' || body.message.trim().length === 0) {
+      return HttpResponse.json(
+        {
+          data: null,
+          error: {
+            code: 'validation_error',
+            message: 'Validation failed',
+            detail: [{ loc: ['body', 'message'], msg: 'required', type: 'value_error' }],
+          },
+        },
+        { status: 422 },
+      );
+    }
+    // Reuse the /search auto logic to filter the catalogue. autoSearch
+    // derives target_type from the request headers (signed-in role), not the
+    // body, so we only need to forward the query text here.
+    const searchBody: SearchBody = { query: body.message };
+    const inner = scenario === 'auto' ? autoSearch(request, searchBody) : FORCED[scenario];
+    const conversationId = body.conversation_id ?? 'conv-msw-fixed-id';
+    return HttpResponse.json({
+      data: {
+        conversation_id: conversationId,
+        turn: 1,
+        action: 'search',
+        resolved_query: body.message,
+        clarification: null,
+        results: inner.results,
+        total: inner.total,
+        target_type: inner.target_type,
+        intent: inner.intent ?? null,
+        text: inner.text ?? null,
+        answer: inner.answer ?? null,
+        stage3_applied: inner.stage3_applied,
+      },
+      error: null,
+    });
+  }),
+
   http.post('*/api/v1/interactions/log', async () => {
     interactionLogCount += 1;
     return HttpResponse.json({ data: { logged: true, deduped: false }, error: null });

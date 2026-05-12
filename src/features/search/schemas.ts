@@ -98,6 +98,34 @@ const zSearchPayloadBase = z.object({
   answer: zSearchAnswer.nullable().optional(),
 });
 
+// ── Conversational search (Phase 2) ──────────────────────────────────────────
+
+export const zConversationRequest = z.object({
+  conversation_id: z.string().nullable().optional(),
+  message: z.string().trim().min(1, 'Type something').max(500),
+  target_type: z.enum(SEARCH_TARGET_TYPES).nullable().optional(),
+  limit: z.number().int().min(1).max(20).optional(),
+});
+export type ConversationRequest = z.infer<typeof zConversationRequest>;
+
+// Server always returns startup-shaped results today (LP conversational
+// search is future scope); we keep `target_type` open so we can extend.
+export const zConversationResponse = z.object({
+  conversation_id: z.string(),
+  turn: z.number().int(),
+  action: z.enum(['search', 'clarify']),
+  resolved_query: z.string(),
+  clarification: z.string().nullable().optional(),
+  results: z.array(zStartupResultItem),
+  total: z.number().int(),
+  target_type: z.string(),
+  intent: z.string().nullable().optional(),
+  text: z.string().nullable().optional(),
+  answer: zSearchAnswer.nullable().optional(),
+  stage3_applied: z.boolean(),
+});
+export type ConversationResponse = z.infer<typeof zConversationResponse>;
+
 export const zSearchResponse = z.discriminatedUnion('target_type', [
   zSearchPayloadBase.extend({
     target_type: z.literal('startup'),

@@ -1,47 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/error-state/ErrorState';
-import { EmptyState } from '@/components/empty-state/EmptyState';
 import { SearchBar } from '@/features/search/components/SearchBar';
-import { ResultCard } from '@/features/search/components/ResultCard';
-import { SearchAnswerBlock } from '@/features/search/components/SearchAnswerBlock';
+import { ChatTurn } from '@/features/search/components/ChatTurn';
 import { SearchLoadingState } from '@/features/search/components/SearchLoadingState';
 import { TypeSelector, type SearchTypeOption } from '@/features/search/components/TypeSelector';
-import { useSearch } from '@/features/search/hooks/use-search';
-import { useSearchSubmit } from '@/features/search/hooks/use-search-submit';
-import {
-  filtersFromSearchParams,
-  filtersToSearchParams,
-  type SearchFilters,
-  type SearchResponse,
-  type SearchTargetType,
-} from '@/features/search/schemas';
+import { useConversation } from '@/features/search/hooks/use-conversation';
+import { type SearchTargetType } from '@/features/search/schemas';
 import type { UserRole } from '@/types/enums';
 import { useRole } from '@/auth/use-auth';
 import { isMaskedSearchRole, isStartupRole } from '@/lib/role-capabilities';
-
-/** Parses "top 5", "first 10", "show me 3 startups" → number, else null. */
-function extractCountFromQuery(q: string): number | null {
-  const patterns = [
-    /\btop\s+(\d+)\b/i,
-    /\bfirst\s+(\d+)\b/i,
-    /\bshow\s+(?:me\s+)?(\d+)\b/i,
-    /\b(\d+)\s+(?:startups?|lps?|investors?|funds?|companies|company)\b/i,
-  ];
-  for (const p of patterns) {
-    const m = q.match(p);
-    if (m) {
-      const raw = m[1] ?? m[2];
-      if (!raw) continue;
-      const n = parseInt(raw, 10);
-      if (n >= 1 && n <= 100) return n;
-    }
-  }
-  return null;
-}
 
 // Startup roles search for LPs (investors); everyone else searches for startups.
 function defaultTargetType(role: UserRole | null): SearchTargetType {
@@ -58,88 +29,62 @@ export function SearchPage() {
   const defType = useMemo(() => defaultTargetType(role), [role]);
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [query, setQuery] = useState(params.get('q') ?? '');
-  // submittedQuery drives the actual search — only updated on explicit submit.
-  const [submittedQuery, setSubmittedQuery] = useState(params.get('q') ?? '');
-  const filters = useMemo(() => filtersFromSearchParams(params), [params]);
-  // selectedType: 'startup' | 'lp' | 'all'
+  const [query, setQuery] = useState('');
   const [selectedType, setSelectedType] = useState<SearchTypeOption>(
     (params.get(TYPE_PARAM) as SearchTypeOption | null) ?? defType,
   );
-
-  // targetType sent to the API: null for 'all' (GPT classifies)
+  // Target type passed to the API; null means "let GPT classify".
   const targetType: SearchTargetType | null = selectedType === 'all' ? null : selectedType;
 
-  // ── UX rule: clear results when the search box is emptied ─────────────────
-  // Without this, changing filters with an empty box would still call the API
-  // because submittedQuery retained the old value.
+  const conversation = useConversation({ targetType });
+  const threadRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll to the latest turn whenever a new one arrives.
+  // JSDOM (used by Vitest) doesn't implement scrollIntoView, so guard it —
+  // otherwise tests throw before assertions can run.
   useEffect(() => {
-    if (query.trim().length === 0) {
-      setSubmittedQuery('');
+    const el = threadRef.current;
+    if (el && conversation.turns.length > 0 && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
-  }, [query]);
+  }, [conversation.turns.length]);
 
-  const queryLimit = useMemo(
-    () => extractCountFromQuery(submittedQuery.trim()) ?? 20,
-    [submittedQuery],
-  );
-
-  const search = useSearch({
-    query: submittedQuery.trim(),
-    filters,
-    enabled: submittedQuery.trim().length > 0,
-    targetType,
-    limit: queryLimit,
-  });
-
-  const submitMutation = useSearchSubmit({ query, filters, targetType, limit: queryLimit });
+  // Auto-submit a ?q= deep link as the first turn. Keep the param URL-only
+  // for sharing; we don't echo it back on subsequent edits.
+  const autoQ = params.get('q')?.trim() ?? '';
+  const autoSubmittedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (autoQ && autoSubmittedRef.current !== autoQ && conversation.turns.length === 0) {
+      autoSubmittedRef.current = autoQ;
+      conversation.submit(autoQ);
+    }
+  }, [autoQ, conversation]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
-  const buildParams = (q: string, f: SearchFilters, t: SearchTypeOption) => {
-    const sp = new URLSearchParams(filtersToSearchParams(f));
-    if (q.trim().length > 0) sp.set('q', q.trim());
-    if (t !== defType) sp.set(TYPE_PARAM, t); // only persist if non-default
-    return sp;
-  };
-
   const onSubmit = () => {
     const trimmed = query.trim();
-    if (trimmed.length === 0) return; // never fire with empty box
-    submitMutation.reset();
-    submitMutation.mutate();
-    setSubmittedQuery(trimmed);
-    const sp = buildParams(trimmed, filters, selectedType);
-    if (sp.toString() !== params.toString()) setParams(sp, { replace: true });
-  };
-
-  const onFiltersChange = (next: SearchFilters) => {
-    // Filters only affect results if a query is already submitted.
-    const sp = buildParams(query, next, selectedType);
-    if (sp.toString() !== params.toString()) setParams(sp, { replace: true });
-    // Do NOT call onSubmit — let the infinite query re-fetch automatically
-    // when its `filters` dep changes (only if submittedQuery is non-empty).
+    if (trimmed.length === 0) return;
+    conversation.submit(trimmed);
+    setQuery('');
   };
 
   const onTypeChange = (t: SearchTypeOption) => {
     setSelectedType(t);
-    // Persist to URL
-    const sp = buildParams(query, filters, t);
+    const sp = new URLSearchParams(params);
+    if (t !== defType) sp.set(TYPE_PARAM, t);
+    else sp.delete(TYPE_PARAM);
     if (sp.toString() !== params.toString()) setParams(sp, { replace: true });
-    // If results are already showing, re-run search with the new type.
-    if (submittedQuery.trim().length > 0) {
-      submitMutation.reset();
-      submitMutation.mutate();
-    }
   };
 
-  const isButtonPending = submitMutation.isPending;
-  const firstPage = search.data?.pages[0];
-  const totalLoaded = (search.data?.pages ?? []).reduce((n, p) => n + p.results.length, 0);
+  const onNewChat = () => {
+    conversation.reset();
+    setQuery('');
+    const sp = new URLSearchParams(params);
+    sp.delete('q');
+    if (sp.toString() !== params.toString()) setParams(sp, { replace: true });
+  };
 
-  // Chat-style layout kicks in once the user has submitted a query.
-  // Pristine state shows the centred hero card; thread state moves the
-  // input to the bottom of the page (ChatGPT / Cosmic style).
-  const hasThread = submittedQuery.trim().length > 0;
+  const hasThread = conversation.turns.length > 0 || conversation.isPending;
 
   const searchControls = (
     <div className="flex flex-col gap-3">
@@ -148,23 +93,16 @@ export function SearchPage() {
         value={query}
         onChange={setQuery}
         onSubmit={onSubmit}
-        isPending={isButtonPending}
+        isPending={conversation.isPending}
       />
-      {submitMutation.isError ? (
-        <ErrorState
-          error={submitMutation.error}
-          compact
-          onRetry={() => {
-            submitMutation.reset();
-            onSubmit();
-          }}
-        />
+      {conversation.error ? (
+        <ErrorState error={conversation.error} compact onRetry={() => onSubmit()} />
       ) : null}
     </div>
   );
 
+  // ── Pristine state: centred hero card ────────────────────────────────────
   if (!hasThread) {
-    // Pristine state — centred hero card.
     return (
       <div className="flex flex-col gap-6">
         <h1 className="sr-only">Search</h1>
@@ -172,7 +110,7 @@ export function SearchPage() {
           <CardHeader>
             <CardTitle>Search the community</CardTitle>
             <CardDescription>
-              Conversational search across LPs and startups. Type a query and explore matches.
+              Conversational search across LPs and startups. Ask anything — follow up to refine.
             </CardDescription>
           </CardHeader>
           <CardContent>{searchControls}</CardContent>
@@ -181,185 +119,49 @@ export function SearchPage() {
     );
   }
 
-  // Thread state — user query bubble + answer/cards above, sticky search at bottom.
+  // ── Thread state: chat transcript + sticky bottom input ──────────────────
   return (
-    <div className="flex flex-col gap-5 pb-32">
+    <div className="flex flex-col gap-5 pb-36" data-testid="search-thread">
       <h1 className="sr-only">Search</h1>
 
-      {/* User query bubble */}
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-brand/10 px-4 py-2.5 text-sm text-ink-heading sm:text-base">
-          {submittedQuery}
-        </div>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-ink-muted">
+          {conversation.turns.length} {conversation.turns.length === 1 ? 'turn' : 'turns'} in this
+          conversation
+        </p>
+        <Button variant="outline" size="sm" onClick={onNewChat} data-testid="new-chat-button">
+          <Sparkles className="mr-1 h-3.5 w-3.5" aria-hidden />
+          New chat
+        </Button>
       </div>
 
-      <SearchResults
-        state={search}
-        firstPage={firstPage}
-        totalLoaded={totalLoaded}
-        query={submittedQuery.trim()}
-        filters={filters}
-        onClearFilters={() => onFiltersChange({})}
-        isMasked={isMasked}
-        suppressError={submitMutation.isError}
-      />
+      {/* Thread */}
+      <div className="flex flex-col gap-6" data-testid="chat-thread-turns">
+        {conversation.turns.map((t) => (
+          <ChatTurn
+            key={t.id}
+            userMessage={t.userMessage}
+            response={t.response}
+            isMasked={isMasked}
+          />
+        ))}
+        {conversation.isPending ? (
+          <div className="flex flex-col gap-3">
+            {/* Show the pending user message above the spinner. We don't have
+                it in `turns` yet (mutation hasn't resolved), so we read it
+                from the SearchBar's last submitted text via the mutation
+                meta — but for simplicity, just show a typing indicator. */}
+            <SearchLoadingState />
+          </div>
+        ) : null}
+        <div ref={threadRef} aria-hidden />
+      </div>
 
-      {/* Sticky bottom input */}
+      {/* Sticky bottom input — same anchor pattern as Phase 1 */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur md:left-64 md:px-8 md:py-4">
         <div className="mx-auto max-w-4xl">{searchControls}</div>
       </div>
-    </div>
-  );
-}
-
-interface SearchResultsProps {
-  state: ReturnType<typeof useSearch>;
-  firstPage: SearchResponse | undefined;
-  totalLoaded: number;
-  query: string;
-  filters: SearchFilters;
-  onClearFilters: () => void;
-  isMasked: boolean;
-  suppressError?: boolean;
-}
-
-function SearchResults({
-  state,
-  firstPage,
-  totalLoaded,
-  query,
-  filters,
-  onClearFilters,
-  isMasked,
-  suppressError,
-}: SearchResultsProps) {
-  if (query.length === 0) {
-    return (
-      <EmptyState
-        title="Start a search"
-        description="Type what you're looking for above. Filters are optional but help narrow the result list."
-      />
-    );
-  }
-  if (state.isLoading || (state.isFetching && !firstPage)) {
-    return <SearchLoadingState />;
-  }
-  if (state.isError && !suppressError) {
-    return (
-      <ErrorState
-        error={state.error}
-        onRetry={() => {
-          void state.refetch();
-        }}
-      />
-    );
-  }
-  if (!firstPage || firstPage.results.length === 0) {
-    const filterCount =
-      (filters.sector?.length ?? 0) +
-      (filters.stage?.length ?? 0) +
-      (filters.geography?.length ?? 0);
-    // Prefer the backend's structured "we don't have X" message for entity
-    // lookups — it's more precise than the generic empty-state copy.
-    if (firstPage?.text && firstPage.intent === 'entity_lookup') {
-      return <EmptyState title={`No match for "${query}"`} description={firstPage.text} />;
-    }
-    return (
-      <EmptyState
-        title={`No matches for "${query}"`}
-        description={
-          filterCount > 0
-            ? `We couldn't find anyone matching that query with the ${filterCount} active filter${filterCount === 1 ? '' : 's'}. Try clearing filters or rephrasing.`
-            : 'Try rephrasing — broader terms, a different sector, or a related concept often surface more matches.'
-        }
-        action={
-          filterCount > 0 ? (
-            <Button variant="outline" size="sm" onClick={onClearFilters}>
-              Clear filters
-            </Button>
-          ) : undefined
-        }
-      />
-    );
-  }
-
-  // Show the GPT-fallback banner only for discovery queries — for entity
-  // lookups we intentionally skip GPT, so the banner would be misleading.
-  const showStage3Banner =
-    firstPage.stage3_applied === false && firstPage.intent !== 'entity_lookup';
-
-  // When the synthesiser produced a structured answer, render the Cosmic-style
-  // grouped response instead of the flat card grid. The answer's items already
-  // contain inline cards (looked up by startup_id) so showing both surfaces
-  // would duplicate content.
-  const synthAnswer = firstPage.target_type === 'startup' ? (firstPage.answer ?? null) : null;
-  const resultsByUserId =
-    synthAnswer && firstPage.target_type === 'startup'
-      ? Object.fromEntries(firstPage.results.map((r) => [r.user_id, r]))
-      : {};
-
-  return (
-    <div className="flex flex-col gap-4" data-testid="search-results">
-      {firstPage.text ? (
-        <div
-          className="rounded-md border border-brand/20 bg-brand/5 p-3 text-sm text-ink-body"
-          data-testid="search-answer-text"
-        >
-          {firstPage.text}
-        </div>
-      ) : null}
-      {showStage3Banner ? (
-        <div
-          className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-sm text-ink-body"
-          role="status"
-          data-testid="stage3-fallback-banner"
-        >
-          <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" aria-hidden />
-          <span>AI ranking temporarily unavailable — showing vector similarity only.</span>
-        </div>
-      ) : null}
-
-      {synthAnswer ? (
-        <SearchAnswerBlock answer={synthAnswer} resultsByUserId={resultsByUserId} />
-      ) : (
-        <>
-          <p className="text-xs text-ink-muted">
-            Showing {totalLoaded} of {firstPage.total}{' '}
-            {firstPage.target_type === 'lp' ? 'LPs' : 'startups'}
-          </p>
-          <div className="grid gap-3 md:grid-cols-2">
-            {(state.data?.pages ?? []).flatMap((page) =>
-              page.results.map((item) => (
-                <ResultCard
-                  key={item.user_id}
-                  item={item}
-                  targetType={page.target_type}
-                  query={query}
-                  isMasked={isMasked}
-                />
-              )),
-            )}
-          </div>
-        </>
-      )}
-      {!synthAnswer && state.hasNextPage ? (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            disabled={state.isFetchingNextPage}
-            onClick={() => state.fetchNextPage()}
-          >
-            {state.isFetchingNextPage ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                <span>Loading…</span>
-              </>
-            ) : (
-              'Load more'
-            )}
-          </Button>
-        </div>
-      ) : null}
     </div>
   );
 }
