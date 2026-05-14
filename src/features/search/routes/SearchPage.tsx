@@ -39,15 +39,24 @@ export function SearchPage() {
   const conversation = useConversation({ targetType });
   const threadRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-scroll to the latest turn whenever a new one arrives.
+  // Auto-scroll to the latest turn on every visible state change:
+  //  - user just submitted (isPending flips true → show pending spinner at bottom)
+  //  - assistant replied (turns.length grows → show the new turn at bottom)
+  //
+  // requestAnimationFrame defers the scroll one frame so the newly-rendered
+  // turn / spinner is laid out before we measure — otherwise smooth-scroll
+  // lands on the previous bottom and the user has to scroll manually.
+  //
   // JSDOM (used by Vitest) doesn't implement scrollIntoView, so guard it —
   // otherwise tests throw before assertions can run.
   useEffect(() => {
     const el = threadRef.current;
-    if (el && conversation.turns.length > 0 && typeof el.scrollIntoView === 'function') {
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    const id = window.requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, [conversation.turns.length]);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [conversation.turns.length, conversation.isPending]);
 
   // Auto-submit a ?q= deep link as the first turn. Keep the param URL-only
   // for sharing; we don't echo it back on subsequent edits.
