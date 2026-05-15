@@ -145,6 +145,16 @@ const AdminAppConfigPage = lazy(() =>
     default: m.AdminAppConfigPage,
   })),
 );
+const AdminUsersPage = lazy(() =>
+  import('@/features/admin/routes/AdminUsersPage').then((m) => ({
+    default: m.AdminUsersPage,
+  })),
+);
+const AdminStartupsPage = lazy(() =>
+  import('@/features/admin/routes/AdminStartupsPage').then((m) => ({
+    default: m.AdminStartupsPage,
+  })),
+);
 const AdminAnalyticsPage = lazy(() =>
   import('@/features/analytics/routes/AdminAnalyticsPage').then((m) => ({
     default: m.AdminAnalyticsPage,
@@ -556,6 +566,22 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminMISOverviewPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      path: '/admin/users',
+                      element: (
+                        <Susp>
+                          <AdminUsersPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      path: '/admin/startups',
+                      element: (
+                        <Susp>
+                          <AdminStartupsPage />
                         </Susp>
                       ),
                     },

@@ -88,6 +88,22 @@ export const qk = {
     calendarAll: ['admin', 'calendar'] as const,
     calendar: (from: string, days: number) => ['admin', 'calendar', { from, days }] as const,
     appConfig: ['admin', 'app-config'] as const,
+    usersAll: ['admin', 'users'] as const,
+    users: (args: {
+      search?: string;
+      sort_by?: string;
+      sort_dir?: string;
+      limit?: number;
+      offset?: number;
+    }) => ['admin', 'users', args] as const,
+    startupsAll: ['admin', 'startups'] as const,
+    startups: (args: {
+      search?: string;
+      sort_by?: string;
+      sort_dir?: string;
+      limit?: number;
+      offset?: number;
+    }) => ['admin', 'startups', args] as const,
   },
   digest: {
     pending: ['digest', 'pending'] as const,
