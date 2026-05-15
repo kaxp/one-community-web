@@ -49,9 +49,13 @@ export function PortfolioFundDeckPage() {
           </div>
         )}
         {active === 'deck' && (
-          <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 py-16 text-center">
-            <div className="text-4xl font-bold text-ink-heading">Warmup Fund Deck</div>
-            <div className="text-ink-muted">Coming Soon</div>
+          <div className="h-[calc(100vh-120px)] min-h-[600px] w-full">
+            <iframe
+              src="/warmup-lp-deck.pdf"
+              title="Warmup Ventures LP Deck"
+              className="h-full w-full border-0"
+              aria-label="Warmup Ventures LP Deck PDF viewer"
+            />
           </div>
         )}
       </div>

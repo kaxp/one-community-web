@@ -9,6 +9,8 @@ export function profileFromMe(me: AuthMeResponse): UserProfile {
     name: me.name,
     email: me.email,
     organisation: me.organisation,
+    designation: me.designation,
+    linkedin_url: me.linkedin_url ?? null,
     profile_complete: me.profile_complete,
     home_city: me.home_city ?? null,
   };

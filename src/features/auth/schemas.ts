@@ -47,6 +47,7 @@ export const zAuthMeResponse = z.object({
   role: zUserRole,
   organisation: z.string().nullable(),
   designation: z.string().nullable(),
+  linkedin_url: z.string().nullable().optional(),
   avatar_url: z.string().nullable(),
   profile_complete: z.boolean(),
   // §7.11.4 invalidation note — /auth/me carries home_city. Optional+nullable

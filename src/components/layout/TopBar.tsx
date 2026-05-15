@@ -3,7 +3,7 @@ import { LogOut, User as UserIcon } from 'lucide-react';
 import { useUser } from '@/auth/use-auth';
 import { useAuthStore } from '@/auth/auth-store';
 import { BrandLogo } from '@/components/brand/BrandLogo';
-import { RoleBadge } from '@/components/role-badge';
+// import { RoleBadge } from '@/components/role-badge';
 import { Button } from '@/components/ui/button';
 import { MobileNavDrawer } from './MobileNavDrawer';
 
@@ -38,7 +38,7 @@ export function TopBar() {
               <UserIcon className="h-4 w-4 text-ink-muted" aria-hidden />
               <span className="text-ink-heading">{user.name ?? user.phone}</span>
             </Link>
-            <RoleBadge role={user.role} />
+            {/* <RoleBadge role={user.role} /> */}
           </div>
         ) : null}
         <Button size="sm" variant="ghost" onClick={onLogout} aria-label="Sign out">

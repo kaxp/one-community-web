@@ -8,6 +8,8 @@ export interface UserProfile {
   name: string | null;
   email: string | null;
   organisation: string | null;
+  designation?: string | null;
+  linkedin_url?: string | null;
   profile_complete: boolean;
   // PRD §7.1.3 + §7.11.4 — `/auth/me` carries `home_city`; the travel page
   // updates it via PUT /travel/home-city. Optional/nullable since older
