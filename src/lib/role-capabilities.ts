@@ -313,6 +313,20 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: 'Settings2',
     roles: ['admin', 'super_admin'],
   },
+  {
+    key: 'admin-users',
+    label: 'Users',
+    path: '/admin/users',
+    icon: 'Users',
+    roles: ['admin', 'super_admin'],
+  },
+  {
+    key: 'admin-startups',
+    label: 'Startups',
+    path: '/admin/startups',
+    icon: 'Building2',
+    roles: ['admin', 'super_admin'],
+  },
 ];
 
 export function navForRole(role: UserRole | null | undefined): NavItem[] {

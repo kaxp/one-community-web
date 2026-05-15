@@ -938,3 +938,80 @@ export async function patchAppConfigKey(key: string, enabled: boolean): Promise<
   const resp = await apiClient.patch<ApiEnvelope<AppConfigItem>>(url, { enabled });
   return zAppConfigListResponse.shape.items.element.parse(unwrap(resp.data, url));
 }
+
+// ── Admin Users tab ──────────────────────────────────────────────────────────
+import {
+  zAdminUsersResponse,
+  zAdminUserUpdateResponse,
+  zAdminUserDeleteResponse,
+  zAdminStartupsResponse,
+  type AdminUsersResponse,
+  type AdminUserUpdateRequest,
+  type AdminUserUpdateResponse,
+  type AdminUserDeleteResponse,
+  type AdminStartupsResponse,
+} from '@/features/admin/schemas';
+
+export interface AdminUsersArgs {
+  search?: string;
+  sort_by?: string;
+  sort_dir?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getAdminUsers(args: AdminUsersArgs = {}): Promise<AdminUsersResponse> {
+  const params = new URLSearchParams();
+  if (args.search) params.set('search', args.search);
+  if (args.sort_by) params.set('sort_by', args.sort_by);
+  if (args.sort_dir) params.set('sort_dir', args.sort_dir);
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.offset !== undefined) params.set('offset', String(args.offset));
+  const qs = params.toString();
+  const url = `/admin/users${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<AdminUsersResponse>>(url);
+  return zAdminUsersResponse.parse(unwrap(resp.data, url));
+}
+
+export async function patchAdminUser(
+  userId: string,
+  body: AdminUserUpdateRequest,
+): Promise<AdminUserUpdateResponse> {
+  const url = `/admin/users/${encodeURIComponent(userId)}`;
+  const resp = await apiClient.patch<ApiEnvelope<AdminUserUpdateResponse>>(
+    url,
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return zAdminUserUpdateResponse.parse(unwrap(resp.data, url));
+}
+
+export async function deleteAdminUser(userId: string): Promise<AdminUserDeleteResponse> {
+  const url = `/admin/users/${encodeURIComponent(userId)}`;
+  const resp = await apiClient.delete<ApiEnvelope<AdminUserDeleteResponse>>(url);
+  return zAdminUserDeleteResponse.parse(unwrap(resp.data, url));
+}
+
+// ── Admin Startups tab ────────────────────────────────────────────────────────
+
+export interface AdminStartupsArgs {
+  search?: string;
+  sort_by?: string;
+  sort_dir?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getAdminStartups(
+  args: AdminStartupsArgs = {},
+): Promise<AdminStartupsResponse> {
+  const params = new URLSearchParams();
+  if (args.search) params.set('search', args.search);
+  if (args.sort_by) params.set('sort_by', args.sort_by);
+  if (args.sort_dir) params.set('sort_dir', args.sort_dir);
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.offset !== undefined) params.set('offset', String(args.offset));
+  const qs = params.toString();
+  const url = `/admin/startups${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<AdminStartupsResponse>>(url);
+  return zAdminStartupsResponse.parse(unwrap(resp.data, url));
+}

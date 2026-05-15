@@ -340,6 +340,90 @@ export type MISOverviewListResponse = z.infer<typeof zMISOverviewListResponse>;
 
 // ── App runtime config (feature flags) ──────────────────────────────────────
 
+// ── Admin Users tab ──────────────────────────────────────────────────────────
+
+export const USER_SORT_OPTIONS = ['created_at', 'updated_at', 'name', 'role'] as const;
+export type UserSortOption = (typeof USER_SORT_OPTIONS)[number];
+
+export const zAdminUserListItem = z
+  .object({
+    id: zUUID,
+    name: z.string().nullable(),
+    phone: z.string().nullable(),
+    email: z.string().nullable(),
+    role: zUserRole,
+    organisation: z.string().nullable(),
+    designation: z.string().nullable(),
+    created_at: zISODateTime,
+    updated_at: zISODateTime.nullable(),
+  })
+  .passthrough();
+export type AdminUserListItem = z.infer<typeof zAdminUserListItem>;
+
+export const zAdminUsersResponse = z
+  .object({
+    items: z.array(zAdminUserListItem),
+    total: z.number().int().nonnegative(),
+  })
+  .passthrough();
+export type AdminUsersResponse = z.infer<typeof zAdminUsersResponse>;
+
+export const zAdminUserUpdateRequest = z.object({
+  name: z.string().trim().min(1).optional(),
+  phone: z.string().trim().min(1).optional(),
+  email: z.string().trim().email().optional(),
+  role: zUserRole.optional(),
+  organisation: z.string().trim().optional(),
+  designation: z.string().trim().optional(),
+});
+export type AdminUserUpdateRequest = z.infer<typeof zAdminUserUpdateRequest>;
+
+export const zAdminUserUpdateResponse = z
+  .object({
+    id: zUUID,
+    name: z.string().nullable(),
+    role: zUserRole,
+    updated_at: zISODateTime.nullable(),
+  })
+  .passthrough();
+export type AdminUserUpdateResponse = z.infer<typeof zAdminUserUpdateResponse>;
+
+export const zAdminUserDeleteResponse = z.object({
+  deleted: z.boolean(),
+  user_id: zUUID,
+});
+export type AdminUserDeleteResponse = z.infer<typeof zAdminUserDeleteResponse>;
+
+// ── Admin Startups tab ────────────────────────────────────────────────────────
+
+export const STARTUP_SORT_OPTIONS = ['created_at', 'company_name', 'stage', 'status'] as const;
+export type StartupSortOption = (typeof STARTUP_SORT_OPTIONS)[number];
+
+export const zAdminStartupListItem = z
+  .object({
+    id: zUUID,
+    user_id: zUUID.nullable(),
+    company_name: z.string(),
+    sector: z.array(z.string()),
+    stage: z.string().nullable(),
+    status: z.string().nullable(),
+    founder_name: z.string().nullable(),
+    website_url: z.string().nullable(),
+    created_at: zISODateTime,
+  })
+  .passthrough();
+export type AdminStartupListItem = z.infer<typeof zAdminStartupListItem>;
+
+export const zAdminStartupsResponse = z
+  .object({
+    items: z.array(zAdminStartupListItem),
+    total: z.number().int().nonnegative(),
+  })
+  .passthrough();
+export type AdminStartupsResponse = z.infer<typeof zAdminStartupsResponse>;
+
+// Referrals schemas (existing, keeping in place)
+
 export const zAppConfigItem = z.object({
   key: z.string(),
   label: z.string(),
