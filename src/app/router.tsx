@@ -160,11 +160,10 @@ const MyDigestPage = lazy(() =>
     default: m.MyDigestPage,
   })),
 );
-const FundOnePage = lazy(() =>
-  import('@/features/funds/routes/FundOnePage').then((m) => ({ default: m.FundOnePage })),
-);
-const FundTwoPage = lazy(() =>
-  import('@/features/funds/routes/FundTwoPage').then((m) => ({ default: m.FundTwoPage })),
+const PortfolioFundDeckPage = lazy(() =>
+  import('@/features/funds/routes/PortfolioFundDeckPage').then((m) => ({
+    default: m.PortfolioFundDeckPage,
+  })),
 );
 
 export const router = createBrowserRouter(
@@ -416,18 +415,10 @@ export const router = createBrowserRouter(
                   element: <RoleGuard roles={['lp', 'potential_lp', 'admin', 'super_admin']} />,
                   children: [
                     {
-                      path: '/fund-1',
+                      path: '/portfolio-fund-deck',
                       element: (
                         <Susp>
-                          <FundOnePage />
-                        </Susp>
-                      ),
-                    },
-                    {
-                      path: '/fund-2',
-                      element: (
-                        <Susp>
-                          <FundTwoPage />
+                          <PortfolioFundDeckPage />
                         </Susp>
                       ),
                     },
