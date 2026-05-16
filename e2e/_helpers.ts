@@ -101,20 +101,19 @@ export const SEED_USERS: Record<SeedRole, SeedUser> = {
   },
 };
 
-const OTP_BYPASS = '000000';
+// const OTP_BYPASS = '000000'; // TODO(kaxp): restore when OTP flow is re-enabled
 
-// Drive the real two-step signin flow (phone → OTP) end-to-end.
-// Use this for the spec under test. For cross-user switches inside a single
-// spec, prefer `seedAuth` for speed.
+// TODO(kaxp): OTP flow is bypassed — sign-in now auto-verifies with 000000 after
+// phone submission. `signin` updated to match: one step (phone → "Sign in" button).
+// Restore the two-step flow (phone → OTP cells) when the OTP flow is re-enabled.
 export async function signin(page: Page, role: SeedRole): Promise<SeedUser> {
   const seed = SEED_USERS[role];
   await page.goto('/signin');
 
   // Wait for the MSW service worker to become the active controller BEFORE
   // interacting with the page. Without this, fast CI runners can fire the
-  // "Send OTP" request before the SW has registered — the request hits the
-  // non-existent localhost:8000 backend and the OTP step never renders.
-  // The check is lightweight and resolves in < 1 s on a warm browser.
+  // sign-in request before the SW has registered — the request hits the
+  // non-existent localhost:8000 backend and the mutation never resolves.
   await page.waitForFunction(
     () => navigator.serviceWorker && navigator.serviceWorker.controller !== null,
     { timeout: 30_000 },
@@ -122,21 +121,12 @@ export async function signin(page: Page, role: SeedRole): Promise<SeedUser> {
 
   await page.locator('#signin-phone').waitFor({ state: 'visible' });
   await page.locator('#signin-phone').fill(seed.phone);
-  await page.getByRole('button', { name: /send otp/i }).click();
+  // Button label changed from "Send OTP" to "Sign in" (OTP step removed).
+  await page.getByRole('button', { name: /^sign in$/i }).click();
 
-  // OTP cells render lazily after the send-otp mutation resolves.
-  const otpCells = page.locator('#signin-otp input');
-  await otpCells.first().waitFor({ state: 'visible' });
-  // Fill one digit per cell. NOTE: SignInPage auto-submits the verify
-  // mutation as soon as `otp.length === 6`, so the explicit "Verify &
-  // continue" click is redundant — and trying to click the button after
-  // the 6th digit lands races against the navigation away to /dashboard.
-  for (let i = 0; i < OTP_BYPASS.length; i += 1) {
-    await otpCells.nth(i).fill(OTP_BYPASS[i]!);
-  }
   // Per [P-18] every signed-in user lands on /dashboard.
-  // No explicit timeout — inherits page.navigationTimeout from playwright.config.ts
-  // (30 s local / 60 s CI).
+  // Auto-verify fires immediately after the OTP send succeeds, so no OTP
+  // input step is needed here.
   await page.waitForURL('**/dashboard');
   return seed;
 }

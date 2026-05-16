@@ -48,7 +48,8 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     // Must be present
     await expect(nav.getByRole('link', { name: /^Dashboard$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Search$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Admin home$/i })).toBeVisible();
+    // TODO(kaxp): Admin home removed — Dashboard tab now shows KPI content
+    await expect(nav.getByRole('link', { name: /^Admin home$/i })).not.toBeVisible();
     await expect(nav.getByRole('link', { name: /^Inbound pitches$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^MIS overview$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Connection queue$/i })).toBeVisible();
@@ -86,9 +87,10 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     await expect(nav.getByRole('link', { name: /^Connections$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Pending$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Refer$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Schedule$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Documents$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^My digest$/i })).toBeVisible();
+    // TODO(kaxp): Schedule and Documents commented out for now
+    await expect(nav.getByRole('link', { name: /^Schedule$/i })).not.toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Documents$/i })).not.toBeVisible();
 
     // Must NOT be present (admin flows)
     await expect(nav.getByRole('link', { name: /^Admin home$/i })).not.toBeVisible();
@@ -120,7 +122,8 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     await expect(nav.getByRole('link', { name: /^MIS$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Connections$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Suggestions$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Schedule$/i })).toBeVisible();
+    // TODO(kaxp): Schedule commented out for now
+    await expect(nav.getByRole('link', { name: /^Schedule$/i })).not.toBeVisible();
 
     // Must NOT be present (admin flows)
     await expect(nav.getByRole('link', { name: /^Admin home$/i })).not.toBeVisible();
@@ -148,8 +151,10 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     await expect(nav.getByRole('link', { name: /^Dashboard$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Search$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Connections$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Schedule$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Documents$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Refer$/i })).toBeVisible();
+    // TODO(kaxp): Schedule and Documents commented out for now
+    await expect(nav.getByRole('link', { name: /^Schedule$/i })).not.toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Documents$/i })).not.toBeVisible();
 
     // Must NOT be present (admin)
     await expect(nav.getByRole('link', { name: /^Admin home$/i })).not.toBeVisible();
