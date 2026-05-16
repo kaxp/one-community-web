@@ -93,7 +93,8 @@ describe('AdminDashboard', () => {
   it('renders pending-connections KPI and link to queue', async () => {
     signedInAs('admin');
     renderWithProviders(<DashboardPage />);
-    const link = await screen.findByTestId('admin-dash-connections-link');
+    // testid is now kpi-pending-link (AdminDashboard uses full AdminHomePage content)
+    const link = await screen.findByTestId('kpi-pending-link');
     expect(link).toHaveAttribute('href', '/admin/connections?status=pending_admin');
   });
 });

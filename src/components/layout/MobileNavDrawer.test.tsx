@@ -51,7 +51,9 @@ describe('MobileNavDrawer (CLAUDE.md §7.11 + PRD §10.1)', () => {
 
     await user.click(screen.getByRole('button', { name: /open navigation/i }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Admin home')).toBeInTheDocument();
+    // TODO(kaxp): 'Admin home' menu removed — Dashboard tab now shows KPI content
+    expect(within(dialog).queryByText('Admin home')).not.toBeInTheDocument();
     expect(within(dialog).getByText('Connection queue')).toBeInTheDocument();
+    expect(within(dialog).getByText('Users')).toBeInTheDocument();
   });
 });
