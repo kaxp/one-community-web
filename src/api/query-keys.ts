@@ -91,11 +91,15 @@ export const qk = {
     usersAll: ['admin', 'users'] as const,
     users: (args: {
       search?: string;
+      roles?: string;
       sort_by?: string;
       sort_dir?: string;
       limit?: number;
       offset?: number;
     }) => ['admin', 'users', args] as const,
+    foundersAll: ['admin', 'founders'] as const,
+    founders: (args: { search?: string; limit?: number; offset?: number }) =>
+      ['admin', 'founders', args] as const,
     startupsAll: ['admin', 'startups'] as const,
     startups: (args: {
       search?: string;

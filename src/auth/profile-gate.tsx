@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useUser } from './use-auth';
 import { useAuthStore } from './auth-store';
 import { useMe } from '@/features/auth/hooks/use-me';
@@ -24,9 +24,10 @@ export function ProfileGate() {
     }
   }, [me.data]);
 
-  if (user && user.profile_complete === false) {
-    return <Navigate to="/onboarding/profile" replace />;
-  }
+  // TODO(kaxp): Commenting out the flows for now
+  // if (user && user.profile_complete === false) {
+  //   return <Navigate to="/onboarding/profile" replace />;
+  // }
 
   return <Outlet />;
 }

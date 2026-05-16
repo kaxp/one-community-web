@@ -368,6 +368,31 @@ export const zAdminUsersResponse = z
   .passthrough();
 export type AdminUsersResponse = z.infer<typeof zAdminUsersResponse>;
 
+export const zAdminFounderListItem = z
+  .object({
+    id: zUUID,
+    startup_id: zUUID,
+    name: z.string().nullable(),
+    position: z.string().nullable(),
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    linkedin_url: z.string().nullable(),
+    description: z.string().nullable(),
+    notion_page_id: z.string().nullable(),
+    created_at: zISODateTime,
+    updated_at: zISODateTime.nullable(),
+  })
+  .passthrough();
+export type AdminFounderListItem = z.infer<typeof zAdminFounderListItem>;
+
+export const zAdminFoundersResponse = z
+  .object({
+    items: z.array(zAdminFounderListItem),
+    total: z.number().int().nonnegative(),
+  })
+  .passthrough();
+export type AdminFoundersResponse = z.infer<typeof zAdminFoundersResponse>;
+
 export const zAdminUserUpdateRequest = z.object({
   name: z.string().trim().min(1).optional(),
   phone: z.string().trim().min(1).optional(),
