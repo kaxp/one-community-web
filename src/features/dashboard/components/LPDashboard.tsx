@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow, parseISO } from 'date-fns';
-import { ArrowRight, Calendar, Newspaper, Sparkles } from 'lucide-react';
+import { ArrowRight, Newspaper, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMyDigests } from '@/features/digest/hooks/use-my-digests';
 import { useMatchSuggestions } from '@/features/matchmaking/hooks/use-match-suggestions';
-import { useBookings } from '@/features/schedule/hooks/use-bookings';
+// TODO(kaxp): Commenting out the flows for now
+// import { useBookings } from '@/features/schedule/hooks/use-bookings';
 
 function DashCard({
   title,
@@ -43,13 +44,15 @@ function DashCard({
 export function LPDashboard() {
   const digests = useMyDigests({ limit: 3 });
   const matches = useMatchSuggestions();
-  const bookings = useBookings({ limit: 5 });
+  // TODO(kaxp): Commenting out the flows for now
+  // const bookings = useBookings({ limit: 5 });
 
   const digestItems = digests.data?.pages[0]?.items ?? [];
   const matchCount = matches.data?.length ?? 0;
-  const upcomingBookings = (bookings.data?.pages[0]?.items ?? []).filter(
-    (b) => b.status === 'confirmed',
-  );
+  // TODO(kaxp): Commenting out the flows for now
+  // const upcomingBookings = (bookings.data?.pages[0]?.items ?? []).filter(
+  //   (b) => b.status === 'confirmed' && new Date(b.start_time) > new Date(),
+  // );
 
   return (
     <div className="flex flex-col gap-6" data-testid="lp-dashboard">
@@ -58,7 +61,7 @@ export function LPDashboard() {
         <p className="text-sm text-ink-muted">Your activity at a glance.</p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <DashCard title="Latest digest" icon={Newspaper} link="/digest" linkLabel="View digest">
           {digests.isLoading ? (
             <Skeleton className="h-12 w-full" />
@@ -100,7 +103,8 @@ export function LPDashboard() {
           ) : null}
         </DashCard>
 
-        <DashCard
+        {/* TODO(kaxp): Commenting out the flows for now */}
+        {/* <DashCard
           title="Upcoming meetings"
           icon={Calendar}
           link="/schedule"
@@ -113,7 +117,7 @@ export function LPDashboard() {
           ) : (
             <p className="text-3xl font-semibold text-ink-heading">{upcomingBookings.length}</p>
           )}
-        </DashCard>
+        </DashCard> */}
       </div>
     </div>
   );

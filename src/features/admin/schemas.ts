@@ -371,7 +371,7 @@ export type AdminUsersResponse = z.infer<typeof zAdminUsersResponse>;
 export const zAdminFounderListItem = z
   .object({
     id: zUUID,
-    startup_id: zUUID,
+    startup_id: zUUID.nullable(),
     name: z.string().nullable(),
     position: z.string().nullable(),
     email: z.string().nullable(),

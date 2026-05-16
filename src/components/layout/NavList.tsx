@@ -38,7 +38,7 @@ function NavItemLink({
     <NavLink
       key={item.key}
       to={item.path}
-      end={item.path === '/dashboard'}
+      end
       onClick={onItemClick}
       className={({ isActive }) =>
         cn(
