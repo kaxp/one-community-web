@@ -942,10 +942,12 @@ export async function patchAppConfigKey(key: string, enabled: boolean): Promise<
 // ── Admin Users tab ──────────────────────────────────────────────────────────
 import {
   zAdminUsersResponse,
+  zAdminFoundersResponse,
   zAdminUserUpdateResponse,
   zAdminUserDeleteResponse,
   zAdminStartupsResponse,
   type AdminUsersResponse,
+  type AdminFoundersResponse,
   type AdminUserUpdateRequest,
   type AdminUserUpdateResponse,
   type AdminUserDeleteResponse,
@@ -954,6 +956,8 @@ import {
 
 export interface AdminUsersArgs {
   search?: string;
+  /** Comma-separated roles to filter by, e.g. 'lp,potential_lp' */
+  roles?: string;
   sort_by?: string;
   sort_dir?: string;
   limit?: number;
@@ -963,6 +967,7 @@ export interface AdminUsersArgs {
 export async function getAdminUsers(args: AdminUsersArgs = {}): Promise<AdminUsersResponse> {
   const params = new URLSearchParams();
   if (args.search) params.set('search', args.search);
+  if (args.roles) params.set('roles', args.roles);
   if (args.sort_by) params.set('sort_by', args.sort_by);
   if (args.sort_dir) params.set('sort_dir', args.sort_dir);
   if (args.limit !== undefined) params.set('limit', String(args.limit));
@@ -971,6 +976,25 @@ export async function getAdminUsers(args: AdminUsersArgs = {}): Promise<AdminUse
   const url = `/admin/users${qs ? `?${qs}` : ''}`;
   const resp = await apiClient.get<ApiEnvelope<AdminUsersResponse>>(url);
   return zAdminUsersResponse.parse(unwrap(resp.data, url));
+}
+
+export interface AdminFoundersArgs {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getAdminFounders(
+  args: AdminFoundersArgs = {},
+): Promise<AdminFoundersResponse> {
+  const params = new URLSearchParams();
+  if (args.search) params.set('search', args.search);
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.offset !== undefined) params.set('offset', String(args.offset));
+  const qs = params.toString();
+  const url = `/admin/founders${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<AdminFoundersResponse>>(url);
+  return zAdminFoundersResponse.parse(unwrap(resp.data, url));
 }
 
 export async function patchAdminUser(

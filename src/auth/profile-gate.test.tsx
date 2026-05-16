@@ -68,12 +68,15 @@ describe('ProfileGate — session-termination policy (decisions.md P-17)', () =>
     expect(state.user?.phone).toBe('+911234567892');
   });
 
-  it('redirects to /onboarding/profile when persisted profile_complete is false', async () => {
+  // TODO(kaxp): Profile completion redirect is bypassed for now.
+  // All users (including profile_complete=false) land on /dashboard.
+  it('stays on /dashboard even when profile_complete is false (TODO kaxp: redirect bypassed)', async () => {
     seedSession(false);
     renderGate();
 
     await waitFor(() => {
-      expect(screen.getByText('onboarding shown')).toBeInTheDocument();
+      expect(screen.getByText('dashboard ok')).toBeInTheDocument();
     });
+    expect(screen.queryByText('onboarding shown')).not.toBeInTheDocument();
   });
 });

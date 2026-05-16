@@ -80,10 +80,15 @@ export interface NavItem {
   path: string;
   icon: string;
   roles: readonly (UserRole | '*')[];
+  /** Admin sidebar section — groups items under a named section with a divider. Admin-only. */
+  adminSection?: 'core' | 'operations' | 'system';
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
+  // ── Shared: visible to all authenticated roles ───────────────────────────
   { key: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: 'Home', roles: ['*'] },
+
+  // ── Search (most roles) ──────────────────────────────────────────────────
   {
     key: 'search',
     label: 'Search',
@@ -91,7 +96,40 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: 'Search',
     // Partner admitted with masked results — see comment on CAPABILITIES['search.use'].
     roles: ['lp', 'potential_lp', 'vc', 'startup_funded', 'partner', 'admin', 'super_admin'],
+    adminSection: 'core',
   },
+
+  // ── Portfolio & Fund Deck ────────────────────────────────────────────────
+  {
+    key: 'portfolio-fund-deck',
+    label: 'Portfolio & Fund Deck',
+    path: '/portfolio-fund-deck',
+    icon: 'Landmark',
+    roles: ['lp', 'potential_lp', 'admin', 'super_admin'],
+    adminSection: 'core',
+  },
+
+  // ── Refer / Add contact ──────────────────────────────────────────────────
+  {
+    key: 'add-user',
+    label: 'Add contact',
+    labelFor: { lp: 'Refer', potential_lp: 'Refer', vc: 'Refer', partner: 'Refer' },
+    path: '/add-user',
+    icon: 'UserPlus',
+    roles: ['lp', 'potential_lp', 'vc', 'partner', 'admin', 'super_admin'],
+    adminSection: 'core',
+  },
+
+  // ── My digest ───────────────────────────────────────────────────────────
+  {
+    key: 'digest',
+    label: 'My digest',
+    path: '/digest',
+    icon: 'Newspaper',
+    roles: ['lp', 'potential_lp', 'vc', 'partner'],
+  },
+
+  // ── Suggestions (matchmaking) ────────────────────────────────────────────
   {
     key: 'matchmaking',
     label: 'Suggestions',
@@ -99,6 +137,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: 'Sparkles',
     roles: ['lp', 'potential_lp', 'vc', 'startup_funded'],
   },
+
+  // ── Connections ──────────────────────────────────────────────────────────
   {
     key: 'connections',
     label: 'Connections',
@@ -131,21 +171,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
       'advisor',
     ],
   },
-  {
-    key: 'add-user',
-    label: 'Add contact',
-    labelFor: { lp: 'Refer', potential_lp: 'Refer', vc: 'Refer' },
-    path: '/add-user',
-    icon: 'UserPlus',
-    roles: ['lp', 'potential_lp', 'vc', 'admin', 'super_admin'],
-  },
-  {
-    key: 'admin-referrals',
-    label: 'Referrals',
-    path: '/admin/referrals',
-    icon: 'UserCheck',
-    roles: ['admin', 'super_admin'],
-  },
+
+  // ── Startup-specific ─────────────────────────────────────────────────────
   {
     // Stage 6 S8: /pitch is now the public submission landing page.
     // Authenticated startup members manage their profile at /my-pitch.
@@ -162,163 +189,33 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: 'BarChart3',
     roles: ['startup_funded'],
   },
-  { key: 'schedule', label: 'Schedule', path: '/schedule', icon: 'Calendar', roles: ['*'] },
-  { key: 'travel', label: 'Travel', path: '/travel', icon: 'Plane', roles: ['*'] },
-  {
-    key: 'viewers',
-    label: 'Who viewed me',
-    path: '/profile-viewers',
-    icon: 'Eye',
-    roles: [
-      'lp',
-      'potential_lp',
-      'vc',
-      'startup_inprogress',
-      'startup_onboarded',
-      'startup_funded',
-      'partner',
-      'advisor',
-    ],
-  },
-  {
-    key: 'documents',
-    label: 'Documents',
-    path: '/documents',
-    icon: 'Folder',
-    // Admin accesses files via Notion + Drive on the inbound-pitches and
-    // MIS overview pages (decisions.md [P-24]). Route remains registered so
-    // deep-links still work.
-    roles: [
-      'lp',
-      'potential_lp',
-      'vc',
-      'startup_inprogress',
-      'startup_onboarded',
-      'startup_funded',
-      'partner',
-      'advisor',
-    ],
-  },
-  {
-    key: 'portfolio-fund-deck',
-    label: 'Portfolio & Fund Deck',
-    path: '/portfolio-fund-deck',
-    icon: 'Landmark',
-    roles: ['lp', 'potential_lp', 'admin', 'super_admin'],
-  },
-  {
-    key: 'digest',
-    label: 'My digest',
-    path: '/digest',
-    icon: 'Newspaper',
-    roles: [
-      'lp',
-      'potential_lp',
-      'vc',
-      'startup_inprogress',
-      'startup_onboarded',
-      'startup_funded',
-      'partner',
-      'advisor',
-    ],
-  },
-  {
-    key: 'admin-home',
-    label: 'Admin home',
-    path: '/admin',
-    icon: 'LayoutDashboard',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-pitches',
-    label: 'Inbound pitches',
-    path: '/admin/pitches/inbound',
-    icon: 'FileSearch',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-mis',
-    label: 'MIS overview',
-    path: '/admin/mis-overview',
-    icon: 'BarChart3',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-connections',
-    label: 'Connection queue',
-    path: '/admin/connections',
-    icon: 'Inbox',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-digest',
-    label: 'Digests',
-    path: '/admin/digest',
-    icon: 'Mail',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-match',
-    label: 'Matchmaking ops',
-    path: '/admin/matchmaking',
-    icon: 'Zap',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-reports',
-    label: 'Quarterly reports',
-    path: '/admin/quarterly-reports',
-    icon: 'FileCheck',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-dlq',
-    label: 'Dead-letter jobs',
-    path: '/admin/dead-letter-jobs',
-    icon: 'AlertTriangle',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-analytics',
-    label: 'Analytics',
-    path: '/admin/analytics',
-    icon: 'PieChart',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-lp-funnel',
-    label: 'LP funnel',
-    path: '/admin/lp-funnel',
-    icon: 'Route',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-tracxn',
-    label: 'Tracxn ingest',
-    path: '/admin/tracxn',
-    icon: 'Globe',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-partner-referral',
-    label: 'Partner referral',
-    path: '/admin/partner-referral',
-    icon: 'Megaphone',
-    roles: ['admin', 'super_admin'],
-  },
-  {
-    key: 'admin-app-config',
-    label: 'App settings',
-    path: '/admin/app-config',
-    icon: 'Settings2',
-    roles: ['admin', 'super_admin'],
-  },
+
+  // TODO(kaxp): Commenting out the flows for now
+  // { key: 'schedule', label: 'Schedule', path: '/schedule', icon: 'Calendar', roles: ['*'] },
+  // { key: 'travel', label: 'Travel', path: '/travel', icon: 'Plane', roles: ['*'] },
+  // {
+  //   key: 'viewers',
+  //   label: 'Who viewed me',
+  //   path: '/profile-viewers',
+  //   icon: 'Eye',
+  //   roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor'],
+  // },
+  // {
+  //   key: 'documents',
+  //   label: 'Documents',
+  //   path: '/documents',
+  //   icon: 'Folder',
+  //   roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor'],
+  // },
+
+  // ── Admin — Core ─────────────────────────────────────────────────────────
   {
     key: 'admin-users',
     label: 'Users',
     path: '/admin/users',
     icon: 'Users',
     roles: ['admin', 'super_admin'],
+    adminSection: 'core',
   },
   {
     key: 'admin-startups',
@@ -326,7 +223,119 @@ export const NAV_ITEMS: readonly NavItem[] = [
     path: '/admin/startups',
     icon: 'Building2',
     roles: ['admin', 'super_admin'],
+    adminSection: 'core',
   },
+
+  // ── Admin — Operations ────────────────────────────────────────────────────
+  {
+    key: 'admin-pitches',
+    label: 'Inbound pitches',
+    path: '/admin/pitches/inbound',
+    icon: 'FileSearch',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+  {
+    key: 'admin-mis',
+    label: 'MIS overview',
+    path: '/admin/mis-overview',
+    icon: 'BarChart3',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+  {
+    key: 'admin-connections',
+    label: 'Connection queue',
+    path: '/admin/connections',
+    icon: 'Inbox',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+  {
+    key: 'admin-digest',
+    label: 'Digests',
+    path: '/admin/digest',
+    icon: 'Mail',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+  {
+    key: 'admin-match',
+    label: 'Matchmaking ops',
+    path: '/admin/matchmaking',
+    icon: 'Zap',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+  {
+    key: 'admin-reports',
+    label: 'Quarterly reports',
+    path: '/admin/quarterly-reports',
+    icon: 'FileCheck',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+  {
+    key: 'admin-analytics',
+    label: 'Analytics',
+    path: '/admin/analytics',
+    icon: 'PieChart',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+  {
+    key: 'admin-referrals',
+    label: 'Referrals',
+    path: '/admin/referrals',
+    icon: 'UserCheck',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+
+  // ── Admin — System ────────────────────────────────────────────────────────
+  {
+    key: 'admin-dlq',
+    label: 'Dead-letter jobs',
+    path: '/admin/dead-letter-jobs',
+    icon: 'AlertTriangle',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'system',
+  },
+  {
+    key: 'admin-lp-funnel',
+    label: 'LP funnel',
+    path: '/admin/lp-funnel',
+    icon: 'Route',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'system',
+  },
+  {
+    key: 'admin-tracxn',
+    label: 'Tracxn ingest',
+    path: '/admin/tracxn',
+    icon: 'Globe',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'system',
+  },
+  {
+    key: 'admin-partner-referral',
+    label: 'Partner referral',
+    path: '/admin/partner-referral',
+    icon: 'Megaphone',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'system',
+  },
+  {
+    key: 'admin-app-config',
+    label: 'App settings',
+    path: '/admin/app-config',
+    icon: 'Settings2',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'system',
+  },
+  // TODO(kaxp): Commenting out the flows for now
+  // { key: 'schedule', label: 'Schedule', path: '/schedule', icon: 'Calendar', roles: ['admin', 'super_admin'], adminSection: 'system' },
+  // { key: 'travel', label: 'Travel', path: '/travel', icon: 'Plane', roles: ['admin', 'super_admin'], adminSection: 'system' },
 ];
 
 export function navForRole(role: UserRole | null | undefined): NavItem[] {

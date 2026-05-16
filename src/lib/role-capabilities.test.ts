@@ -29,10 +29,11 @@ describe('role-capabilities', () => {
     expect(keys).not.toContain('admin-home');
   });
 
-  it('super_admin sees every admin item', () => {
+  it('super_admin sees admin items (admin-home removed — Dashboard now shows KPIs)', () => {
     const items = navForRole('super_admin');
     const keys = items.map((i) => i.key);
-    expect(keys).toContain('admin-home');
+    // TODO(kaxp): admin-home menu removed; Dashboard tab now shows KPI content
+    expect(keys).not.toContain('admin-home');
     expect(keys).toContain('admin-connections');
   });
 
@@ -62,7 +63,9 @@ describe('role-capabilities', () => {
     expect(item?.roles).toEqual(['admin', 'super_admin']);
   });
 
-  describe('documents nav — hidden from admin only (decisions.md [P-24])', () => {
+  // TODO(kaxp): Documents nav item commented out for all roles for now.
+  // Previously only hidden from admin (decisions.md [P-24]); now hidden from all.
+  describe('documents nav — hidden from all roles (TODO kaxp: re-enable when ready)', () => {
     it('admin does NOT see Documents in nav', () => {
       const keys = navForRole('admin').map((i) => i.key);
       expect(keys).not.toContain('documents');
@@ -73,20 +76,20 @@ describe('role-capabilities', () => {
       expect(keys).not.toContain('documents');
     });
 
-    it('lp sees Documents in nav', () => {
-      expect(navForRole('lp').map((i) => i.key)).toContain('documents');
+    it('lp does NOT see Documents in nav (TODO kaxp: commented out)', () => {
+      expect(navForRole('lp').map((i) => i.key)).not.toContain('documents');
     });
 
-    it('startup_inprogress sees Documents in nav', () => {
-      expect(navForRole('startup_inprogress').map((i) => i.key)).toContain('documents');
+    it('startup_inprogress does NOT see Documents in nav (TODO kaxp: commented out)', () => {
+      expect(navForRole('startup_inprogress').map((i) => i.key)).not.toContain('documents');
     });
 
-    it('partner sees Documents in nav', () => {
-      expect(navForRole('partner').map((i) => i.key)).toContain('documents');
+    it('partner does NOT see Documents in nav (TODO kaxp: commented out)', () => {
+      expect(navForRole('partner').map((i) => i.key)).not.toContain('documents');
     });
 
-    it('advisor sees Documents in nav', () => {
-      expect(navForRole('advisor').map((i) => i.key)).toContain('documents');
+    it('advisor does NOT see Documents in nav (TODO kaxp: commented out)', () => {
+      expect(navForRole('advisor').map((i) => i.key)).not.toContain('documents');
     });
   });
 
@@ -157,13 +160,14 @@ describe('role-capabilities', () => {
       expect(keys).not.toContain('digest');
     });
 
-    it('admin retains Dashboard / Search / Add contact / Schedule / Travel', () => {
+    it('admin retains Dashboard / Search / Add contact (Schedule / Travel TODO kaxp: commented out)', () => {
       const keys = navForRole('admin').map((i) => i.key);
       expect(keys).toContain('dashboard');
       expect(keys).toContain('search');
       expect(keys).toContain('add-user');
-      expect(keys).toContain('schedule');
-      expect(keys).toContain('travel');
+      // TODO(kaxp): Schedule and Travel commented out for now
+      expect(keys).not.toContain('schedule');
+      expect(keys).not.toContain('travel');
     });
   });
 
