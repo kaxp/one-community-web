@@ -135,7 +135,7 @@ const PORTFOLIO = [
     tags: [
       { l: 'SpaceTech', c: T.blue, bg: T.blueBg },
       { l: 'Deep Tech', c: T.purple, bg: T.purpleBg },
-      { l: 'Bullish', c: T.green, bg: T.greenBg },
+      { l: 'High Conviction', c: T.green, bg: T.greenBg },
     ],
     url: 'https://indianstartupnews.com/funding/olee-space-raises-3-million-to-advance-laser-based-quantum-communications-and-directed-energy-weapon-systems-9659808',
     wide: false,
@@ -210,7 +210,7 @@ const ARCHIVE = [
     ],
     signalCount: 4,
     portfolioCount: 2,
-    sentiment: { label: 'Bullish', color: T.green, bg: T.greenBg },
+    sentiment: { label: 'High Conviction', color: T.green, bg: T.greenBg },
     tags: ['healthtech', 'fintech'],
     headline: "India's healthtech consolidation is entering its most decisive phase.",
   },
@@ -227,7 +227,7 @@ const ARCHIVE = [
     ],
     signalCount: 6,
     portfolioCount: 1,
-    sentiment: { label: 'Neutral', color: T.blue, bg: T.blueBg },
+    sentiment: { label: 'Stable', color: T.blue, bg: T.blueBg },
     tags: ['fintech', 'd2c'],
     headline: 'The fintech battleground is consolidating faster than anyone predicted.',
   },
@@ -244,7 +244,7 @@ const ARCHIVE = [
     ],
     signalCount: 3,
     portfolioCount: 5,
-    sentiment: { label: 'Cautious', color: T.amber, bg: T.amberBg },
+    sentiment: { label: 'Watchlist', color: T.amber, bg: T.amberBg },
     tags: ['d2c', 'agritech'],
     headline:
       'The premium consumer cycle is real — but unit economics discipline separates winners.',
@@ -279,7 +279,7 @@ const ARCHIVE = [
     ],
     signalCount: 4,
     portfolioCount: 2,
-    sentiment: { label: 'Neutral', color: T.blue, bg: T.blueBg },
+    sentiment: { label: 'Stable', color: T.blue, bg: T.blueBg },
     tags: ['fintech', 'd2c'],
     headline:
       'The SaaS discipline era has arrived — generalists are losing, specialists are compounding.',
@@ -297,7 +297,7 @@ const ARCHIVE = [
     ],
     signalCount: 3,
     portfolioCount: 4,
-    sentiment: { label: 'Bullish', color: T.green, bg: T.greenBg },
+    sentiment: { label: 'High Conviction', color: T.green, bg: T.greenBg },
     tags: ['agritech', 'd2c'],
     headline: "India's farm machinery moment is a decade in the making — and just getting started.",
   },
@@ -907,7 +907,7 @@ function WarmupViewTab() {
     },
     {
       title: 'D2C 2.0: profitability-first brands will dominate',
-      badge: { l: 'Bullish', c: T.green, bg: T.greenBg },
+      badge: { l: 'High Conviction', c: T.green, bg: T.greenBg },
       body: 'The Boba Bhai playbook — high repeat, strong community, disciplined unit economics before raising institutional rounds — is the right template. The next category winners will be built by founders who understood margins before they understood GMV. Premium + discipline = durable.',
     },
     {
@@ -1263,7 +1263,7 @@ function FeaturedSection() {
             rel="noopener noreferrer"
             style={{ textDecoration: 'none' }}
           >
-            <Tag label="Bullish ↑" color={T.blue} bg={T.blueBg} />
+            <Tag label="High Conviction ↑" color={T.blue} bg={T.blueBg} />
           </a>
         </div>
 
@@ -1365,10 +1365,14 @@ function FeaturedSection() {
 // ── SECTION 4: Intel Strip ─────────────────────────────────────────────────
 
 const CONVICTION = [
-  { level: 'Bullish', color: T.green, sectors: ['AgriTech Infra', 'Defense Tech', 'Vertical AI'] },
-  { level: 'Neutral', color: T.text2, sectors: ['B2B SaaS', 'Healthtech'] },
-  { level: 'Cautious', color: T.amber, sectors: ['AI Wrappers', 'Horizontal SaaS'] },
-  { level: 'Bearish', color: '#b91c1c', sectors: ['Generic D2C', 'Late Consumer'] },
+  {
+    level: 'High Conviction',
+    color: T.green,
+    sectors: ['AgriTech Infra', 'Defense Tech', 'Vertical AI'],
+  },
+  { level: 'Stable', color: T.text2, sectors: ['B2B SaaS', 'Healthtech'] },
+  { level: 'Watchlist', color: T.amber, sectors: ['AI Wrappers', 'Horizontal SaaS'] },
+  { level: 'Cooling', color: '#b91c1c', sectors: ['Generic D2C', 'Late Consumer'] },
 ];
 
 function IntelStrip() {
