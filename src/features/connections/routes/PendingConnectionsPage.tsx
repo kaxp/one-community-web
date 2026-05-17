@@ -68,7 +68,7 @@ export function PendingConnectionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">My requests</h1>
+        <h1 className="text-3xl font-semibold text-ink-heading">Pending Actions</h1>
         <p className="text-sm text-ink-muted">{DIRECTION_DESCRIPTION[direction]}</p>
       </div>
 

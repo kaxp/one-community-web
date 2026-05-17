@@ -46,7 +46,7 @@ test.describe('Connection request flow (Stage 5.5)', () => {
     //    request (the LP-side seed pendingRows always include one outgoing
     //    pending_admin row). Re-using that signal proves the page renders.
     await page.goto('/connections/pending');
-    await expect(page.getByRole('heading', { name: /my requests/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /pending actions/i })).toBeVisible();
 
     // 6. Switch to admin via direct auth-store mutation (cross-user switch).
     await seedAuth(page, 'admin');

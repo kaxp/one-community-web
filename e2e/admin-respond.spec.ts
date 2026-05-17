@@ -13,7 +13,7 @@ test.describe('Target user accepts pending connection (Stage 5.5)', () => {
     await signin(page, 'lp');
 
     await page.goto('/connections/pending?direction=incoming');
-    await expect(page.getByRole('heading', { name: /my requests/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /pending actions/i })).toBeVisible();
 
     // Capture the Priya Rao row + counterpart user_id from the seed.
     const priyaRow = page
@@ -49,7 +49,7 @@ test.describe('Target user accepts pending connection (Stage 5.5)', () => {
     //    (including `acceptedRows` / `pendingRows`) back to the SEED — the
     //    just-accepted Priya would vanish. The Sidebar link triggers a
     //    soft React Router navigation that preserves MSW state.
-    await page.getByRole('link', { name: /^connections$/i }).click();
+    await page.getByRole('link', { name: /^network$/i }).click();
     await page.waitForURL('**/connections');
 
     // 4. Priya now appears in the accepted-connections list. Her name

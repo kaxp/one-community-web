@@ -62,13 +62,21 @@ export function LPDashboard() {
       </header>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <DashCard title="Latest digest" icon={Newspaper} link="/digest" linkLabel="View digest">
+        <DashCard
+          title="Weekly Intelligence"
+          icon={Newspaper}
+          link="/digest"
+          linkLabel="Read digest"
+        >
           {digests.isLoading ? (
             <Skeleton className="h-12 w-full" />
           ) : digestItems.length === 0 ? (
-            <p className="text-sm text-ink-muted" data-testid="lp-no-digests">
-              No digests yet — your first one arrives Monday.
-            </p>
+            <div data-testid="lp-no-digests">
+              <p className="text-sm font-medium text-ink-heading">W47 · May 17, 2026</p>
+              <p className="text-xs text-ink-muted">
+                Defense-tech and premium consumer growth this week.
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col gap-1">
               <Badge variant="secondary" className="w-fit">
@@ -87,7 +95,7 @@ export function LPDashboard() {
           title="New matches"
           icon={Sparkles}
           link="/matchmaking"
-          linkLabel="View suggestions"
+          linkLabel="View opportunities"
         >
           {matches.isLoading ? (
             <Skeleton className="h-10 w-full" />

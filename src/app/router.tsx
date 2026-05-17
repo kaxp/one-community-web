@@ -332,13 +332,21 @@ export const router = createBrowserRouter(
                   ),
                 },
                 {
-                  // PRD §7.8.5 — user-facing matchmaking. Roles match
-                  // NAV_ITEMS.matchmaking.roles (no `partner`, no `advisor`,
-                  // no startup_inprogress / startup_onboarded — they have no
-                  // pitch profile yet so the LP-side won't generate matches).
+                  // PRD §7.8.5 — user-facing matchmaking. Partner added to
+                  // support seeded default suggestions (Crest Wealth, Foxo
+                  // Health, Koshiqa, Nitro). startup_inprogress / startup_onboarded
+                  // excluded — they have no LP-side pitch profile yet.
                   element: (
                     <RoleGuard
-                      roles={['lp', 'potential_lp', 'vc', 'startup_funded', 'admin', 'super_admin']}
+                      roles={[
+                        'lp',
+                        'potential_lp',
+                        'vc',
+                        'startup_funded',
+                        'partner',
+                        'admin',
+                        'super_admin',
+                      ]}
                     />
                   ),
                   children: [
