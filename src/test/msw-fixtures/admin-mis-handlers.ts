@@ -9,6 +9,7 @@ const SEED: MISOverviewItem[] = [
   {
     id: '00000000-0000-4000-8000-000000000b01',
     startup_id: '00000000-0000-4000-8000-000000000c01',
+    user_id: '00000000-0000-4000-8000-000000000d01',
     company_name: 'Greenleaf Agritech',
     period: '2026-04',
     submitted_at: '2026-04-30T10:00:00Z',
@@ -25,6 +26,7 @@ const SEED: MISOverviewItem[] = [
   {
     id: '00000000-0000-4000-8000-000000000b02',
     startup_id: '00000000-0000-4000-8000-000000000c02',
+    user_id: '00000000-0000-4000-8000-000000000d02',
     company_name: 'PayKart',
     period: '2026-04',
     submitted_at: '2026-04-29T08:30:00Z',
@@ -41,6 +43,7 @@ const SEED: MISOverviewItem[] = [
   {
     id: '00000000-0000-4000-8000-000000000b03',
     startup_id: '00000000-0000-4000-8000-000000000c03',
+    user_id: null,
     company_name: 'NullMetrics Ltd',
     period: '2026-04',
     submitted_at: '2026-04-28T12:00:00Z',
@@ -85,13 +88,16 @@ export const adminMisHandlers: HttpHandler[] = [
 
     // Cursor passthrough: any cursor returns an empty second page.
     if (cursor) {
-      return HttpResponse.json({ data: { items: [], next_cursor: null }, error: null });
+      return HttpResponse.json({
+        data: { items: [], next_cursor: null, pending: [] },
+        error: null,
+      });
     }
 
     // yearly returns all, monthly/quarterly return 2 rows — allows range-filter tests.
     const count = range === 'yearly' ? SEED.length : 2;
     return HttpResponse.json({
-      data: { items: SEED.slice(0, count), next_cursor: null },
+      data: { items: SEED.slice(0, count), next_cursor: null, pending: [] },
       error: null,
     });
   }),
