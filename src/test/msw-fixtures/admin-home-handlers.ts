@@ -10,18 +10,21 @@ const SEED: AdminSummaryResponse = {
   mis_status: [
     {
       startup_id: '3c9a1e00-1d12-4b56-9ab0-4d2c8b0f3a12',
+      user_id: '3c9a1e00-1d12-4b56-9ab0-4d2c8b0f3a99',
       company_name: 'Acme Technologies',
       period: '2026-04',
       submitted: false,
     },
     {
       startup_id: 'a7b3d500-3f21-4a99-9e2f-8a1b3c4d5e6f',
+      user_id: 'a7b3d500-3f21-4a99-9e2f-8a1b3c4d5eaa',
       company_name: 'NeoLedger',
       period: '2026-04',
       submitted: true,
     },
     {
       startup_id: 'b1c2d300-4e5f-4a7b-8c9d-0e1f2a3b4c5d',
+      user_id: null,
       company_name: 'Boltline Robotics',
       period: '2026-04',
       submitted: false,

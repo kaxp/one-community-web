@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ExternalLink, BarChart3 } from 'lucide-react';
+import { ExternalLink, BarChart3, Clock, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +38,15 @@ function fmt(value: number | null, prefix = '', suffix = ''): string {
   return `${prefix}${value.toLocaleString()}${suffix}`;
 }
 
+function CompanyLink({ userId, name }: { userId: string | null; name: string }) {
+  if (!userId) return <span className="font-semibold text-ink-heading">{name}</span>;
+  return (
+    <Link to={`/search/profile/${userId}`} className="font-semibold text-brand hover:underline">
+      {name}
+    </Link>
+  );
+}
+
 // Phase 7.2.g — admin MIS submissions overview.
 export function AdminMISOverviewPage() {
   const [params, setParams] = useSearchParams();
@@ -59,6 +68,8 @@ export function AdminMISOverviewPage() {
   } = useAdminMisOverview(range);
 
   const items = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
+  // Pending companies come from the first page only (same list regardless of pagination).
+  const pending = data?.pages[0]?.pending ?? [];
 
   const setRange = (next: MISOverviewRange) => {
     const sp = new URLSearchParams(params);
@@ -72,7 +83,7 @@ export function AdminMISOverviewPage() {
         id: 'company_name',
         header: 'Company',
         cell: ({ row }) => (
-          <span className="font-semibold text-ink-heading">{row.original.company_name}</span>
+          <CompanyLink userId={row.original.user_id ?? null} name={row.original.company_name} />
         ),
       },
       {
@@ -177,7 +188,7 @@ export function AdminMISOverviewPage() {
       <header>
         <h1 className="text-3xl font-semibold text-ink-heading">MIS overview</h1>
         <p className="text-sm text-ink-muted">
-          Monthly investment summary submissions from funded startups.
+          Monthly investment summary — pending and submitted across all funded startups.
         </p>
       </header>
 
@@ -201,9 +212,63 @@ export function AdminMISOverviewPage() {
         ))}
       </div>
 
+      {/* ── Pending this month ─────────────────────────────────────────────── */}
+      {isLoading ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm text-warning">
+              <Clock className="h-4 w-4" aria-hidden />
+              Pending this month
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2" data-testid="mis-pending-loading">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : pending.length > 0 ? (
+        <Card data-testid="mis-pending-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm text-warning">
+              <Clock className="h-4 w-4" aria-hidden />
+              Pending this month
+              <span className="ml-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">
+                {pending.length}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col divide-y divide-border">
+              {pending.map((p) => (
+                <li key={p.startup_id} className="flex items-center gap-3 py-2">
+                  <Clock className="h-3.5 w-3.5 flex-none text-warning" aria-hidden />
+                  <CompanyLink userId={p.user_id ?? null} name={p.company_name} />
+                  <span className="ml-auto text-xs text-warning">No submission</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : !isError ? (
+        <Card>
+          <CardContent className="py-4">
+            <p className="flex items-center gap-2 text-sm text-success">
+              <CheckCircle2 className="h-4 w-4" aria-hidden />
+              All portfolio companies have submitted for this month.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* ── Submissions within range ───────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Submissions</CardTitle>
+          <CardTitle className="text-sm">
+            Submissions <span className="font-normal text-ink-muted capitalize">({range})</span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (

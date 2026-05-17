@@ -92,7 +92,16 @@ export function AdminDashboard() {
                         key={row.startup_id}
                         className="flex items-center justify-between gap-2 text-sm"
                       >
-                        <span className="truncate text-ink-heading">{row.company_name}</span>
+                        {row.user_id ? (
+                          <Link
+                            to={`/search/profile/${row.user_id}`}
+                            className="truncate font-medium text-brand hover:underline"
+                          >
+                            {row.company_name}
+                          </Link>
+                        ) : (
+                          <span className="truncate text-ink-heading">{row.company_name}</span>
+                        )}
                         {row.submitted ? (
                           <span className="inline-flex items-center gap-1 text-xs text-success">
                             <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
@@ -108,6 +117,12 @@ export function AdminDashboard() {
                     ))}
                   </ul>
                 )}
+                <Link
+                  to="/admin/mis-overview"
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+                >
+                  View MIS overview <ArrowRight className="h-3 w-3" aria-hidden />
+                </Link>
               </CardContent>
             </Card>
 

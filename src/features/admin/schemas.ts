@@ -64,6 +64,7 @@ export type AdminActionResponse = z.infer<typeof zAdminActionResponse>;
 // PRD §7.12.1 — admin/summary KPI dashboard.
 const zMisStatusRow = z.object({
   startup_id: zUUID,
+  user_id: zUUID.nullable(),
   company_name: z.string(),
   period: z.string(),
   submitted: z.boolean(),
@@ -314,6 +315,7 @@ export const zMISOverviewItem = z
   .object({
     id: zUUID,
     startup_id: zUUID,
+    user_id: zUUID.nullable(),
     company_name: z.string(),
     period: z.string(),
     submitted_at: zISODateTime,
@@ -330,10 +332,18 @@ export const zMISOverviewItem = z
   .passthrough();
 export type MISOverviewItem = z.infer<typeof zMISOverviewItem>;
 
+export const zMISPendingItem = z.object({
+  startup_id: zUUID,
+  user_id: zUUID.nullable(),
+  company_name: z.string(),
+});
+export type MISPendingItem = z.infer<typeof zMISPendingItem>;
+
 export const zMISOverviewListResponse = z
   .object({
     items: z.array(zMISOverviewItem),
     next_cursor: z.string().nullable(),
+    pending: z.array(zMISPendingItem).default([]),
   })
   .passthrough();
 export type MISOverviewListResponse = z.infer<typeof zMISOverviewListResponse>;
