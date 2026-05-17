@@ -19,9 +19,9 @@ export function MatchmakingPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Suggestions</h1>
+        <h1 className="text-3xl font-semibold text-ink-heading">Opportunities</h1>
         <p className="text-sm text-ink-muted">
-          Curated weekly matches. Tell us which ones look right and we&apos;ll set up the
+          Curated matches for you. Tell us which ones look right and we&apos;ll set up the
           introduction.
         </p>
       </header>
@@ -42,8 +42,8 @@ export function MatchmakingPage() {
       ) : (list.data ?? []).length === 0 ? (
         <EmptyState
           icon={Sparkles}
-          title="No suggestions this week"
-          description="Check back on Monday — we generate fresh matches each week."
+          title="No opportunities yet"
+          description="Your personalised opportunities will appear here once matched."
         />
       ) : (
         <ul className="grid grid-cols-1 gap-4 md:grid-cols-2" data-testid="suggestions-grid">

@@ -17,7 +17,7 @@ export function ConnectionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Connections</h1>
+        <h1 className="text-3xl font-semibold text-ink-heading">Network</h1>
         <p className="text-sm text-ink-muted">
           People you&apos;re connected with. Contact details are visible after the connection is
           accepted.

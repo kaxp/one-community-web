@@ -129,19 +129,19 @@ export const NAV_ITEMS: readonly NavItem[] = [
     roles: ['lp', 'potential_lp', 'vc', 'partner'],
   },
 
-  // ── Suggestions (matchmaking) ────────────────────────────────────────────
+  // ── Opportunities (matchmaking) ──────────────────────────────────────────
   {
     key: 'matchmaking',
-    label: 'Suggestions',
+    label: 'Opportunities',
     path: '/matchmaking',
     icon: 'Sparkles',
-    roles: ['lp', 'potential_lp', 'vc', 'startup_funded'],
+    roles: ['lp', 'potential_lp', 'vc', 'startup_funded', 'partner'],
   },
 
-  // ── Connections ──────────────────────────────────────────────────────────
+  // ── Network (connections) ────────────────────────────────────────────────
   {
     key: 'connections',
-    label: 'Connections',
+    label: 'Network',
     path: '/connections',
     icon: 'Users',
     roles: [
@@ -157,7 +157,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     key: 'pending',
-    label: 'Pending',
+    label: 'Pending Actions',
     path: '/connections/pending',
     icon: 'Clock',
     roles: [

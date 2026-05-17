@@ -57,9 +57,9 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     await expect(nav.getByRole('link', { name: /^Analytics$/i })).toBeVisible();
 
     // Must NOT be present (participant flows)
-    await expect(nav.getByRole('link', { name: /^Suggestions$/i })).not.toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Connections$/i })).not.toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Pending$/i })).not.toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Opportunities$/i })).not.toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Network$/i })).not.toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Pending Actions$/i })).not.toBeVisible();
     await expect(nav.getByRole('link', { name: /^My pitch$/i })).not.toBeVisible();
     await expect(nav.getByRole('link', { name: /^MIS$/i })).not.toBeVisible();
     await expect(nav.getByRole('link', { name: /^Who viewed me$/i })).not.toBeVisible();
@@ -83,9 +83,9 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     // Must be present
     await expect(nav.getByRole('link', { name: /^Dashboard$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Search$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Suggestions$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Connections$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Pending$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Opportunities$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Network$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Pending Actions$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Refer$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^My digest$/i })).toBeVisible();
     // TODO(kaxp): Schedule and Documents commented out for now
@@ -120,8 +120,8 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     await expect(nav.getByRole('link', { name: /^Dashboard$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^My pitch$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^MIS$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Connections$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Suggestions$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Network$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Opportunities$/i })).toBeVisible();
     // TODO(kaxp): Schedule commented out for now
     await expect(nav.getByRole('link', { name: /^Schedule$/i })).not.toBeVisible();
 
@@ -150,7 +150,8 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     // Must be present
     await expect(nav.getByRole('link', { name: /^Dashboard$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Search$/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /^Connections$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Opportunities$/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /^Network$/i })).toBeVisible();
     await expect(nav.getByRole('link', { name: /^Refer$/i })).toBeVisible();
     // TODO(kaxp): Schedule and Documents commented out for now
     await expect(nav.getByRole('link', { name: /^Schedule$/i })).not.toBeVisible();
@@ -163,9 +164,6 @@ test.describe('Role-nav isolation smoke (Stage 6)', () => {
     // Must NOT be present (startup-only)
     await expect(nav.getByRole('link', { name: /^My pitch$/i })).not.toBeVisible();
     await expect(nav.getByRole('link', { name: /^MIS$/i })).not.toBeVisible();
-
-    // Must NOT be present (LP matchmaking)
-    await expect(nav.getByRole('link', { name: /^Suggestions$/i })).not.toBeVisible();
 
     // Must NOT be present (LP card-scan)
     await expect(nav.getByRole('link', { name: /^Add contact$/i })).not.toBeVisible();

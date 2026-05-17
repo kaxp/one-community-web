@@ -67,8 +67,8 @@ describe('MatchmakingPage', () => {
     setMswMatchmakingFixture([]);
     renderPage();
 
-    await waitFor(() => expect(screen.getByText(/No suggestions this week/i)).toBeInTheDocument());
-    expect(screen.getByText(/Check back on Monday/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/No opportunities yet/i)).toBeInTheDocument());
+    expect(screen.getByText(/personalised opportunities/i)).toBeInTheDocument();
   });
 
   it('renders ErrorState when the list fetch fails', async () => {
