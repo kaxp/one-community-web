@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ErrorState } from '@/components/error-state/ErrorState';
 import { SearchBar } from '@/features/search/components/SearchBar';
 import { ChatTurn } from '@/features/search/components/ChatTurn';
 import { TypeSelector, type SearchTypeOption } from '@/features/search/components/TypeSelector';
@@ -103,9 +102,9 @@ export function SearchPage() {
         onSubmit={onSubmit}
         isPending={conversation.isPending}
       />
-      {conversation.error ? (
-        <ErrorState error={conversation.error} compact onRetry={() => onSubmit()} />
-      ) : null}
+      {/* Errors are now displayed inline on the failing turn — no separate
+          full-width error card. The ErrorState block that used to live here
+          has been removed as part of the ChatGPT-style error UX update. */}
     </div>
   );
 
@@ -154,7 +153,9 @@ export function SearchPage() {
             key={t.id}
             userMessage={t.userMessage}
             response={t.response}
+            isError={t.isError === true}
             isMasked={isMasked}
+            onRetry={t.isError ? () => conversation.retry(t.id) : undefined}
           />
         ))}
         <div ref={threadRef} aria-hidden />

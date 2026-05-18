@@ -101,14 +101,25 @@ describe('SearchPage (PRD §7.4.1)', () => {
     expect(await screen.findByText(/no matches for/i)).toBeInTheDocument();
   });
 
-  it('surfaces a 429 rate-limit via the inline error', async () => {
+  it('surfaces an API error inline on the failing turn', async () => {
+    // After the inline-error UX refactor (chat-turn-error), API failures no
+    // longer render a full-width ErrorState card. Instead, the user's message
+    // stays visible in the thread and a "Something went wrong" message + Retry
+    // button appear directly below it (data-testid="chat-turn-error").
     signInAsLP();
     setMswSearchScenario('rate_limit');
     renderWithProviders(<SearchPage />);
 
     await typeAndSubmit('fintech');
 
-    expect(await screen.findByText(/too many requests/i)).toBeInTheDocument();
+    // User message bubble must remain visible.
+    expect(await screen.findByText('fintech')).toBeInTheDocument();
+    // Inline error copy.
+    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+    // Retry affordance.
+    expect(screen.getByTestId('chat-turn-retry')).toBeInTheDocument();
+    // The full-page ErrorState card must NOT be rendered.
+    expect(screen.queryByText(/too many requests/i)).not.toBeInTheDocument();
   });
 
   it('renders a non-partner viewer without locked placeholders even when fields are absent', async () => {
