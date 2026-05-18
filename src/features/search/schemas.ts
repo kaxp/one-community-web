@@ -67,22 +67,63 @@ export type LPResultItem = z.infer<typeof zLPResultItem>;
 
 export type SearchResultItem = StartupResultItem | LPResultItem;
 
-// Cosmic-style answer envelope (Phase 1 of conversational search).
-// Present for discovery queries when GPT synthesis succeeded; null otherwise.
+// ── Conversational search v4 answer envelope ─────────────────────────────────
+// The v4 synthesizer returns one of three shapes depending on intent mode:
+//
+//   list shape     (discover, rank)
+//     → groups[], optional sections/pivot/alternatives/verdict/subject_id
+//   analysis shape (drill_in, analyze_bear, analyze_bull, compare)
+//     → sections[], optional groups/pivot/alternatives
+//   redirect shape (meta, entity_not_found)
+//     → pivot + alternatives[], optional groups/sections
+//
+// All shapes share: intro + follow_up.
+// All mode-specific fields are optional so validation doesn't fail when the
+// synthesizer returns a different shape than the v3 schema expected.
+
 export const zSearchAnswerItem = z.object({
   startup_id: z.string(),
+  // name is populated by the v4 synthesizer so the FE can render it without
+  // looking up the card in resultsByUserId (useful for entity_not_found mode).
+  name: z.string().optional(),
   explanation: z.string(),
 });
+
 export const zSearchAnswerGroup = z.object({
   heading: z.string(),
   items: z.array(zSearchAnswerItem),
 });
+
+// Analysis shape: sections with a heading + body paragraph per risk / topic.
+export const zSearchAnswerSection = z.object({
+  heading: z.string(),
+  body: z.string(),
+});
+
+// Used in subjects[] (compare mode) and alternatives[] (entity_not_found).
+export const zSearchAnswerNamedRef = z.object({
+  startup_id: z.string(),
+  name: z.string(),
+});
+
 export const zSearchAnswer = z.object({
   intro: z.string(),
-  groups: z.array(zSearchAnswerGroup),
+  // List shape
+  groups: z.array(zSearchAnswerGroup).optional(),
+  // Analysis shape
+  sections: z.array(zSearchAnswerSection).optional(),
+  subject_id: z.string().nullable().optional(),
+  subjects: z.array(zSearchAnswerNamedRef).nullable().optional(),
+  verdict: z.string().nullable().optional(),
+  // Redirect shape
+  pivot: z.string().nullable().optional(),
+  alternatives: z.array(zSearchAnswerNamedRef).optional(),
+  // Shared
   follow_up: z.string().nullable().optional(),
 });
 export type SearchAnswer = z.infer<typeof zSearchAnswer>;
+export type SearchAnswerSection = z.infer<typeof zSearchAnswerSection>;
+export type SearchAnswerNamedRef = z.infer<typeof zSearchAnswerNamedRef>;
 
 const zSearchPayloadBase = z.object({
   total: z.number().int(),
