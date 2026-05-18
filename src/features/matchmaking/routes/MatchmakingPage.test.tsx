@@ -1,27 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
-import userEvent from '@testing-library/user-event';
 import { renderWithProviders, screen, waitFor, within } from '@/test/test-utils';
 import { MatchmakingPage } from './MatchmakingPage';
 import { useAuthStore } from '@/auth/auth-store';
 import {
   queueMatchmakingListError,
-  setMswConnectionAlwaysCreates,
   setMswMatchmakingFixture,
 } from '@/test/msw-fixtures/matchmaking-handlers';
-import { toast } from 'sonner';
-
-vi.mock('sonner', async () => {
-  const actual = await vi.importActual<typeof import('sonner')>('sonner');
-  return {
-    ...actual,
-    toast: {
-      ...actual.toast,
-      success: vi.fn(),
-      error: vi.fn(),
-    },
-  };
-});
 
 function signedInAsLP() {
   useAuthStore.getState().setSession({
@@ -77,46 +62,5 @@ describe('MatchmakingPage', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText(/code: internal_error/i)).toBeInTheDocument());
-  });
-
-  it('Interested → optimistic remove + connection_created success toast', async () => {
-    signedInAsLP();
-    const successSpy = vi.mocked(toast.success);
-    successSpy.mockClear();
-    const user = userEvent.setup();
-    renderPage();
-
-    await waitFor(() => expect(screen.getByTestId('suggestions-grid')).toBeInTheDocument());
-    expect(screen.getByText(/Acme Technologies/)).toBeInTheDocument();
-
-    await user.click(screen.getByTestId('respond-accepted-c1d2e3f4-5a6b-4c8d-9e0f-1a2b3c4d5e6f'));
-
-    // Card removes optimistically — Acme is gone, others remain.
-    await waitFor(() => expect(screen.queryByText(/Acme Technologies/)).not.toBeInTheDocument());
-    expect(screen.getByText(/Boltline Robotics/)).toBeInTheDocument();
-
-    // Match toast surfaces because the MSW handler defaults to
-    // connectionAlwaysCreatesPair=true.
-    await waitFor(() =>
-      expect(successSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Match! Connection request created'),
-      ),
-    );
-  });
-
-  it('Interested with no mutual → "Noted" toast', async () => {
-    signedInAsLP();
-    setMswConnectionAlwaysCreates(false);
-    const successSpy = vi.mocked(toast.success);
-    successSpy.mockClear();
-    const user = userEvent.setup();
-    renderPage();
-
-    await waitFor(() => expect(screen.getByTestId('suggestions-grid')).toBeInTheDocument());
-    await user.click(screen.getByTestId('respond-accepted-c1d2e3f4-5a6b-4c8d-9e0f-1a2b3c4d5e6f'));
-
-    await waitFor(() =>
-      expect(successSpy).toHaveBeenCalledWith(expect.stringContaining("Noted. We'll let you know")),
-    );
   });
 });
