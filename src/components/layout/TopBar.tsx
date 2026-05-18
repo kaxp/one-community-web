@@ -5,12 +5,17 @@ import { useAuthStore } from '@/auth/auth-store';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 // import { RoleBadge } from '@/components/role-badge';
 import { Button } from '@/components/ui/button';
+import { clearAllSearchConversations } from '@/features/search/hooks/use-conversation';
 import { MobileNavDrawer } from './MobileNavDrawer';
 
 export function TopBar() {
   const user = useUser();
 
   const onLogout = () => {
+    // Phase H: drop every per-user search-conversation entry from sessionStorage
+    // before redirecting. Together with the per-user storage key, this stops a
+    // next signed-in user on the same tab from inheriting the previous thread.
+    clearAllSearchConversations();
     useAuthStore.getState().clear();
     window.location.href = '/signin';
   };
