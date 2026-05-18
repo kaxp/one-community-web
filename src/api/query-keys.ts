@@ -108,6 +108,11 @@ export const qk = {
       limit?: number;
       offset?: number;
     }) => ['admin', 'startups', args] as const,
+    lpsAll: ['admin', 'lps'] as const,
+    lps: (args: { role?: string; search?: string; sort_by?: string }) =>
+      ['admin', 'lps', args] as const,
+    lpDetail: (userId: string) => ['admin', 'lps', userId] as const,
+    lpNotesAll: (userId: string) => ['admin', 'lps', userId, 'notes'] as const,
   },
   digest: {
     pending: ['digest', 'pending'] as const,
