@@ -51,6 +51,10 @@ import {
   zFunnelStatusResponse,
   zInboundPitchDetail,
   zInboundPitchesResponse,
+  zLpCrmDetail,
+  zLpCrmListResponse,
+  zLpCrmNote,
+  zLpCrmNotesResponse,
   zMISOverviewListResponse,
   zPartnerReferralResponse,
   zQuarterlyReportApproveResponse,
@@ -68,6 +72,13 @@ import {
   type InboundPitchDetail,
   type InboundPitchRange,
   type InboundPitchesResponse,
+  type LpCrmDetail,
+  type LpCrmListResponse,
+  type LpCrmNote,
+  type LpCrmNoteCreate,
+  type LpCrmNotesResponse,
+  type LpCrmRoleFilter,
+  type LpCrmSort,
   type MISOverviewListResponse,
   type MISOverviewRange,
   type PartnerReferralRequest,
@@ -1038,4 +1049,47 @@ export async function getAdminStartups(
   const url = `/admin/startups${qs ? `?${qs}` : ''}`;
   const resp = await apiClient.get<ApiEnvelope<AdminStartupsResponse>>(url);
   return zAdminStartupsResponse.parse(unwrap(resp.data, url));
+}
+
+// ── LP CRM ────────────────────────────────────────────────────────────────────
+
+export interface AdminLpsArgs {
+  role?: LpCrmRoleFilter;
+  search?: string;
+  sort_by?: LpCrmSort;
+}
+
+export async function getAdminLps(args: AdminLpsArgs = {}): Promise<LpCrmListResponse> {
+  const params = new URLSearchParams();
+  if (args.role) params.set('role', args.role);
+  if (args.search) params.set('search', args.search);
+  if (args.sort_by) params.set('sort_by', args.sort_by);
+  const qs = params.toString();
+  const url = `/admin/lps${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<LpCrmListResponse>>(url);
+  return zLpCrmListResponse.parse(unwrap(resp.data, url));
+}
+
+export async function getAdminLpDetail(userId: string): Promise<LpCrmDetail> {
+  const url = `/admin/lps/${encodeURIComponent(userId)}`;
+  const resp = await apiClient.get<ApiEnvelope<LpCrmDetail>>(url);
+  return zLpCrmDetail.parse(unwrap(resp.data, url));
+}
+
+export async function getAdminLpNotes(userId: string): Promise<LpCrmNotesResponse> {
+  const url = `/admin/lps/${encodeURIComponent(userId)}/notes`;
+  const resp = await apiClient.get<ApiEnvelope<LpCrmNotesResponse>>(url);
+  return zLpCrmNotesResponse.parse(unwrap(resp.data, url));
+}
+
+export async function createAdminLpNote(userId: string, body: LpCrmNoteCreate): Promise<LpCrmNote> {
+  const url = `/admin/lps/${encodeURIComponent(userId)}/notes`;
+  const resp = await apiClient.post<ApiEnvelope<LpCrmNote>>(url, body);
+  return zLpCrmNote.parse(unwrap(resp.data, url));
+}
+
+export async function patchAdminLpPoc(userId: string, poc: string | null): Promise<LpCrmDetail> {
+  const url = `/admin/lps/${encodeURIComponent(userId)}/poc`;
+  const resp = await apiClient.patch<ApiEnvelope<LpCrmDetail>>(url, { poc });
+  return zLpCrmDetail.parse(unwrap(resp.data, url));
 }

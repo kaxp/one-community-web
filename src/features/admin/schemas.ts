@@ -472,3 +472,96 @@ export const zAppConfigListResponse = z.object({
   items: z.array(zAppConfigItem),
 });
 export type AppConfigListResponse = z.infer<typeof zAppConfigListResponse>;
+
+// ── LP CRM (LP Funnel relationship tracking) ─────────────────────────────────
+
+export const LP_CRM_NOTE_TYPES = ['meeting', 'call', 'follow_up', 'deck_shared'] as const;
+export type LpCrmNoteType = (typeof LP_CRM_NOTE_TYPES)[number];
+
+export const LP_CRM_NOTE_LABELS: Record<LpCrmNoteType, string> = {
+  meeting: 'Meeting',
+  call: 'Call',
+  follow_up: 'Follow-up',
+  deck_shared: 'Deck Shared',
+};
+
+export const LP_CRM_ROLE_FILTER = ['lp', 'potential_lp'] as const;
+export type LpCrmRoleFilter = (typeof LP_CRM_ROLE_FILTER)[number];
+
+export const LP_CRM_SORT = ['last_activity', 'name'] as const;
+export type LpCrmSort = (typeof LP_CRM_SORT)[number];
+
+export const zLpCrmListItem = z
+  .object({
+    id: zUUID,
+    name: z.string().nullable(),
+    email: z.string().nullable(),
+    organisation: z.string().nullable(),
+    role: zUserRole,
+    fund_name: z.string().nullable(),
+    funnel_status: z.string().nullable(),
+    poc: z.string().nullable(),
+    last_meeting_date: z.string().nullable(),
+    last_comment: z.string().nullable(),
+    created_at: zISODateTime,
+  })
+  .passthrough();
+export type LpCrmListItem = z.infer<typeof zLpCrmListItem>;
+
+export const zLpCrmListResponse = z
+  .object({
+    items: z.array(zLpCrmListItem),
+    total: z.number().int().nonnegative(),
+  })
+  .passthrough();
+export type LpCrmListResponse = z.infer<typeof zLpCrmListResponse>;
+
+export const zLpCrmDetail = z
+  .object({
+    id: zUUID,
+    name: z.string().nullable(),
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    organisation: z.string().nullable(),
+    designation: z.string().nullable(),
+    linkedin_url: z.string().nullable(),
+    role: zUserRole,
+    fund_name: z.string().nullable(),
+    aum_cr: z.number().nullable(),
+    cheque_range_min: z.number().nullable(),
+    cheque_range_max: z.number().nullable(),
+    sectors: z.array(z.string()),
+    stages: z.array(z.string()),
+    geography: z.array(z.string()),
+    funnel_status: z.string().nullable(),
+    poc: z.string().nullable(),
+    description: z.string().nullable(),
+    first_meeting_date: z.string().nullable(),
+    last_meeting_date: z.string().nullable(),
+  })
+  .passthrough();
+export type LpCrmDetail = z.infer<typeof zLpCrmDetail>;
+
+export const zLpCrmNote = z
+  .object({
+    id: zUUID,
+    lp_user_id: zUUID,
+    admin_user_id: zUUID.nullable(),
+    admin_name: z.string().nullable(),
+    note_type: z.enum(LP_CRM_NOTE_TYPES),
+    note_date: z.string(),
+    comment: z.string(),
+    created_at: zISODateTime,
+  })
+  .passthrough();
+export type LpCrmNote = z.infer<typeof zLpCrmNote>;
+
+export const zLpCrmNotesResponse = z.object({ items: z.array(zLpCrmNote) }).passthrough();
+export type LpCrmNotesResponse = z.infer<typeof zLpCrmNotesResponse>;
+
+export const zLpCrmNoteCreate = z.object({
+  note_type: z.enum(LP_CRM_NOTE_TYPES),
+  note_date: z.string().min(1),
+  comment: z.string().trim().min(1, 'Comment is required'),
+});
+export type LpCrmNoteCreate = z.infer<typeof zLpCrmNoteCreate>;
