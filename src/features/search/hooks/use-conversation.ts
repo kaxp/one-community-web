@@ -6,10 +6,12 @@ import { useUser } from '@/auth/use-auth';
 import type { ConversationResponse, SearchTargetType } from '@/features/search/schemas';
 
 // One turn = one user message + the assistant's reply for that message.
+// `response` is null while the API call is in-flight (optimistic pending state).
+// Consumers check `response === null` to render a loading skeleton.
 export interface ConversationTurn {
   id: string; // local-only client id for React keys
   userMessage: string;
-  response: ConversationResponse;
+  response: ConversationResponse | null;
 }
 
 interface UseConversationOptions {
@@ -149,16 +151,16 @@ export function useConversation(opts: UseConversationOptions = {}): UseConversat
     }
   }, [userId]);
 
-  // Persist any state change. Skipped when there's no signed-in user (no
-  // safe scope to write under) or when the thread is empty (nothing worth
-  // persisting yet — keeps the storage clean).
+  // Persist any state change. Pending turns (response === null) are filtered
+  // out — a half-finished turn should never survive a page refresh.
   useEffect(() => {
     if (!userId) return;
     if (conversationId === null && turns.length === 0) return;
-    saveToSession({ ownerUserId: userId, conversationId, turns });
+    const persistable = turns.filter((t) => t.response !== null);
+    saveToSession({ ownerUserId: userId, conversationId, turns: persistable });
   }, [userId, conversationId, turns]);
 
-  const mutation = useMutation<ConversationResponse, ApiError, string>({
+  const mutation = useMutation<ConversationResponse, ApiError, string, { pendingId: string }>({
     mutationFn: (message) =>
       searchConversation({
         conversation_id: conversationId,
@@ -166,16 +168,34 @@ export function useConversation(opts: UseConversationOptions = {}): UseConversat
         target_type: opts.targetType ?? null,
         limit: opts.limit,
       }),
-    onSuccess: (response, message) => {
+    // Phase H.1 (2026-05-18): add the user's message to the turn list
+    // immediately so it appears on screen while the API call is in-flight.
+    // The pending turn has response=null; ChatTurn renders a loading skeleton
+    // for that state. onSuccess replaces it; onError removes it.
+    onMutate: (message) => {
+      const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      setTurns((prev) => [...prev, { id: pendingId, userMessage: message, response: null }]);
+      return { pendingId };
+    },
+    onSuccess: (response, _message, context) => {
       setConversationId(response.conversation_id);
-      setTurns((prev) => [
-        ...prev,
-        {
-          id: `${response.conversation_id}-${response.turn}-${prev.length}`,
-          userMessage: message,
-          response,
-        },
-      ]);
+      setTurns((prev) =>
+        prev.map((t) =>
+          t.id === context.pendingId
+            ? {
+                id: `${response.conversation_id}-${response.turn}-${prev.length}`,
+                userMessage: t.userMessage,
+                response,
+              }
+            : t,
+        ),
+      );
+    },
+    onError: (_err, _message, context) => {
+      // Remove the pending turn so the user can retry cleanly.
+      if (context) {
+        setTurns((prev) => prev.filter((t) => t.id !== context.pendingId));
+      }
     },
   });
 
