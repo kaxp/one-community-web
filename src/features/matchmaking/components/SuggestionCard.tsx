@@ -55,6 +55,7 @@ export function SuggestionCard({ suggestion, myUserId, onConflict }: Props) {
     return err.userMessage;
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderActionButton = (action: RespondAction, variant: 'default' | 'outline' | 'ghost') => (
     <InlineExecutionButton
       size="sm"
@@ -109,11 +110,12 @@ export function SuggestionCard({ suggestion, myUserId, onConflict }: Props) {
           <p className="text-sm text-ink-heading">{suggestion.one_liner}</p>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+        {/* TODO(kaxp): Remove Interest button */}
+        {/* <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           {renderActionButton('accepted', 'default')}
           {renderActionButton('rejected', 'outline')}
           {renderActionButton('skipped', 'ghost')}
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   );

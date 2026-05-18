@@ -77,67 +77,67 @@ const PORTFOLIO = [
     badgeBg: T.greenBg,
     amount: '₹40 Cr',
     metrics: [
-      ['Round', 'Series A+'],
-      ['Lead', '8i Ventures · Titan Capital · GGC'],
-      ['FY25 Revenue', '₹30 Cr  ·  500% YoY growth'],
-      ['Outlets', '92+ across 8 cities'],
-      ['FY26 Target', '~₹75 Cr (2.5× FY25)'],
-      ['Expansion', '300 stores in 12–14 months'],
+      ['Round', 'Series A+ ($4.3 M)'],
+      ['Lead', '8i Ventures · Titan Capital Winners Fund · Global Growth Capital'],
+      ['New Investors', 'Big Capital · Kunal Shah (CRED) · Mekin Maheshwari'],
+      ['FY24 → FY25', '₹5 Cr → ₹30 Cr  ·  500% YoY growth'],
+      ['Outlets', '92+ across 8 cities (55 dine-in + delivery/cloud kitchens)'],
+      ['FY26 Target', '₹100 Cr ARR · 300 stores in 12–14 months'],
     ],
-    pov: 'Boba Bhai is capturing the Gen Z premium QSR opportunity ahead of incumbents. 500% YoY revenue growth to ₹30 Cr in FY25, combined with 92+ outlets in 8 cities, signals disciplined omnichannel execution. Existing investors doubling down at a 5× valuation step-up is the strongest possible endorsement.',
+    pov: "Boba Bhai is the definitive Gen Z QSR play — Korean-inspired fusion and bubble tea built for India's youngest, most brand-loyal consumers. Going from ₹5 Cr to ₹30 Cr in a single fiscal year while raising at a 5× valuation step-up confirms unit economics, not just momentum. The quick-commerce leg growing 40–50% MoM points to a true omnichannel brand, not just a café chain. Existing investors doubling down is the strongest endorsement the market can give.",
     tags: [
       { l: 'D2C', c: T.purple, bg: T.purpleBg },
       { l: 'Consumer', c: T.green, bg: T.greenBg },
       { l: 'IPO Signal', c: T.blue, bg: T.blueBg },
     ],
-    url: 'https://inc42.com/buzz/boba-bhai-nets-%E2%82%B940-cr-to-expand-offline-presence/',
+    url: 'https://economictimes.indiatimes.com/tech/funding/qsr-chain-boba-bhai-raises-4-3-million-from-8i-ventures-titan-capital-winners-fund-global-growth-capital/articleshow/129408953.cms',
     wide: true,
   },
   {
     name: 'Balwaan Krishi',
-    sector: 'AgriTech · Farm Machinery',
-    badge: 'Nationwide Expansion',
+    sector: 'AgriTech · Farm Machinery · Content & Distribution',
+    badge: 'Strategic Acquisition ✓',
     badgeColor: T.amber,
     badgeBg: T.amberBg,
-    amount: '₹87.9 Cr',
+    amount: 'Acqui-hire',
     metrics: [
-      ['Revenue FY25', '₹87.9 Cr'],
-      ['New Hub', 'Jaipur Manufacturing'],
-      ['Warehouses', 'MP · AP · TN · NE · Kashmir'],
-      ['Jobs Created', '500+'],
-      ['Farmers Served', '50 lakh+'],
-      ['Units Sold', '60,000+ equipment'],
+      ['Acquired', 'Farming Leader (Agri YouTube Platform)'],
+      ['YouTube', '65 lakh subscribers'],
+      ['Facebook', '75 lakh+ followers'],
+      ['Farmer Reach', '1.5 Cr+ directly post-acquisition'],
+      ['Existing Network', '10 lakh farmers · 2,000+ dealers'],
+      ['Founded', '2016 · Rohit Bajaj & Shubham Bajaj · Jaipur'],
     ],
-    pov: "Distribution density is Balwaan's deepest moat. Reaching tehsil-level with 2,000+ dealers is something no VC-backed agri brand has replicated at scale. The Jaipur manufacturing hub signals a move from distribution-first to vertically integrated — a significant strategic shift.",
+    pov: "Acquiring Farming Leader is a masterclass in distribution-first thinking. Balwaan now reaches 1.5 crore farmers directly — a content-to-commerce flywheel no competitor can replicate quickly. With 65 lakh YouTube subscribers and 75 lakh Facebook followers, Balwaan is no longer just a machinery company; it's an agri-media platform that happens to sell equipment. This dramatically lowers customer acquisition costs and cements tehsil-level brand recall in a market where trust is the only currency.",
     tags: [
       { l: 'AgriTech', c: T.green, bg: T.greenBg },
-      { l: 'Expansion', c: T.amber, bg: T.amberBg },
+      { l: 'Acquisition', c: T.amber, bg: T.amberBg },
     ],
-    url: 'https://www.global-agriculture.com/mechanization-technology/balwaan-krishi-expands-manufacturing-and-distribution-network-in-india/',
+    url: 'https://yourstory.com/hindi/balwaan-krishi-acquires-agri-youtube-platform-farming-leader-farmers',
     wide: false,
   },
   {
     name: 'Olee Space',
     sector: 'Defense · Photonics · SpaceTech',
-    badge: 'Seed Raised ✓',
+    badge: 'Live Demo ✓',
     badgeColor: T.blue,
     badgeBg: T.blueBg,
     amount: '$3 M',
     metrics: [
-      ['Lead', 'Rockstud Capital'],
-      ['Core Tech', 'FSOC · Quantum KD · DEW'],
-      ['Speed', '10+ Gbps · <10ms latency'],
-      ['Indigenous', '85% content validated'],
-      ['Founders', 'IIT Bombay'],
-      ['Use of Funds', '80% hardware · 20% opex'],
+      ['Investors', 'Rockstud Capital · IIMA Ventures'],
+      ['Founders', 'James Solomon & Suman Hiremath · IIT Bombay · Pune, 2023'],
+      ['FSOC Demo', '20 km · 10 Gbps · 99.9999% link availability'],
+      ['DEW System', 'Laser weapon · 5 power tiers (2–50 kW) · <3s engagement'],
+      ['Indigenous', '85% content · in-house gimbal (arc-second precision)'],
+      ['Team', '25 engineers; BEL + DRDO alumni; revenue via defence firm partnerships'],
     ],
-    pov: "The FSOC + QKD + DEW stack is technically 3–5 years ahead of domestic competition. 85% indigenous content validated under Indian atmospheric conditions in just 4 months is exceptional. This is the rare seed where the technology moat is genuinely defensible — and squarely aligned with India's Atmanirbhar Bharat defense push.",
+    pov: "James Solomon's journey from JEE tutor to building India's first startup-delivered laser weapon is the founding story of the decade. In under 3 years, Olee Space has live-demonstrated a 20 km, 10 Gbps free-space optical comms system and a directed energy weapon — both shown at a defence symposium attended by Rajnath Singh and Army commanders. Navigating procurement via larger defence firms rather than waiting for direct Army orders is exactly the capital-efficient playbook deep-tech startups must follow. The 85% indigenous content at arc-second gimbal precision is technically world-class.",
     tags: [
       { l: 'SpaceTech', c: T.blue, bg: T.blueBg },
       { l: 'Deep Tech', c: T.purple, bg: T.purpleBg },
       { l: 'High Conviction', c: T.green, bg: T.greenBg },
     ],
-    url: 'https://indianstartupnews.com/funding/olee-space-raises-3-million-to-advance-laser-based-quantum-communications-and-directed-energy-weapon-systems-9659808',
+    url: 'https://www.businesstoday.in/latest/corporate/story/bt-exclusive-from-jee-tutor-to-defence-tech-founder-how-oleespace-delivered-one-of-indias-first-start-up-built-laser-weapons-530166-2026-05-06',
     wide: false,
   },
 ];
@@ -213,6 +213,20 @@ const ARCHIVE = [
     sentiment: { label: 'High Conviction', color: T.green, bg: T.greenBg },
     tags: ['healthtech', 'fintech'],
     headline: "India's healthtech consolidation is entering its most decisive phase.",
+    news: [
+      {
+        title: 'Centricity in talks to raise $30 Mn led by MUFG and SIG',
+        summary:
+          "The corporate wellness SaaS platform is attracting marquee Japanese and global institutional capital — a rare cross-border signal that India's enterprise health market has reached global relevance.",
+        url: 'https://entrackr.com/exclusive/exclusive-centricity-in-talks-to-raise-30-mn-round-led-by-mufg-and-sig-11822996',
+      },
+      {
+        title: 'Apollo Diagnostics expands partner lab network to 900+ cities',
+        summary:
+          "Apollo's aggressive diagnostic network expansion signals that organised healthcare infrastructure is finally reaching Tier 2 and 3 India — creating distribution moats for health-data-first startups.",
+        url: 'https://www.apollodiagnostics.in/',
+      },
+    ],
   },
   {
     id: '45',
@@ -230,6 +244,20 @@ const ARCHIVE = [
     sentiment: { label: 'Stable', color: T.blue, bg: T.blueBg },
     tags: ['fintech', 'd2c'],
     headline: 'The fintech battleground is consolidating faster than anyone predicted.',
+    news: [
+      {
+        title: 'Scripbox plans ₹170 Cr debt and equity raise; gears up for IPO',
+        summary:
+          "The wealthtech platform is structuring a blended raise ahead of a public listing — the clearest IPO-intent signal from India's digital wealth management sector in 2026.",
+        url: 'https://entrackr.com/exclusive/exclusive-scripbox-plans-rs-170-cr-debt-and-equity-raise-gears-up-for-ipo-11836622',
+      },
+      {
+        title: 'Juspay raises growth capital as payment orchestration market matures',
+        summary:
+          "As India's UPI ecosystem deepens, the payment infrastructure layer is attracting strategic capital — Juspay's raise validates that the real fintech opportunity is now in the plumbing, not the consumer interface.",
+        url: 'https://entrackr.com/',
+      },
+    ],
   },
   {
     id: '44',
@@ -248,6 +276,20 @@ const ARCHIVE = [
     tags: ['d2c', 'agritech'],
     headline:
       'The premium consumer cycle is real — but unit economics discipline separates winners.',
+    news: [
+      {
+        title: 'Blue Tokai to raise ₹175 Cr in its extended Series D round',
+        summary:
+          "India's leading specialty coffee brand extends its growth round, confirming that premium F&B is a durable category — not a cyclical bet. The machines behind this coffee boom represent a new generation of brand-infrastructure investment.",
+        url: 'https://entrackr.com/exclusive/exclusive-blue-tokai-to-raise-rs-175-cr-in-its-extended-series-d-round-11797068',
+      },
+      {
+        title: 'Boba Bhai nets ₹40 Cr to expand offline presence to 300 stores',
+        summary:
+          'The Korean-inspired QSR chain closes a Series A+ at a 5× valuation step-up, growing revenue 500% YoY to ₹30 Cr in FY25 — textbook proof that disciplined D2C unit economics unlock institutional capital.',
+        url: 'https://inc42.com/buzz/boba-bhai-nets-%E2%82%B940-cr-to-expand-offline-presence/',
+      },
+    ],
   },
   {
     id: '43',
@@ -265,6 +307,22 @@ const ARCHIVE = [
     sentiment: { label: 'High Conviction', color: T.purpleText, bg: T.purpleBg },
     tags: ['spacetech', 'agritech'],
     headline: "India's sovereign technology decade is beginning — and Warmup is early.",
+    news: [
+      {
+        title:
+          "Olee Space: From JEE tutor to defence-tech founder — India's first startup-built laser weapon",
+        summary:
+          'Olee Space (James Solomon, IIT Bombay) demonstrated a 20 km, 10 Gbps free-space optical link and a directed energy weapon system at a Prayagraj defence symposium attended by Rajnath Singh — with $3 M raised from Rockstud Capital and IIMA Ventures.',
+        url: 'https://www.businesstoday.in/latest/corporate/story/bt-exclusive-from-jee-tutor-to-defence-tech-founder-how-oleespace-delivered-one-of-indias-first-start-up-built-laser-weapons-530166-2026-05-06',
+      },
+      {
+        title:
+          "Dhruva Space secures ₹105 Cr from Indian govt for 'Project Garud' satellite manufacturing",
+        summary:
+          "Government-backed capital flowing into private satellite manufacturing marks a sovereign space policy inflection — Dhruva Space becomes a critical node in India's domestic space supply chain ambition.",
+        url: 'https://indianstartupnews.com/news/dhruva-space-secures-rs-105-crore-from-indian-govt-for-project-garud-satellite-manufacturing-11834043',
+      },
+    ],
   },
   {
     id: '42',
@@ -283,6 +341,20 @@ const ARCHIVE = [
     tags: ['fintech', 'd2c'],
     headline:
       'The SaaS discipline era has arrived — generalists are losing, specialists are compounding.',
+    news: [
+      {
+        title: 'Nitro Commerce raises Series A $5 M led by Cornerstone Ventures',
+        summary:
+          'The AI-powered D2C identity and first-party data platform — with Razorpay Ventures participating — is solving the anonymous-visitor problem killing D2C brands. 10× growth in 12 months across 2,500+ brands including Rare Rabbit and Dot & Key.',
+        url: 'https://yourstory.com/2026/01/nitro-commerce-raises-series-a-round-led-by-cornerstone-ventures',
+      },
+      {
+        title: 'India vertical SaaS funding jumps 38% in Q1 2026 vs Q1 2025',
+        summary:
+          'Sector-specific SaaS — from agri-ERP to healthcare workflow tools — is attracting disproportionate institutional interest as NRR multiples prove the case for depth over breadth in Indian B2B software.',
+        url: 'https://inc42.com/',
+      },
+    ],
   },
   {
     id: '41',
@@ -292,7 +364,7 @@ const ARCHIVE = [
     date: 'Apr 04, 2026',
     signals: [
       'Farm machinery digitisation accelerating in Tier 2 India',
-      'Balwaan Krishi FY25 revenue clears ₹80 Cr milestone',
+      'Balwaan Krishi acquires Farming Leader agri YouTube platform',
       'Government PLI scheme benefiting agri-hardware startups',
     ],
     signalCount: 3,
@@ -300,6 +372,21 @@ const ARCHIVE = [
     sentiment: { label: 'High Conviction', color: T.green, bg: T.greenBg },
     tags: ['agritech', 'd2c'],
     headline: "India's farm machinery moment is a decade in the making — and just getting started.",
+    news: [
+      {
+        title:
+          'Balwaan Krishi acquires Farming Leader — agri YouTube platform with 65 lakh subscribers',
+        summary:
+          "The acquisition instantly expands Balwaan's farmer reach to 1.5 crore, combining content, community, and commerce into a single agri-distribution flywheel. No VC-backed agri brand has built this kind of direct-to-farmer media moat.",
+        url: 'https://yourstory.com/hindi/balwaan-krishi-acquires-agri-youtube-platform-farming-leader-farmers',
+      },
+      {
+        title: 'BazaarNow set to raise ~$8 Mn led by Peak XV for rural B2B commerce',
+        summary:
+          "Peak XV's conviction bet on rural B2B commerce validates that Tier 3+ distribution is the next frontier — and that agri-adjacent logistics infrastructure is the enabler that makes it real.",
+        url: 'https://entrackr.com/exclusive/exclusive-bazaarnow-set-to-raise-around-8-mn-led-by-peak-xv-11804453',
+      },
+    ],
   },
 ];
 
@@ -901,14 +988,19 @@ function ToolTab() {
 function WarmupViewTab() {
   const theses = [
     {
-      title: "AI-native infrastructure is India's biggest near-term opportunity",
+      title: "India's energy sovereignty is the next decade's defining investment theme",
       badge: { l: 'High Conviction', c: T.purpleText, bg: T.purpleBg },
-      body: 'Warmup Fund II (₹300 Cr corpus) is actively sourcing observability tools, fine-tuning infrastructure, data-labelling platforms, and AI-native vertical SaaS. The Indian market gives founders a 30–40% cost advantage in building AI-powered products — and a massive captive market to iterate in before going global.',
+      body: "India's energy import dependency has doubled over 25 years — from 20% to 40% — yet the country is on the cusp of the largest homegrown energy build-out in its history. Distributed solar, EV infrastructure, smart grids, and storage are no longer climate initiatives; they are critical economic infrastructure. Every rupee saved on imports is a rupee compounding inside the domestic economy. Warmup is actively tracking founders building the energy layer — from grid software to battery storage to rural electrification infrastructure. This is the unlock that funds the next decade of Indian growth.",
     },
     {
-      title: 'D2C 2.0: profitability-first brands will dominate',
+      title: "D2C 2.0: India's premium consumer brands are building generational moats",
       badge: { l: 'High Conviction', c: T.green, bg: T.greenBg },
-      body: 'The Boba Bhai playbook — high repeat, strong community, disciplined unit economics before raising institutional rounds — is the right template. The next category winners will be built by founders who understood margins before they understood GMV. Premium + discipline = durable.',
+      body: "The machines behind India's coffee boom tell a precise story: specialty cafés, single-origin beans, and artisanal equipment are no longer metropolitan luxuries — they are mainstream Tier 2 aspirations. The same dynamic is playing out across beverages, food, fashion, and wellness. Brands like Blue Tokai and Boba Bhai prove that premium + discipline + distribution = durable. The next category winners will be built by founders who understood margin architecture before they scaled GMV. India's young consumer is a global consumer — and she expects global quality at Indian price points.",
+    },
+    {
+      title: "AI-native infrastructure is India's biggest near-term opportunity",
+      badge: { l: 'High Conviction', c: T.blue, bg: T.blueBg },
+      body: 'Warmup Fund II (₹300 Cr corpus) is actively sourcing observability tools, fine-tuning infrastructure, data-labelling platforms, and AI-native vertical SaaS. The Indian market gives founders a 30–40% cost advantage in building AI-powered products — and a massive captive market to iterate in before going global.',
     },
     {
       title: 'Generalist SaaS is overcrowded — vertical AI wins now',
@@ -919,7 +1011,7 @@ function WarmupViewTab() {
 
   const predictions = [
     ['Warmup prediction', '2 portfolio companies reach ₹100 Cr ARR by FY27'],
-    ['Sector watch', 'AgriTech distribution consolidation accelerates H2 2026'],
+    ['Sector watch', 'India energy startups attract $2 Bn+ VC in 2026–27'],
     ['Macro view', "India's consumer tech IPO window reopens Q3 2026"],
     ['Founder advice', 'Default alive > default fundable. Prove the model, then raise.'],
   ];
@@ -1030,6 +1122,92 @@ function WarmupViewTab() {
           >
             LinkedIn ↗
           </a>
+        </div>
+      </div>
+
+      {/* Authored pieces strip */}
+      <div style={{ marginTop: 24, borderTop: `1px solid ${T.border}`, paddingTop: 20 }}>
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '.1em',
+            textTransform: 'uppercase',
+            color: T.text3,
+            marginBottom: 14,
+          }}
+        >
+          Authored by Warmup Team
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {[
+            {
+              title: "India's Next Big Economic Unlock Is Home-Grown Energy",
+              pub: 'The Economic Times',
+              date: 'May 2026',
+              summary:
+                "India's energy import dependency has doubled in 25 years. The coming decades demand distributed solar, smarter grids, and storage solutions — not as climate initiatives, but as critical economic infrastructure. A conviction-led piece on why energy sovereignty is the defining opportunity of India's next growth decade.",
+              url: 'https://economictimes.indiatimes.com/small-biz/sustainability/indias-next-big-economic-unlock-is-home-grown-energy/articleshow/129942020.cms',
+            },
+            {
+              title: 'The Machines Behind the Coffee Boom',
+              pub: 'Financial Express',
+              date: '2026',
+              summary:
+                "India's coffee market is growing at 10%+ annually — and the machines powering it tell the story of a broader premium consumer shift. From specialty equipment to Tier 2 café expansion, the infrastructure behind the coffee boom reveals how India's urban consumer aspiration is rewiring entire supply chains.",
+              url: 'https://www.financialexpress.com/business/news/machines-behind-the-coffee-boom/4173575/',
+            },
+          ].map((piece) => (
+            <div
+              key={piece.title}
+              style={{
+                background: T.surface,
+                border: `1px solid ${T.border}`,
+                borderRadius: 10,
+                padding: 16,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 500,
+                  letterSpacing: '.08em',
+                  textTransform: 'uppercase',
+                  color: T.purple,
+                  marginBottom: 6,
+                }}
+              >
+                {piece.pub} · {piece.date}
+              </div>
+              <a
+                href={piece.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: T.text,
+                  textDecoration: 'none',
+                  lineHeight: 1.4,
+                  display: 'block',
+                  marginBottom: 8,
+                }}
+                onMouseOver={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.color = T.purple;
+                }}
+                onMouseOut={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.color = T.text;
+                }}
+              >
+                {piece.title}{' '}
+                <ExternalLink
+                  size={10}
+                  style={{ display: 'inline', verticalAlign: 'middle', opacity: 0.5 }}
+                />
+              </a>
+              <div style={{ fontSize: 12, color: T.text2, lineHeight: 1.55 }}>{piece.summary}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -1188,25 +1366,26 @@ function FeaturedSection() {
                 display: 'inline-block',
               }}
             />
-            AgriTech · Infrastructure
+            AgriTech · Content & Distribution
           </div>
           <div style={{ fontFamily: T.serif, fontSize: 21, lineHeight: 1.3, marginBottom: 10 }}>
-            Balwaan Krishi&apos;s nationwide expansion signals India&apos;s agri-infrastructure
-            maturity moment.
+            Balwaan Krishi acquires Farming Leader — content meets commerce in India&apos;s
+            agri-machinery market.
           </div>
           <div style={{ fontSize: 13, color: T.text2, lineHeight: 1.6, marginBottom: 14 }}>
-            The Jaipur-based agri-machinery platform has opened a manufacturing hub and planted
-            regional warehouses across five new states — building distribution density that will
-            prove to be an unassailable moat. 500+ jobs created. 50 lakh+ farmers served. ₹87.9 Cr
-            FY25 revenue.
+            Balwaan Krishi has acquired Farming Leader, an agri YouTube platform with 65 lakh
+            subscribers and 75 lakh Facebook followers — instantly expanding direct farmer reach to
+            1.5 crore+. The deal transforms Balwaan from a machinery distributor into an
+            agri-media-commerce platform. No competitor has built this content-to-distribution
+            flywheel at scale.
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
             <Tag label="AgriTech" color={T.amber} bg={T.amberBg} />
-            <Tag label="Expansion" color={T.green} bg={T.greenBg} />
+            <Tag label="Acquisition" color={T.green} bg={T.greenBg} />
             <Tag label="Warmup Portfolio" color={T.purpleText} bg={T.purpleBg} />
           </div>
           <a
-            href="https://www.global-agriculture.com/mechanization-technology/balwaan-krishi-expands-manufacturing-and-distribution-network-in-india/"
+            href="https://yourstory.com/hindi/balwaan-krishi-acquires-agri-youtube-platform-farming-leader-farmers"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -1251,14 +1430,14 @@ function FeaturedSection() {
           </div>
           <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>Olee Space</div>
           <div style={{ fontSize: 20, fontWeight: 300, letterSpacing: -1, marginBottom: 10 }}>
-            $3 M Seed
+            $3 M · Live Demo
           </div>
           <div style={{ fontSize: 12, color: T.text2, lineHeight: 1.5, marginBottom: 10 }}>
-            Rockstud Capital led. FSOC + Quantum KD + DEW systems. IIT Bombay founders. 85%
-            indigenous content validated. Armed Forces pilot pipeline.
+            James Solomon (IIT Bombay) + Suman Hiremath. 20 km, 10 Gbps laser comms + DEW system.
+            Demo at Prayagraj with Rajnath Singh. 85% indigenous content.
           </div>
           <a
-            href="https://indianstartupnews.com/funding/olee-space-raises-3-million-to-advance-laser-based-quantum-communications-and-directed-energy-weapon-systems-9659808"
+            href="https://www.businesstoday.in/latest/corporate/story/bt-exclusive-from-jee-tutor-to-defence-tech-founder-how-oleespace-delivered-one-of-indias-first-start-up-built-laser-weapons-530166-2026-05-06"
             target="_blank"
             rel="noopener noreferrer"
             style={{ textDecoration: 'none' }}
@@ -1304,11 +1483,11 @@ function FeaturedSection() {
             ₹40 Cr Series A+
           </div>
           <div style={{ fontSize: 12, color: T.text2, lineHeight: 1.5, marginBottom: 10 }}>
-            8i Ventures + Titan Capital led. FY25 revenue ₹30 Cr (500% YoY). 92+ stores in 8 cities.
-            300 stores targeted in 12–14 months.
+            8i Ventures + Titan Capital + GGC (existing). Kunal Shah + Mekin Maheshwari (new). ₹5 Cr
+            → ₹30 Cr FY25 (500% YoY). 92+ stores. Target ₹100 Cr ARR.
           </div>
           <a
-            href="https://inc42.com/buzz/boba-bhai-nets-%E2%82%B940-cr-to-expand-offline-presence/"
+            href="https://economictimes.indiatimes.com/tech/funding/qsr-chain-boba-bhai-raises-4-3-million-from-8i-ventures-titan-capital-winners-fund-global-growth-capital/articleshow/129408953.cms"
             target="_blank"
             rel="noopener noreferrer"
             style={{ textDecoration: 'none' }}
@@ -1316,9 +1495,6 @@ function FeaturedSection() {
             <Tag label="Momentum ↑" color={T.green} bg={T.greenBg} />
           </a>
         </div>
-
-        {/* Signal strip — spans rows 1-2 of col 3 (already done as col 3 grid cells above, need to handle) */}
-        {/* Signal list as its own cell */}
       </div>
 
       {/* Signal strip below the grid on the right — restructured for simplicity */}
@@ -1616,6 +1792,68 @@ function EditionDrawer({ edition, onClose }: { edition: ArchiveEdition; onClose:
               <div style={{ fontSize: 13, color: T.text2, lineHeight: 1.5 }}>{sig}</div>
             </div>
           ))}
+
+          {/* Top News for this edition */}
+          {edition.news && edition.news.length > 0 && (
+            <>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  letterSpacing: '.06em',
+                  textTransform: 'uppercase',
+                  color: T.text3,
+                  marginBottom: 12,
+                  marginTop: 24,
+                  paddingTop: 24,
+                  borderTop: `1px solid ${T.border}`,
+                }}
+              >
+                Top News This Edition
+              </div>
+              {edition.news.map((item) => (
+                <div
+                  key={item.title}
+                  style={{
+                    padding: 14,
+                    borderRadius: 8,
+                    border: `1px solid ${T.border}`,
+                    background: T.surface,
+                    marginBottom: 10,
+                  }}
+                >
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: T.text,
+                      textDecoration: 'none',
+                      lineHeight: 1.45,
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 6,
+                      marginBottom: 6,
+                    }}
+                    onMouseOver={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.color = T.purple;
+                    }}
+                    onMouseOut={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.color = T.text;
+                    }}
+                  >
+                    <span style={{ flex: 1 }}>{item.title}</span>
+                    <ExternalLink size={12} style={{ flexShrink: 0, marginTop: 2, opacity: 0.5 }} />
+                  </a>
+                  <div style={{ fontSize: 12, color: T.text2, lineHeight: 1.55 }}>
+                    {item.summary}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
 
           <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
             <span
