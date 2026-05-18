@@ -1,4 +1,5 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { ResultCard } from '@/features/search/components/ResultCard';
 import { SearchAnswerBlock } from '@/features/search/components/SearchAnswerBlock';
 import { SearchLoadingState } from '@/features/search/components/SearchLoadingState';
@@ -6,9 +7,11 @@ import type { ConversationResponse, StartupResultItem } from '@/features/search/
 
 interface Props {
   userMessage: string;
-  // null while the API call is in-flight (optimistic pending state).
+  // null while the API call is in-flight (pending) or after a failure (isError).
   response: ConversationResponse | null;
+  isError?: boolean | undefined;
   isMasked: boolean;
+  onRetry?: (() => void) | undefined;
 }
 
 /**
@@ -21,15 +24,51 @@ interface Props {
  * "optimistic message" UX: user message appears on screen immediately on
  * submit, response fills in once the API returns.
  */
-export function ChatTurn({ userMessage, response, isMasked }: Props) {
+// Shared user bubble — rendered identically across pending, error, and
+// completed states so the message position never jumps.
+function UserBubble({ message }: { message: string }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[85%] rounded-2xl bg-brand/10 px-4 py-2 text-[15px] text-ink-heading sm:text-base">
+        {message}
+      </div>
+    </div>
+  );
+}
+
+export function ChatTurn({ userMessage, response, isError, isMasked, onRetry }: Props) {
+  // ── Error state: user message + inline error + Retry button ─────────────
+  if (response === null && isError) {
+    return (
+      <div className="flex flex-col gap-4" data-testid="chat-turn-error">
+        <UserBubble message={userMessage} />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start gap-2 text-[14px] text-ink-muted">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+            <span>Something went wrong. Please try again.</span>
+          </div>
+          {onRetry ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={onRetry}
+              data-testid="chat-turn-retry"
+            >
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              Retry
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Pending state: user message + loading skeleton ──────────────────────
   if (response === null) {
     return (
       <div className="flex flex-col gap-4" data-testid="chat-turn-pending">
-        <div className="flex justify-end">
-          <div className="max-w-[85%] rounded-2xl bg-brand/10 px-4 py-2 text-[15px] text-ink-heading sm:text-base">
-            {userMessage}
-          </div>
-        </div>
+        <UserBubble message={userMessage} />
         <SearchLoadingState />
       </div>
     );
@@ -43,12 +82,7 @@ export function ChatTurn({ userMessage, response, isMasked }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* User bubble — minimal tinted pill, right-aligned */}
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl bg-brand/10 px-4 py-2 text-[15px] text-ink-heading sm:text-base">
-          {userMessage}
-        </div>
-      </div>
+      <UserBubble message={userMessage} />
 
       {/* Assistant reply — flows as prose, no outer container */}
       {isClarify ? (

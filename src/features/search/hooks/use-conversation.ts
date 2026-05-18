@@ -6,12 +6,15 @@ import { useUser } from '@/auth/use-auth';
 import type { ConversationResponse, SearchTargetType } from '@/features/search/schemas';
 
 // One turn = one user message + the assistant's reply for that message.
-// `response` is null while the API call is in-flight (optimistic pending state).
-// Consumers check `response === null` to render a loading skeleton.
+// `response` is null while the API call is in-flight (optimistic pending state)
+// OR when the call failed (`isError: true`).
+// Consumers check `response === null && !isError` for loading skeleton,
+// and `response === null && isError` for the inline error + Retry UI.
 export interface ConversationTurn {
   id: string; // local-only client id for React keys
   userMessage: string;
   response: ConversationResponse | null;
+  isError?: boolean; // true when the API call for this turn failed
 }
 
 interface UseConversationOptions {
@@ -25,6 +28,7 @@ interface UseConversationApi {
   isPending: boolean;
   error: ApiError | null;
   submit: (message: string) => void;
+  retry: (turnId: string) => void; // re-submit the message from a failed turn
   reset: () => void; // "New chat" — clears state, server-side conv expires on its own
 }
 
@@ -151,14 +155,20 @@ export function useConversation(opts: UseConversationOptions = {}): UseConversat
     }
   }, [userId]);
 
-  // Persist any state change. Pending turns (response === null) are filtered
-  // out — a half-finished turn should never survive a page refresh.
+  // Persist any state change. Pending AND errored turns are filtered out —
+  // a half-finished or failed turn should never survive a page refresh.
   useEffect(() => {
     if (!userId) return;
     if (conversationId === null && turns.length === 0) return;
-    const persistable = turns.filter((t) => t.response !== null);
+    const persistable = turns.filter((t) => t.response !== null && !t.isError);
     saveToSession({ ownerUserId: userId, conversationId, turns: persistable });
   }, [userId, conversationId, turns]);
+
+  // When the user clicks Retry on a failed turn, we want to reuse the
+  // existing turn's slot (same position in the thread) rather than appending
+  // a new one at the bottom. This ref carries the turn ID from retry() into
+  // onMutate so the mutation knows to update-in-place instead of append.
+  const retryTurnIdRef = useRef<string | null>(null);
 
   const mutation = useMutation<ConversationResponse, ApiError, string, { pendingId: string }>({
     mutationFn: (message) =>
@@ -168,11 +178,19 @@ export function useConversation(opts: UseConversationOptions = {}): UseConversat
         target_type: opts.targetType ?? null,
         limit: opts.limit,
       }),
-    // Phase H.1 (2026-05-18): add the user's message to the turn list
-    // immediately so it appears on screen while the API call is in-flight.
-    // The pending turn has response=null; ChatTurn renders a loading skeleton
-    // for that state. onSuccess replaces it; onError removes it.
     onMutate: (message) => {
+      const retryId = retryTurnIdRef.current;
+      retryTurnIdRef.current = null;
+
+      if (retryId) {
+        // Retry path: flip the existing error turn back to pending-in-progress.
+        setTurns((prev) =>
+          prev.map((t) => (t.id === retryId ? { ...t, response: null, isError: false } : t)),
+        );
+        return { pendingId: retryId };
+      }
+
+      // Normal submit path: add a new pending turn at the bottom.
       const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       setTurns((prev) => [...prev, { id: pendingId, userMessage: message, response: null }]);
       return { pendingId };
@@ -192,9 +210,15 @@ export function useConversation(opts: UseConversationOptions = {}): UseConversat
       );
     },
     onError: (_err, _message, context) => {
-      // Remove the pending turn so the user can retry cleanly.
+      // Mark the turn as errored so the inline "Something went wrong" UI
+      // appears in place of the loading skeleton. The turn stays in the
+      // thread so the user can see their message and click Retry.
       if (context) {
-        setTurns((prev) => prev.filter((t) => t.id !== context.pendingId));
+        setTurns((prev) =>
+          prev.map((t) =>
+            t.id === context.pendingId ? { ...t, response: null, isError: true } : t,
+          ),
+        );
       }
     },
   });
@@ -206,6 +230,19 @@ export function useConversation(opts: UseConversationOptions = {}): UseConversat
       mutation.mutate(trimmed);
     },
     [mutation],
+  );
+
+  // Re-submit the message from a failed turn. The turn slot stays in place
+  // so the thread order doesn't change — the existing row flips from
+  // error state → loading skeleton → response.
+  const retry = useCallback(
+    (turnId: string) => {
+      const turn = turns.find((t) => t.id === turnId);
+      if (!turn) return;
+      retryTurnIdRef.current = turnId;
+      mutation.mutate(turn.userMessage);
+    },
+    [mutation, turns],
   );
 
   const reset = useCallback(() => {
@@ -221,6 +258,7 @@ export function useConversation(opts: UseConversationOptions = {}): UseConversat
     isPending: mutation.isPending,
     error: mutation.error,
     submit,
+    retry,
     reset,
   };
 }
