@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { SearchBar } from '@/features/search/components/SearchBar';
 import { ChatTurn } from '@/features/search/components/ChatTurn';
-import { SearchLoadingState } from '@/features/search/components/SearchLoadingState';
 import { TypeSelector, type SearchTypeOption } from '@/features/search/components/TypeSelector';
 import { useConversation } from '@/features/search/hooks/use-conversation';
 import { type SearchTargetType } from '@/features/search/schemas';
@@ -145,7 +144,10 @@ export function SearchPage() {
         </Button>
       </div>
 
-      {/* Thread */}
+      {/* Thread — each ChatTurn handles its own loading state.
+          A pending turn (response === null) shows the user bubble immediately
+          plus a SearchLoadingState skeleton below it. No separate outer
+          isPending block is needed; it was removed in Phase H.1. */}
       <div className="flex flex-col gap-6" data-testid="chat-thread-turns">
         {conversation.turns.map((t) => (
           <ChatTurn
@@ -155,15 +157,6 @@ export function SearchPage() {
             isMasked={isMasked}
           />
         ))}
-        {conversation.isPending ? (
-          <div className="flex flex-col gap-3">
-            {/* Show the pending user message above the spinner. We don't have
-                it in `turns` yet (mutation hasn't resolved), so we read it
-                from the SearchBar's last submitted text via the mutation
-                meta — but for simplicity, just show a typing indicator. */}
-            <SearchLoadingState />
-          </div>
-        ) : null}
         <div ref={threadRef} aria-hidden />
       </div>
 

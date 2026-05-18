@@ -4,6 +4,7 @@
 // + role-based navigation, plus a 30s resend cooldown timer. The state graph doesn't
 // fit the panel's contract; rolling a hand-built form here is the right call.
 import { useState } from 'react';
+import { clearAllSearchConversations } from '@/features/search/hooks/use-conversation';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -61,6 +62,12 @@ export function SignInPage() {
                 const token = data.access_token;
                 const expiresAt = expiresAtFrom(data);
                 const seeded = seedProfileFromVerify(data, canonical);
+                // Phase H.1: clear any prior user's search history from
+                // sessionStorage before setting the new session. This is
+                // defence-in-depth on top of the per-user key scoping
+                // shipped in Phase H — covers cases where the previous
+                // user's logout didn't run (e.g. tab crash, multi-tab).
+                clearAllSearchConversations();
                 useAuthStore.getState().setSession({ token, user: seeded, expiresAt });
                 try {
                   const me = await getMe();

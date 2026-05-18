@@ -1,8 +1,13 @@
 import { Outlet } from 'react-router-dom';
+import { useSessionExpiry } from '@/auth/use-session-expiry';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 
 export function AppShell() {
+  // Phase H.1: detect session expiry (60s interval + focus) and redirect
+  // to /signin so the user never gets stuck with a stale, 401-heavy UI.
+  useSessionExpiry();
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <TopBar />
