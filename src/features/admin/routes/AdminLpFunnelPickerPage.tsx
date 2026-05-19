@@ -14,6 +14,7 @@ import { useAdminLps } from '@/features/admin/hooks/use-admin-lps';
 import { useAdminLpDetail } from '@/features/admin/hooks/use-admin-lp-detail';
 import { useAdminLpNotes } from '@/features/admin/hooks/use-admin-lp-notes';
 import { useAdminLpNoteCreate } from '@/features/admin/hooks/use-admin-lp-note-create';
+import { useAdminLpPocList } from '@/features/admin/hooks/use-admin-lp-poc-list';
 import {
   LP_CRM_NOTE_LABELS,
   LP_CRM_NOTE_TYPES,
@@ -318,7 +319,7 @@ function LpRow({
         <p className="truncate text-sm text-ink-muted">{lp.last_comment ?? '—'}</p>
       </td>
       <td className="px-6 py-4 text-right">
-        <Button size="sm" variant={selected ? 'default' : 'outline'} tabIndex={-1}>
+        <Button size="sm" variant="outline" tabIndex={-1}>
           Open
         </Button>
       </td>
@@ -332,9 +333,13 @@ export function AdminLpFunnelPickerPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<LpCrmRoleFilter | ''>('');
+  const [pocFilter, setPocFilter] = useState('');
   const [sortBy, setSortBy] = useState<LpCrmSort>('last_activity');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const pocList = useAdminLpPocList();
+  const pocOptions = pocList.data ?? [];
 
   // Debounce search input
   useEffect(() => {
@@ -345,6 +350,7 @@ export function AdminLpFunnelPickerPage() {
   const lpsArgs: Parameters<typeof useAdminLps>[0] = { sort_by: sortBy };
   if (roleFilter) lpsArgs.role = roleFilter;
   if (debouncedSearch) lpsArgs.search = debouncedSearch;
+  if (pocFilter) lpsArgs.poc = pocFilter;
   const lps = useAdminLps(lpsArgs);
 
   const rawItems = lps.data?.items;
@@ -415,6 +421,22 @@ export function AdminLpFunnelPickerPage() {
             </button>
           ))}
         </div>
+
+        {/* POC filter */}
+        {pocOptions.length > 0 && (
+          <select
+            value={pocFilter}
+            onChange={(e) => setPocFilter(e.target.value)}
+            className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink-body transition-colors hover:bg-surface-secondary focus:outline-none"
+          >
+            <option value="">All POCs</option>
+            {pocOptions.map((poc) => (
+              <option key={poc} value={poc}>
+                {poc}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-sm">

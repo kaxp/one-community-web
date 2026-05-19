@@ -1,16 +1,26 @@
-import { lazy, Suspense, useMemo } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/error-state/ErrorState';
+import { EmptyState } from '@/components/empty-state/EmptyState';
 import { useAnalyticsOverview } from '@/features/analytics/hooks/use-analytics-overview';
 import { useAnalyticsFunnelLp } from '@/features/analytics/hooks/use-analytics-funnel-lp';
 import { useAnalyticsFunnelStartup } from '@/features/analytics/hooks/use-analytics-funnel-startup';
 import { useAnalyticsFunnelConnections } from '@/features/analytics/hooks/use-analytics-funnel-connections';
 import { useAnalyticsCohort } from '@/features/analytics/hooks/use-analytics-cohort';
 import { useAnalyticsMatchSuccess } from '@/features/analytics/hooks/use-analytics-match-success';
+import {
+  useAnalyticsUserActivities,
+  useAnalyticsUserSearchHistory,
+} from '@/features/analytics/hooks/use-analytics-user-activities';
 import { KpiCards } from '@/features/analytics/components/KpiCards';
 import { CohortHeatmap } from '@/features/analytics/components/CohortHeatmap';
+import type { UserActivityItem } from '@/features/analytics/schemas';
 
 // issues.md [I-9] / [I-1] — Recharts ships ~120 KB gzip via FunnelBarChart +
 // MatchSuccessChart. Lazy-load both so the analytics chunk loads only the
@@ -40,7 +50,7 @@ import {
 import { LP_FUNNEL_STATUSES, type LPFunnelStatus } from '@/features/admin/schemas';
 import { cn } from '@/lib/cn';
 
-const TABS = ['overview', 'funnel', 'cohort', 'match'] as const;
+const TABS = ['overview', 'funnel', 'cohort', 'match', 'activities'] as const;
 type AnalyticsTab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<AnalyticsTab, string> = {
@@ -48,6 +58,7 @@ const TAB_LABEL: Record<AnalyticsTab, string> = {
   funnel: 'Funnel',
   cohort: 'Cohort',
   match: 'Match Success',
+  activities: 'User Activities',
 };
 
 function isTab(value: string | null): value is AnalyticsTab {
@@ -269,6 +280,163 @@ function MatchPane() {
   );
 }
 
+function roleBadgeVariant(role: string): 'success' | 'warning' | 'secondary' {
+  if (role === 'lp' || role === 'potential_lp') return 'success';
+  if (role === 'admin' || role === 'super_admin') return 'warning';
+  return 'secondary';
+}
+
+function UserSearchDrawer({
+  user,
+  open,
+  onClose,
+}: {
+  user: UserActivityItem | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const history = useAnalyticsUserSearchHistory(open ? (user?.id ?? null) : null);
+  const items = history.data?.items ?? [];
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent side="right" className="w-full max-w-lg overflow-y-auto">
+        <SheetTitle>{user?.name ?? 'User'} — Search History</SheetTitle>
+        <SheetDescription>
+          {user?.email ?? ''} · {user?.total_searches ?? 0} searches total
+        </SheetDescription>
+
+        <div className="mt-6 flex flex-col gap-3">
+          {history.isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+          ) : history.isError ? (
+            <ErrorState error={history.error} onRetry={() => void history.refetch()} />
+          ) : items.length === 0 ? (
+            <EmptyState
+              title="No searches yet"
+              description="This user has not performed any searches."
+            />
+          ) : (
+            items.map((entry) => (
+              <Card key={entry.id}>
+                <CardContent className="p-4">
+                  <p className="font-medium text-ink-heading">{entry.query}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                    <span>{entry.results_count} results</span>
+                    {entry.duration_ms != null && <span>{entry.duration_ms} ms</span>}
+                    <span title={entry.created_at}>
+                      {format(parseISO(entry.created_at), 'dd MMM yyyy, HH:mm')}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function UserActivitiesPane() {
+  const [selectedUser, setSelectedUser] = useState<UserActivityItem | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const list = useAnalyticsUserActivities({ limit: 100 });
+  const items = list.data?.items ?? [];
+  const total = list.data?.total ?? 0;
+
+  function handleOpen(user: UserActivityItem) {
+    setSelectedUser(user);
+    setDrawerOpen(true);
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>User Activities</CardTitle>
+          <CardDescription>
+            All platform users and their search activity — {total} users total. Click a row to see
+            search queries.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {list.isLoading ? (
+            <div className="space-y-px p-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : list.isError ? (
+            <div className="p-6">
+              <ErrorState error={list.error} onRetry={() => void list.refetch()} />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="No users found"
+                description="No users have accessed the platform yet."
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-surface-secondary text-xs uppercase tracking-wide text-ink-muted">
+                  <tr>
+                    <th className="px-6 py-3 text-left">Name</th>
+                    <th className="px-4 py-3 text-left">Role</th>
+                    <th className="px-4 py-3 text-right">Searches</th>
+                    <th className="px-4 py-3 text-left">Last Search</th>
+                    <th className="px-6 py-3 text-right"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="cursor-pointer border-t border-border transition-colors hover:bg-surface-secondary"
+                      onClick={() => handleOpen(user)}
+                    >
+                      <td className="px-6 py-4">
+                        <p className="font-semibold text-ink-heading">{user.name ?? '—'}</p>
+                        {user.email && (
+                          <p className="mt-0.5 text-xs text-ink-muted">{user.email}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <Badge variant={roleBadgeVariant(user.role)}>{user.role}</Badge>
+                      </td>
+                      <td className="px-4 py-4 text-right font-medium text-ink-heading">
+                        {user.total_searches}
+                      </td>
+                      <td className="px-4 py-4 text-ink-muted">
+                        {user.last_search_at
+                          ? format(parseISO(user.last_search_at), 'dd MMM yyyy')
+                          : '—'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Button size="sm" variant="outline" tabIndex={-1}>
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <UserSearchDrawer
+        user={selectedUser}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
+    </>
+  );
+}
+
 // PRD §7.14 — admin analytics console with four URL-backed tabs:
 // Overview / Funnel / Cohort / Match Success.
 export function AdminAnalyticsPage() {
@@ -319,6 +487,7 @@ export function AdminAnalyticsPage() {
       {tab === 'funnel' ? <FunnelPane /> : null}
       {tab === 'cohort' ? <CohortPane /> : null}
       {tab === 'match' ? <MatchPane /> : null}
+      {tab === 'activities' ? <UserActivitiesPane /> : null}
     </div>
   );
 }

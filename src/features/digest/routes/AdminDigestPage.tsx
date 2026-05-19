@@ -15,17 +15,19 @@ import { useDigestHistory } from '@/features/digest/hooks/use-digest-history';
 import { useDigestApprove } from '@/features/digest/hooks/use-digest-approve';
 import { useDigestGenerate } from '@/features/digest/hooks/use-digest-generate';
 import { DigestPreviewDrawer } from '@/features/digest/components/DigestPreviewDrawer';
+import { MyDigestPage } from '@/features/digest/routes/MyDigestPage';
 import type { DigestRow, DigestWorkflow } from '@/features/digest/schemas';
 import { cn } from '@/lib/cn';
 import type { ApiError } from '@/api/errors';
 
-const TABS = ['workflows', 'pending', 'history'] as const;
+const TABS = ['workflows', 'pending', 'history', 'active'] as const;
 type DigestTab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<DigestTab, string> = {
   workflows: 'Workflows',
   pending: 'Pending',
   history: 'History',
+  active: 'Active Digest',
 };
 
 function isDigestTab(value: string | null): value is DigestTab {
@@ -338,23 +340,27 @@ export function AdminDigestPage() {
         })}
       </nav>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{TAB_LABEL[tab]}</CardTitle>
-          <CardDescription>
-            {tab === 'workflows'
-              ? 'Registered digest workflows — generate drafts or trigger an immediate send.'
-              : tab === 'pending'
-                ? 'AI-drafted digests waiting for admin approval. Sandboxed preview before send.'
-                : 'Read-only audit of past sent digests (last 50).'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {tab === 'workflows' ? <WorkflowsTab /> : null}
-          {tab === 'pending' ? <PendingTab /> : null}
-          {tab === 'history' ? <HistoryTab /> : null}
-        </CardContent>
-      </Card>
+      {tab === 'active' ? (
+        <MyDigestPage />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{TAB_LABEL[tab]}</CardTitle>
+            <CardDescription>
+              {tab === 'workflows'
+                ? 'Registered digest workflows — generate drafts or trigger an immediate send.'
+                : tab === 'pending'
+                  ? 'AI-drafted digests waiting for admin approval. Sandboxed preview before send.'
+                  : 'Read-only audit of past sent digests (last 50).'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {tab === 'workflows' ? <WorkflowsTab /> : null}
+            {tab === 'pending' ? <PendingTab /> : null}
+            {tab === 'history' ? <HistoryTab /> : null}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
