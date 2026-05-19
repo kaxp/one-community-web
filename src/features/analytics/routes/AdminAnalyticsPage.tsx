@@ -300,37 +300,71 @@ function UserSearchDrawer({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full max-w-lg overflow-y-auto">
-        <SheetTitle>{user?.name ?? 'User'} — Search History</SheetTitle>
-        <SheetDescription>
-          {user?.email ?? ''} · {user?.total_searches ?? 0} searches total
-        </SheetDescription>
+      <SheetContent side="right" className="flex w-full max-w-lg flex-col overflow-hidden p-0">
+        <SheetTitle className="sr-only">Search history for {user?.name ?? 'user'}</SheetTitle>
+        <SheetDescription className="sr-only">Search queries sent by this user</SheetDescription>
 
-        <div className="mt-6 flex flex-col gap-3">
+        {/* ── Header ── */}
+        <div className="border-b border-border bg-surface-secondary px-6 py-5">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-base font-bold text-brand">
+              {(user?.name ?? '?')[0]?.toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-ink-heading">{user?.name ?? 'Unknown'}</p>
+              <p className="truncate text-xs text-ink-muted">{user?.email ?? ''}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant={roleBadgeVariant(user?.role ?? '')}>{user?.role ?? ''}</Badge>
+            <span className="text-xs text-ink-muted">
+              {user?.total_searches ?? 0} search
+              {(user?.total_searches ?? 0) !== 1 ? 'es' : ''} total
+            </span>
+            {user?.last_search_at && (
+              <span className="text-xs text-ink-muted">
+                Last: {format(parseISO(user.last_search_at), 'dd MMM yyyy')}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ── Search history ── */}
+        <div className="flex-1 overflow-y-auto px-4 py-4">
           {history.isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+              ))}
+            </div>
           ) : history.isError ? (
             <ErrorState error={history.error} onRetry={() => void history.refetch()} />
           ) : items.length === 0 ? (
-            <EmptyState
-              title="No searches yet"
-              description="This user has not performed any searches."
-            />
+            <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
+              <p className="text-sm font-medium text-ink-heading">No searches yet</p>
+              <p className="text-xs text-ink-muted">This user has not performed any searches.</p>
+            </div>
           ) : (
-            items.map((entry) => (
-              <Card key={entry.id}>
-                <CardContent className="p-4">
-                  <p className="font-medium text-ink-heading">{entry.query}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                    <span>{entry.results_count} results</span>
-                    {entry.duration_ms != null && <span>{entry.duration_ms} ms</span>}
-                    <span title={entry.created_at}>
-                      {format(parseISO(entry.created_at), 'dd MMM yyyy, HH:mm')}
-                    </span>
+            <ol className="flex flex-col gap-3">
+              {items.map((entry, idx) => (
+                <li key={entry.id}>
+                  <div className="rounded-2xl border border-border bg-surface px-4 py-3.5 transition-colors hover:bg-surface-secondary">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <p className="font-semibold leading-snug text-ink-heading">{entry.query}</p>
+                      <span className="shrink-0 text-xs text-ink-muted">#{idx + 1}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
+                      <span className="flex items-center gap-1">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+                        {entry.results_count} result{entry.results_count !== 1 ? 's' : ''}
+                      </span>
+                      {entry.duration_ms != null && <span>{entry.duration_ms} ms</span>}
+                      <span>{format(parseISO(entry.created_at), 'dd MMM yyyy · HH:mm')}</span>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))
+                </li>
+              ))}
+            </ol>
           )}
         </div>
       </SheetContent>
@@ -356,15 +390,17 @@ function UserActivitiesPane() {
         <CardHeader>
           <CardTitle>User Activities</CardTitle>
           <CardDescription>
-            All platform users and their search activity — {total} users total. Click a row to see
-            search queries.
+            {total} users on the platform. Click any row to see their search history.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {list.isLoading ? (
-            <div className="space-y-px p-4">
+            <div className="flex flex-col gap-px p-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full" />
+                <Skeleton
+                  key={i}
+                  className="h-16 w-full rounded-none first:rounded-t-xl last:rounded-b-xl"
+                />
               ))}
             </div>
           ) : list.isError ? (
@@ -373,10 +409,7 @@ function UserActivitiesPane() {
             </div>
           ) : items.length === 0 ? (
             <div className="p-6">
-              <EmptyState
-                title="No users found"
-                description="No users have accessed the platform yet."
-              />
+              <EmptyState title="No users yet" description="No one has accessed the platform." />
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -406,8 +439,13 @@ function UserActivitiesPane() {
                       <td className="px-4 py-4">
                         <Badge variant={roleBadgeVariant(user.role)}>{user.role}</Badge>
                       </td>
-                      <td className="px-4 py-4 text-right font-medium text-ink-heading">
-                        {user.total_searches}
+                      <td className="px-4 py-4 text-right">
+                        <span className="inline-flex items-center gap-1 font-semibold text-ink-heading">
+                          {user.total_searches > 0 && (
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand" />
+                          )}
+                          {user.total_searches}
+                        </span>
                       </td>
                       <td className="px-4 py-4 text-ink-muted">
                         {user.last_search_at
