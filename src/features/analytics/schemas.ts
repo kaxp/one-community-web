@@ -113,3 +113,30 @@ export const zAnalyticsMatchSuccess = z
   })
   .passthrough();
 export type AnalyticsMatchSuccess = z.infer<typeof zAnalyticsMatchSuccess>;
+
+// User activities — all users with search counts.
+export const zUserActivityItem = z
+  .object({
+    id: z.string(),
+    name: z.string().nullable(),
+    email: z.string().nullable(),
+    role: z.string(),
+    total_searches: z.number().int().nonnegative(),
+    last_search_at: z.string().nullable(),
+    created_at: z.string(),
+  })
+  .passthrough();
+export type UserActivityItem = z.infer<typeof zUserActivityItem>;
+
+// Per-user search history entries.
+export const zUserSearchEntry = z
+  .object({
+    id: z.string(),
+    query: z.string(),
+    filters: z.record(z.unknown()).optional(),
+    results_count: z.number().int().nonnegative(),
+    duration_ms: z.number().nullable().optional(),
+    created_at: z.string(),
+  })
+  .passthrough();
+export type UserSearchEntry = z.infer<typeof zUserSearchEntry>;

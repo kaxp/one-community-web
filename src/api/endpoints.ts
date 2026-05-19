@@ -100,6 +100,8 @@ import {
   type AnalyticsFunnelStartup,
   type AnalyticsMatchSuccess,
   type AnalyticsOverview,
+  type UserActivityItem,
+  type UserSearchEntry,
 } from '@/features/analytics/schemas';
 import {
   zTracxnResponse,
@@ -848,6 +850,32 @@ export async function getAnalyticsMatchSuccess(): Promise<AnalyticsMatchSuccess>
   return zAnalyticsMatchSuccess.parse(unwrap(resp.data, '/analytics/match-success'));
 }
 
+export async function getAnalyticsUserActivities(args: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ items: UserActivityItem[]; total: number }> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.offset !== undefined) params.set('offset', String(args.offset));
+  const qs = params.toString();
+  const url = `/analytics/user-activities${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<{ items: UserActivityItem[]; total: number }>>(url);
+  return unwrap(resp.data, url);
+}
+
+export async function getAnalyticsUserSearchHistory(
+  userId: string,
+  args: { limit?: number; offset?: number } = {},
+): Promise<{ items: UserSearchEntry[] }> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.offset !== undefined) params.set('offset', String(args.offset));
+  const qs = params.toString();
+  const url = `/analytics/user-activities/${encodeURIComponent(userId)}${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<{ items: UserSearchEntry[] }>>(url);
+  return unwrap(resp.data, url);
+}
+
 // PRD §7.13.5 — `GET /me/digest/recent`. Cursor-paginated; cursor = sent_at
 // of the previous page's last item. Returns only `status='sent'` rows.
 export async function listMyDigests(args: {
@@ -1056,6 +1084,7 @@ export async function getAdminStartups(
 export interface AdminLpsArgs {
   role?: LpCrmRoleFilter;
   search?: string;
+  poc?: string;
   sort_by?: LpCrmSort;
 }
 
@@ -1063,11 +1092,18 @@ export async function getAdminLps(args: AdminLpsArgs = {}): Promise<LpCrmListRes
   const params = new URLSearchParams();
   if (args.role) params.set('role', args.role);
   if (args.search) params.set('search', args.search);
+  if (args.poc) params.set('poc', args.poc);
   if (args.sort_by) params.set('sort_by', args.sort_by);
   const qs = params.toString();
   const url = `/admin/lps${qs ? `?${qs}` : ''}`;
   const resp = await apiClient.get<ApiEnvelope<LpCrmListResponse>>(url);
   return zLpCrmListResponse.parse(unwrap(resp.data, url));
+}
+
+export async function getAdminLpPocList(): Promise<string[]> {
+  const url = '/admin/lps/poc-list';
+  const resp = await apiClient.get<ApiEnvelope<{ items: string[] }>>(url);
+  return unwrap(resp.data, url).items;
 }
 
 export async function getAdminLpDetail(userId: string): Promise<LpCrmDetail> {
