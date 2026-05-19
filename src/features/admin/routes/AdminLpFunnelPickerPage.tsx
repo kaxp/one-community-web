@@ -14,7 +14,6 @@ import { useAdminLps } from '@/features/admin/hooks/use-admin-lps';
 import { useAdminLpDetail } from '@/features/admin/hooks/use-admin-lp-detail';
 import { useAdminLpNotes } from '@/features/admin/hooks/use-admin-lp-notes';
 import { useAdminLpNoteCreate } from '@/features/admin/hooks/use-admin-lp-note-create';
-import { useAdminLpPocList } from '@/features/admin/hooks/use-admin-lp-poc-list';
 import {
   LP_CRM_NOTE_LABELS,
   LP_CRM_NOTE_TYPES,
@@ -338,9 +337,6 @@ export function AdminLpFunnelPickerPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const pocList = useAdminLpPocList();
-  const pocOptions = pocList.data ?? [];
-
   // Debounce search input
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -350,12 +346,24 @@ export function AdminLpFunnelPickerPage() {
   const lpsArgs: Parameters<typeof useAdminLps>[0] = { sort_by: sortBy };
   if (roleFilter) lpsArgs.role = roleFilter;
   if (debouncedSearch) lpsArgs.search = debouncedSearch;
-  if (pocFilter) lpsArgs.poc = pocFilter;
   const lps = useAdminLps(lpsArgs);
 
   const rawItems = lps.data?.items;
-  const items = useMemo(() => rawItems ?? [], [rawItems]);
-  const total = lps.data?.total ?? 0;
+  // Derive unique POC options from the full (unfiltered-by-poc) list
+  const pocOptions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const lp of rawItems ?? []) {
+      if (lp.poc) seen.add(lp.poc);
+    }
+    return Array.from(seen).sort();
+  }, [rawItems]);
+
+  // Apply poc filter client-side — the list is always ≤200 rows
+  const items = useMemo(() => {
+    const all = rawItems ?? [];
+    return pocFilter ? all.filter((lp) => lp.poc === pocFilter) : all;
+  }, [rawItems, pocFilter]);
+  const total = items.length;
 
   // Sort indicator helper
   function SortButton({ field, label }: { field: LpCrmSort; label: string }) {
