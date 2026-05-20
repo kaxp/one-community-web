@@ -5,6 +5,10 @@ interface Props {
   limit: number;
   offset: number;
   itemCount: number;
+  // Optional exact total. When provided, `hasNext` is computed against it
+  // (so a full-but-final page correctly disables "Next"). Falls back to the
+  // `itemCount === limit` heuristic when omitted.
+  total?: number;
   onChange(next: { limit: number; offset: number }): void;
 }
 
@@ -14,10 +18,10 @@ interface Props {
 // `hasNext = itemCount === limit` (best signal we have without a server
 // total). When the backend later returns a `total` field, we can flip this
 // to exact paging.
-export function OffsetPaginator({ limit, offset, itemCount, onChange }: Props) {
+export function OffsetPaginator({ limit, offset, itemCount, total, onChange }: Props) {
   const page = Math.floor(offset / limit) + 1;
   const hasPrev = offset > 0;
-  const hasNext = itemCount === limit;
+  const hasNext = total !== undefined ? offset + itemCount < total : itemCount === limit;
 
   const goPrev = () => {
     onChange({ limit, offset: Math.max(0, offset - limit) });

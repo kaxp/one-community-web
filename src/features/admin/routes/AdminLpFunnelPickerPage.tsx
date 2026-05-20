@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Search as SearchIcon, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Search as SearchIcon, ChevronUp, ChevronDown, X, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,10 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
+import { OffsetPaginator } from '@/components/pagination/OffsetPaginator';
 import { useAdminLps } from '@/features/admin/hooks/use-admin-lps';
 import { useAdminLpDetail } from '@/features/admin/hooks/use-admin-lp-detail';
 import { useAdminLpNotes } from '@/features/admin/hooks/use-admin-lp-notes';
 import { useAdminLpNoteCreate } from '@/features/admin/hooks/use-admin-lp-note-create';
+import { EditUserDialog, type EditableUser } from '@/features/admin/components/EditUserDialog';
 import {
   LP_CRM_NOTE_LABELS,
   LP_CRM_NOTE_TYPES,
@@ -22,6 +25,9 @@ import {
   type LpCrmRoleFilter,
   type LpCrmSort,
 } from '@/features/admin/schemas';
+import { qk } from '@/api/query-keys';
+
+const PAGE_SIZE = 20;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -73,9 +79,11 @@ function LpDetailDrawer({
   open: boolean;
   onClose: () => void;
 }) {
+  const qc = useQueryClient();
   const detail = useAdminLpDetail(userId);
   const notes = useAdminLpNotes(userId);
   const createNote = useAdminLpNoteCreate();
+  const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
   const [noteType, setNoteType] = useState<LpCrmNoteType>('meeting');
@@ -133,29 +141,78 @@ function LpDetailDrawer({
           <div className="flex flex-col gap-8 p-8">
             {/* ── Profile header ── */}
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-bold text-ink-heading">{lp.name ?? 'Unnamed'}</h2>
                   {roleBadge(lp.role)}
                 </div>
-                <div className="space-y-1 text-sm text-ink-muted">
-                  {lp.organisation && <p>{lp.organisation}</p>}
-                  {lp.fund_name && <p>{lp.fund_name}</p>}
-                  {lp.email && <p>{lp.email}</p>}
-                  {lp.linkedin_url && (
-                    <p>
-                      <a
-                        href={lp.linkedin_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand underline-offset-2 hover:underline"
-                      >
-                        LinkedIn
-                      </a>
-                    </p>
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                  {lp.organisation && (
+                    <div className="flex gap-2">
+                      <dt className="text-ink-muted">Organisation</dt>
+                      <dd className="text-ink-body">{lp.organisation}</dd>
+                    </div>
                   )}
-                </div>
+                  {lp.designation && (
+                    <div className="flex gap-2">
+                      <dt className="text-ink-muted">Designation</dt>
+                      <dd className="text-ink-body">{lp.designation}</dd>
+                    </div>
+                  )}
+                  {lp.fund_name && (
+                    <div className="flex gap-2">
+                      <dt className="text-ink-muted">Fund</dt>
+                      <dd className="text-ink-body">{lp.fund_name}</dd>
+                    </div>
+                  )}
+                  {lp.phone && (
+                    <div className="flex gap-2">
+                      <dt className="text-ink-muted">Phone</dt>
+                      <dd className="font-mono text-ink-body">{lp.phone}</dd>
+                    </div>
+                  )}
+                  {lp.email && (
+                    <div className="flex gap-2">
+                      <dt className="text-ink-muted">Email</dt>
+                      <dd className="truncate text-ink-body">{lp.email}</dd>
+                    </div>
+                  )}
+                  {lp.linkedin_url && (
+                    <div className="flex gap-2">
+                      <dt className="text-ink-muted">LinkedIn</dt>
+                      <dd>
+                        <a
+                          href={lp.linkedin_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand underline-offset-2 hover:underline"
+                        >
+                          Profile
+                        </a>
+                      </dd>
+                    </div>
+                  )}
+                </dl>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() =>
+                  setEditTarget({
+                    id: lp.id,
+                    name: lp.name,
+                    phone: lp.phone,
+                    email: lp.email,
+                    role: lp.role,
+                    organisation: lp.organisation,
+                    designation: lp.designation,
+                  })
+                }
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                Edit
+              </Button>
             </div>
 
             {/* ── Metadata cards ── */}
@@ -276,6 +333,13 @@ function LpDetailDrawer({
           </div>
         )}
       </SheetContent>
+      <EditUserDialog
+        user={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => {
+          void qc.invalidateQueries({ queryKey: qk.admin.lpsAll });
+        }}
+      />
     </Sheet>
   );
 }
@@ -295,10 +359,12 @@ function LpRow({
   lp,
   selected,
   onClick,
+  onEdit,
 }: {
   lp: LpCrmListItem;
   selected: boolean;
   onClick: () => void;
+  onEdit: () => void;
 }) {
   return (
     <tr
@@ -317,10 +383,24 @@ function LpRow({
       <td className="max-w-[200px] px-4 py-4">
         <p className="truncate text-sm text-ink-muted">{lp.last_comment ?? '—'}</p>
       </td>
-      <td className="px-6 py-4 text-right">
-        <Button size="sm" variant="outline" tabIndex={-1}>
-          Open
-        </Button>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            title="Edit profile"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden />
+          </Button>
+          <Button size="sm" variant="outline" tabIndex={-1}>
+            Open
+          </Button>
+        </div>
       </td>
     </tr>
   );
@@ -329,6 +409,7 @@ function LpRow({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function AdminLpFunnelPickerPage() {
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<LpCrmRoleFilter | ''>('');
@@ -336,6 +417,8 @@ export function AdminLpFunnelPickerPage() {
   const [sortBy, setSortBy] = useState<LpCrmSort>('last_activity');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -359,11 +442,22 @@ export function AdminLpFunnelPickerPage() {
   }, [rawItems]);
 
   // Apply poc filter client-side — the list is always ≤200 rows
-  const items = useMemo(() => {
+  const filtered = useMemo(() => {
     const all = rawItems ?? [];
     return pocFilter ? all.filter((lp) => lp.poc === pocFilter) : all;
   }, [rawItems, pocFilter]);
-  const total = items.length;
+  const total = filtered.length;
+
+  // Reset to page 1 whenever any filter/search/sort changes — otherwise a
+  // narrower filter could leave us on a page that no longer exists.
+  useEffect(() => {
+    setOffset(0);
+  }, [debouncedSearch, roleFilter, pocFilter, sortBy]);
+
+  // Client-side pagination: the API returns the full filtered set (≤200) but
+  // rendering all rows at once jankily blocks the main thread. Slice to a
+  // page; OffsetPaginator drives `offset`.
+  const items = useMemo(() => filtered.slice(offset, offset + PAGE_SIZE), [filtered, offset]);
 
   // Sort indicator helper
   function SortButton({ field, label }: { field: LpCrmSort; label: string }) {
@@ -526,16 +620,45 @@ export function AdminLpFunnelPickerPage() {
                     lp={lp}
                     selected={lp.id === selectedId}
                     onClick={() => handleRowClick(lp.id)}
+                    onEdit={() =>
+                      setEditTarget({
+                        id: lp.id,
+                        name: lp.name,
+                        email: lp.email,
+                        role: lp.role,
+                        organisation: lp.organisation,
+                      })
+                    }
                   />
                 ))}
               </tbody>
             </table>
+            {total > PAGE_SIZE ? (
+              <div className="border-t border-border px-6 py-3">
+                <OffsetPaginator
+                  limit={PAGE_SIZE}
+                  offset={offset}
+                  itemCount={items.length}
+                  total={total}
+                  onChange={({ offset: next }) => setOffset(next)}
+                />
+              </div>
+            ) : null}
           </div>
         )}
       </div>
 
       {/* ── Detail Drawer ── */}
       <LpDetailDrawer userId={selectedId} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+      {/* ── Edit dialog (row-level) ── */}
+      <EditUserDialog
+        user={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => {
+          void qc.invalidateQueries({ queryKey: qk.admin.lpsAll });
+        }}
+      />
 
       {/* Accessible announcement of selected LP name */}
       {selectedItem && (
