@@ -1,38 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/features/search/components/SearchBar';
 import { ChatTurn } from '@/features/search/components/ChatTurn';
-import { TypeSelector, type SearchTypeOption } from '@/features/search/components/TypeSelector';
 import { useConversation } from '@/features/search/hooks/use-conversation';
 import { type SearchTargetType } from '@/features/search/schemas';
-import type { UserRole } from '@/types/enums';
 import { useRole } from '@/auth/use-auth';
-import { isMaskedSearchRole, isStartupRole } from '@/lib/role-capabilities';
-
-// Startup roles search for LPs (investors); everyone else searches for startups.
-function defaultTargetType(role: UserRole | null): SearchTargetType {
-  return isStartupRole(role) ? 'lp' : 'startup';
-}
-
-// URL param name for the selected type: ?t=startup | ?t=lp (nothing = "all")
-const TYPE_PARAM = 't';
+import { isMaskedSearchRole } from '@/lib/role-capabilities';
 
 export function SearchPage() {
   const [params, setParams] = useSearchParams();
   const role = useRole();
   const isMasked = isMaskedSearchRole(role);
-  const defType = useMemo(() => defaultTargetType(role), [role]);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [query, setQuery] = useState('');
-  const [selectedType, setSelectedType] = useState<SearchTypeOption>(
-    (params.get(TYPE_PARAM) as SearchTypeOption | null) ?? defType,
-  );
-  // Target type passed to the API; null means "let GPT classify".
-  const targetType: SearchTargetType | null = selectedType === 'all' ? null : selectedType;
+  const targetType: SearchTargetType = 'startup';
 
   const conversation = useConversation({ targetType });
   const threadRef = useRef<HTMLDivElement | null>(null);
@@ -75,14 +60,6 @@ export function SearchPage() {
     setQuery('');
   };
 
-  const onTypeChange = (t: SearchTypeOption) => {
-    setSelectedType(t);
-    const sp = new URLSearchParams(params);
-    if (t !== defType) sp.set(TYPE_PARAM, t);
-    else sp.delete(TYPE_PARAM);
-    if (sp.toString() !== params.toString()) setParams(sp, { replace: true });
-  };
-
   const onNewChat = () => {
     conversation.reset();
     setQuery('');
@@ -95,7 +72,6 @@ export function SearchPage() {
 
   const searchControls = (
     <div className="flex flex-col gap-3">
-      <TypeSelector value={selectedType} onChange={onTypeChange} defaultType={defType} />
       <SearchBar
         value={query}
         onChange={setQuery}
@@ -117,7 +93,7 @@ export function SearchPage() {
           <CardHeader>
             <CardTitle>Search the community</CardTitle>
             <CardDescription>
-              Conversational search across LPs and startups. Ask anything — follow up to refine.
+              Conversational search across startups. Ask anything — follow up to refine.
             </CardDescription>
           </CardHeader>
           <CardContent>{searchControls}</CardContent>
