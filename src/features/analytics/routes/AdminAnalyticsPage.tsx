@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { useAnalyticsOverview } from '@/features/analytics/hooks/use-analytics-overview';
@@ -16,6 +17,7 @@ import { useAnalyticsCohort } from '@/features/analytics/hooks/use-analytics-coh
 import { useAnalyticsMatchSuccess } from '@/features/analytics/hooks/use-analytics-match-success';
 import {
   useAnalyticsUserActivities,
+  useAnalyticsUserLoginHistory,
   useAnalyticsUserSearchHistory,
 } from '@/features/analytics/hooks/use-analytics-user-activities';
 import { KpiCards } from '@/features/analytics/components/KpiCards';
@@ -286,7 +288,7 @@ function roleBadgeVariant(role: string): 'success' | 'warning' | 'secondary' {
   return 'secondary';
 }
 
-function UserSearchDrawer({
+function UserActivityDrawer({
   user,
   open,
   onClose,
@@ -295,14 +297,19 @@ function UserSearchDrawer({
   open: boolean;
   onClose: () => void;
 }) {
-  const history = useAnalyticsUserSearchHistory(open ? (user?.id ?? null) : null);
-  const items = history.data?.items ?? [];
+  const userId = open ? (user?.id ?? null) : null;
+  const searches = useAnalyticsUserSearchHistory(userId);
+  const logins = useAnalyticsUserLoginHistory(userId);
+  const searchItems = searches.data?.items ?? [];
+  const loginItems = logins.data?.items ?? [];
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="flex w-full max-w-lg flex-col overflow-hidden p-0">
-        <SheetTitle className="sr-only">Search history for {user?.name ?? 'user'}</SheetTitle>
-        <SheetDescription className="sr-only">Search queries sent by this user</SheetDescription>
+        <SheetTitle className="sr-only">Activity for {user?.name ?? 'user'}</SheetTitle>
+        <SheetDescription className="sr-only">
+          Login and search history for this user
+        </SheetDescription>
 
         {/* ── Header ── */}
         <div className="border-b border-border bg-surface-secondary px-6 py-5">
@@ -315,58 +322,103 @@ function UserSearchDrawer({
               <p className="truncate text-xs text-ink-muted">{user?.email ?? ''}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Badge variant={roleBadgeVariant(user?.role ?? '')}>{user?.role ?? ''}</Badge>
             <span className="text-xs text-ink-muted">
-              {user?.total_searches ?? 0} search
-              {(user?.total_searches ?? 0) !== 1 ? 'es' : ''} total
+              {user?.total_logins ?? 0} login
+              {(user?.total_logins ?? 0) !== 1 ? 's' : ''} · {user?.total_searches ?? 0} search
+              {(user?.total_searches ?? 0) !== 1 ? 'es' : ''}
             </span>
-            {user?.last_search_at && (
-              <span className="text-xs text-ink-muted">
-                Last: {format(parseISO(user.last_search_at), 'dd MMM yyyy')}
-              </span>
-            )}
           </div>
         </div>
 
-        {/* ── Search history ── */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          {history.isLoading ? (
-            <div className="flex flex-col gap-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-20 w-full rounded-2xl" />
-              ))}
-            </div>
-          ) : history.isError ? (
-            <ErrorState error={history.error} onRetry={() => void history.refetch()} />
-          ) : items.length === 0 ? (
-            <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
-              <p className="text-sm font-medium text-ink-heading">No searches yet</p>
-              <p className="text-xs text-ink-muted">This user has not performed any searches.</p>
-            </div>
-          ) : (
-            <ol className="flex flex-col gap-3">
-              {items.map((entry, idx) => (
-                <li key={entry.id}>
-                  <div className="rounded-2xl border border-border bg-surface px-4 py-3.5 transition-colors hover:bg-surface-secondary">
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <p className="font-semibold leading-snug text-ink-heading">{entry.query}</p>
-                      <span className="shrink-0 text-xs text-ink-muted">#{idx + 1}</span>
+        {/* ── Tabs ── */}
+        <Tabs defaultValue="logins" className="flex flex-1 flex-col overflow-hidden">
+          <TabsList className="mx-6 mt-4 self-start">
+            <TabsTrigger value="logins">Login History</TabsTrigger>
+            <TabsTrigger value="searches">Search History</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="logins" className="flex-1 overflow-y-auto px-4 py-4">
+            {logins.isLoading ? (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+                ))}
+              </div>
+            ) : logins.isError ? (
+              <ErrorState error={logins.error} onRetry={() => void logins.refetch()} />
+            ) : loginItems.length === 0 ? (
+              <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
+                <p className="text-sm font-medium text-ink-heading">No logins yet</p>
+                <p className="text-xs text-ink-muted">
+                  This user has not signed in since login tracking started.
+                </p>
+              </div>
+            ) : (
+              <ol className="flex flex-col gap-3">
+                {loginItems.map((entry, idx) => (
+                  <li key={entry.id}>
+                    <div className="rounded-2xl border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-secondary">
+                      <div className="mb-1 flex items-start justify-between gap-2">
+                        <p className="font-semibold leading-snug text-ink-heading">
+                          {format(parseISO(entry.login_at), 'dd MMM yyyy · HH:mm')}
+                        </p>
+                        <span className="shrink-0 text-xs text-ink-muted">#{idx + 1}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
+                        {entry.ip_address && <span>IP {entry.ip_address}</span>}
+                        {entry.user_agent && (
+                          <span className="truncate" title={entry.user_agent}>
+                            {entry.user_agent}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
-                      <span className="flex items-center gap-1">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
-                        {entry.results_count} result{entry.results_count !== 1 ? 's' : ''}
-                      </span>
-                      {entry.duration_ms != null && <span>{entry.duration_ms} ms</span>}
-                      <span>{format(parseISO(entry.created_at), 'dd MMM yyyy · HH:mm')}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </TabsContent>
+
+          <TabsContent value="searches" className="flex-1 overflow-y-auto px-4 py-4">
+            {searches.isLoading ? (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+                ))}
+              </div>
+            ) : searches.isError ? (
+              <ErrorState error={searches.error} onRetry={() => void searches.refetch()} />
+            ) : searchItems.length === 0 ? (
+              <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
+                <p className="text-sm font-medium text-ink-heading">No searches yet</p>
+                <p className="text-xs text-ink-muted">This user has not performed any searches.</p>
+              </div>
+            ) : (
+              <ol className="flex flex-col gap-3">
+                {searchItems.map((entry, idx) => (
+                  <li key={entry.id}>
+                    <div className="rounded-2xl border border-border bg-surface px-4 py-3.5 transition-colors hover:bg-surface-secondary">
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <p className="font-semibold leading-snug text-ink-heading">{entry.query}</p>
+                        <span className="shrink-0 text-xs text-ink-muted">#{idx + 1}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+                          {entry.results_count} result{entry.results_count !== 1 ? 's' : ''}
+                        </span>
+                        {entry.duration_ms != null && <span>{entry.duration_ms} ms</span>}
+                        <span>{format(parseISO(entry.created_at), 'dd MMM yyyy · HH:mm')}</span>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </TabsContent>
+        </Tabs>
       </SheetContent>
     </Sheet>
   );
@@ -390,7 +442,7 @@ function UserActivitiesPane() {
         <CardHeader>
           <CardTitle>User Activities</CardTitle>
           <CardDescription>
-            {total} users on the platform. Click any row to see their search history.
+            {total} users on the platform. Click any row to see their login + search history.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -418,6 +470,8 @@ function UserActivitiesPane() {
                   <tr>
                     <th className="px-6 py-3 text-left">Name</th>
                     <th className="px-4 py-3 text-left">Role</th>
+                    <th className="px-4 py-3 text-right">Logins</th>
+                    <th className="px-4 py-3 text-left">Last Login</th>
                     <th className="px-4 py-3 text-right">Searches</th>
                     <th className="px-4 py-3 text-left">Last Search</th>
                     <th className="px-6 py-3 text-right"></th>
@@ -438,6 +492,19 @@ function UserActivitiesPane() {
                       </td>
                       <td className="px-4 py-4">
                         <Badge variant={roleBadgeVariant(user.role)}>{user.role}</Badge>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="inline-flex items-center gap-1 font-semibold text-ink-heading">
+                          {user.total_logins > 0 && (
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+                          )}
+                          {user.total_logins}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-ink-muted">
+                        {user.last_login_at
+                          ? format(parseISO(user.last_login_at), 'dd MMM yyyy · HH:mm')
+                          : '—'}
                       </td>
                       <td className="px-4 py-4 text-right">
                         <span className="inline-flex items-center gap-1 font-semibold text-ink-heading">
@@ -466,7 +533,7 @@ function UserActivitiesPane() {
         </CardContent>
       </Card>
 
-      <UserSearchDrawer
+      <UserActivityDrawer
         user={selectedUser}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}

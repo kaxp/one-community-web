@@ -101,6 +101,7 @@ import {
   type AnalyticsMatchSuccess,
   type AnalyticsOverview,
   type UserActivityItem,
+  type UserLoginEntry,
   type UserSearchEntry,
 } from '@/features/analytics/schemas';
 import {
@@ -873,6 +874,19 @@ export async function getAnalyticsUserSearchHistory(
   const qs = params.toString();
   const url = `/analytics/user-activities/${encodeURIComponent(userId)}${qs ? `?${qs}` : ''}`;
   const resp = await apiClient.get<ApiEnvelope<{ items: UserSearchEntry[] }>>(url);
+  return unwrap(resp.data, url);
+}
+
+export async function getAnalyticsUserLoginHistory(
+  userId: string,
+  args: { limit?: number; offset?: number } = {},
+): Promise<{ items: UserLoginEntry[] }> {
+  const params = new URLSearchParams();
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.offset !== undefined) params.set('offset', String(args.offset));
+  const qs = params.toString();
+  const url = `/analytics/user-activities/${encodeURIComponent(userId)}/logins${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<{ items: UserLoginEntry[] }>>(url);
   return unwrap(resp.data, url);
 }
 
