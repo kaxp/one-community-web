@@ -114,7 +114,7 @@ export const zAnalyticsMatchSuccess = z
   .passthrough();
 export type AnalyticsMatchSuccess = z.infer<typeof zAnalyticsMatchSuccess>;
 
-// User activities — all users with search counts.
+// User activities — all users with search + login counts.
 export const zUserActivityItem = z
   .object({
     id: z.string(),
@@ -123,6 +123,8 @@ export const zUserActivityItem = z
     role: z.string(),
     total_searches: z.number().int().nonnegative(),
     last_search_at: z.string().nullable(),
+    total_logins: z.number().int().nonnegative().default(0),
+    last_login_at: z.string().nullable().default(null),
     created_at: z.string(),
   })
   .passthrough();
@@ -140,3 +142,14 @@ export const zUserSearchEntry = z
   })
   .passthrough();
 export type UserSearchEntry = z.infer<typeof zUserSearchEntry>;
+
+// Per-user login history entries.
+export const zUserLoginEntry = z
+  .object({
+    id: z.string(),
+    login_at: z.string(),
+    ip_address: z.string().nullable().optional(),
+    user_agent: z.string().nullable().optional(),
+  })
+  .passthrough();
+export type UserLoginEntry = z.infer<typeof zUserLoginEntry>;
