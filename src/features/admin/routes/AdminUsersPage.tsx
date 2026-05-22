@@ -98,7 +98,15 @@ function DeleteUserDialog({ user, onClose }: DeleteDialogProps) {
 
 // ── Users table (LP / Potential LP / Partner / Startup / Admin tabs) ──────────
 
-function UsersTable({ roles, isSuperAdmin }: { roles: string; isSuperAdmin: boolean }) {
+function UsersTable({
+  roles,
+  isSuperAdmin,
+  showProfile = false,
+}: {
+  roles: string;
+  isSuperAdmin: boolean;
+  showProfile?: boolean;
+}) {
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,6 +137,7 @@ function UsersTable({ roles, isSuperAdmin }: { roles: string; isSuperAdmin: bool
     () => [
       {
         id: 'name',
+
         header: () => (
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Name</span>
         ),
@@ -194,22 +203,26 @@ function UsersTable({ roles, isSuperAdmin }: { roles: string; isSuperAdmin: bool
           <span className="text-xs text-ink-muted">{fmtDateTime(row.original.created_at)}</span>
         ),
       },
-      {
-        id: 'profile',
-        header: () => null,
-        cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-xs text-brand"
-            onClick={() => navigate(`/search/profile/${row.original.id}`)}
-            title="View profile"
-          >
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-            Profile
-          </Button>
-        ),
-      },
+      ...(showProfile
+        ? [
+            {
+              id: 'profile',
+              header: () => null,
+              cell: ({ row }: { row: { original: AdminUserListItem } }) => (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs text-brand"
+                  onClick={() => navigate(`/search/profile/${row.original.id}`)}
+                  title="View profile"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                  Profile
+                </Button>
+              ),
+            } satisfies ColumnDef<AdminUserListItem>,
+          ]
+        : []),
       {
         id: 'actions',
         header: () => null,
@@ -239,7 +252,7 @@ function UsersTable({ roles, isSuperAdmin }: { roles: string; isSuperAdmin: bool
         ),
       },
     ],
-    [isSuperAdmin, navigate],
+    [isSuperAdmin, navigate, showProfile],
   );
 
   return (
@@ -496,7 +509,11 @@ export function AdminUsersPage() {
             {tab.key === 'founder' ? (
               <FoundersTable />
             ) : (
-              <UsersTable roles={tab.roles ?? ''} isSuperAdmin={isSuperAdmin} />
+              <UsersTable
+                roles={tab.roles ?? ''}
+                isSuperAdmin={isSuperAdmin}
+                showProfile={tab.key === 'startup'}
+              />
             )}
           </TabsContent>
         ))}
