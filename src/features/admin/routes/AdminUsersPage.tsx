@@ -34,11 +34,12 @@ const DEFAULT_LIMIT = 100;
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 
-type UserTab = 'lp' | 'potential_lp' | 'partner' | 'startup' | 'founder' | 'admin';
+type UserTab = 'lp' | 'potential_lp' | 'vc' | 'partner' | 'startup' | 'founder' | 'admin';
 
 const USER_TABS: { key: UserTab; label: string; roles?: string }[] = [
   { key: 'lp', label: 'LP', roles: 'lp' },
   { key: 'potential_lp', label: 'Potential LP', roles: 'potential_lp' },
+  { key: 'vc', label: 'VC', roles: 'vc' },
   { key: 'partner', label: 'Partner', roles: 'partner' },
   {
     key: 'startup',
