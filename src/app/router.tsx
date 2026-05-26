@@ -11,6 +11,7 @@ import { UnauthorizedPage } from './routes/UnauthorizedPage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import { Susp } from './route-suspense';
 import { SignInPage } from '@/features/auth/routes/SignInPage';
+import { MagicLinkPage } from '@/features/auth/routes/MagicLinkPage';
 
 // Per decisions.md [P-19]: every new feature route is lazy-split. Hoisted to module
 // scope so React.lazy de-dupes module loads (a Lazy() wrapper rebuilt per render
@@ -180,6 +181,7 @@ export const router = createBrowserRouter(
   [
     { path: '/', element: <HomePage /> },
     { path: '/signin', element: <SignInPage /> },
+    { path: '/auth/magic', element: <MagicLinkPage /> },
     { path: '/expired', element: <ExpiredPage /> },
     { path: '/unauthorized', element: <UnauthorizedPage /> },
     {
