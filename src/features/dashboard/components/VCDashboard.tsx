@@ -1,105 +1,207 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar, Eye, Sparkles } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMatchSuggestions } from '@/features/matchmaking/hooks/use-match-suggestions';
-import { useBookings } from '@/features/schedule/hooks/use-bookings';
 import { useProfileViewers } from '@/features/profile-viewers/hooks/use-profile-viewers';
-
-function DashCard({
-  title,
-  icon: Icon,
-  link,
-  linkLabel,
-  children,
-}: {
-  title: string;
-  icon: React.ElementType;
-  link: string;
-  linkLabel: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-semibold text-ink-muted">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-ink-muted" aria-hidden />
-      </CardHeader>
-      <CardContent>
-        {children}
-        <Button asChild variant="ghost" size="sm" className="mt-3 -ml-2 h-auto p-2">
-          <Link to={link} className="inline-flex items-center gap-1 text-xs font-medium text-brand">
-            {linkLabel} <ArrowRight className="h-3 w-3" aria-hidden />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
+import { useUser, useRole } from '@/auth/use-auth';
+import { colours, fonts, spacing } from '@/design-system/tokens';
+import { SurfaceCard } from '@/design-system/components';
+import { DashboardHero } from './DashboardHero';
+import { QuickGrid } from './QuickGrid';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 
 export function VCDashboard() {
+  const user = useUser();
+  const role = useRole();
   const matches = useMatchSuggestions();
-  const bookings = useBookings({ limit: 5 });
   const viewers = useProfileViewers({ limit: 5 });
+  const isMobile = useIsMobile();
 
   const matchCount = matches.data?.length ?? 0;
-  const upcomingBookings = (bookings.data?.pages[0]?.items ?? []).filter(
-    (b) => b.status === 'confirmed',
-  );
   const viewerCount = viewers.data?.pages[0]?.items.length ?? 0;
 
+  const contextLine =
+    matchCount > 0
+      ? `${matchCount} new startup match${matchCount === 1 ? '' : 'es'} curated for you`
+      : viewerCount > 0
+        ? `${viewerCount} investor${viewerCount === 1 ? '' : 's'} viewed your profile`
+        : 'Your network is growing';
+
   return (
-    <div className="flex flex-col gap-6" data-testid="vc-dashboard">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Dashboard</h1>
-        <p className="text-sm text-ink-muted">Your activity at a glance.</p>
-      </header>
+    <div style={{ background: colours.pageBg, minHeight: '100%' }} data-testid="vc-dashboard">
+      <DashboardHero name={user?.name ?? null} role={role ?? 'vc'} contextLine={contextLine} />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <DashCard
-          title="New matches"
-          icon={Sparkles}
-          link="/matchmaking"
-          linkLabel="View suggestions"
-        >
-          {matches.isLoading ? (
-            <Skeleton className="h-10 w-full" />
-          ) : (
-            <p className="text-3xl font-semibold text-ink-heading" data-testid="vc-match-count">
-              {matchCount}
-            </p>
-          )}
-        </DashCard>
+      <div
+        style={{
+          padding: isMobile ? '24px 20px' : '32px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.sectionGap,
+        }}
+      >
+        {/* Quick access */}
+        <section>
+          <div
+            style={{
+              fontFamily: fonts.sans,
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: '.1em',
+              textTransform: 'uppercase' as const,
+              color: colours.text3,
+              marginBottom: 12,
+            }}
+          >
+            Quick access
+          </div>
+          <QuickGrid
+            tiles={[
+              { key: 'search', label: 'Search', path: '/search', subtitle: 'Find startups' },
+              { key: 'digest', label: 'My Digest', path: '/digest', subtitle: 'Week 47 live' },
+              {
+                key: 'matchmaking',
+                label: 'Opportunities',
+                path: '/matchmaking',
+                subtitle: matchCount > 0 ? `${matchCount} new` : 'Curated matches',
+              },
+              {
+                key: 'connections',
+                label: 'Network',
+                path: '/connections',
+                subtitle: 'Your connections',
+              },
+              {
+                key: 'pending',
+                label: 'Pending',
+                path: '/connections/pending',
+                subtitle: 'Action required',
+              },
+              {
+                key: 'add-user',
+                label: 'Refer',
+                path: '/add-user',
+                subtitle: 'Invite to community',
+              },
+            ]}
+          />
+        </section>
 
-        <DashCard
-          title="Profile views"
-          icon={Eye}
-          link="/profile-viewers"
-          linkLabel="See who viewed"
-        >
-          {viewers.isLoading ? (
-            <Skeleton className="h-10 w-full" />
-          ) : (
-            <p className="text-3xl font-semibold text-ink-heading">{viewerCount}</p>
-          )}
-          <p className="text-xs text-ink-muted">recent viewer{viewerCount !== 1 ? 's' : ''}</p>
-        </DashCard>
+        {/* Stats row */}
+        <section>
+          <div
+            style={{
+              fontFamily: fonts.sans,
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: '.1em',
+              textTransform: 'uppercase' as const,
+              color: colours.text3,
+              marginBottom: 12,
+            }}
+          >
+            At a glance
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr',
+              gap: 14,
+            }}
+          >
+            <SurfaceCard style={{ padding: isMobile ? 20 : 24 }}>
+              {matches.isLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <>
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 36,
+                      fontWeight: 700,
+                      color: colours.text,
+                      lineHeight: 1,
+                    }}
+                    data-testid="vc-match-count"
+                  >
+                    {matchCount}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      color: colours.text3,
+                      marginTop: 4,
+                    }}
+                  >
+                    New matches
+                  </div>
+                  <Link
+                    to="/matchmaking"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: colours.brand,
+                      textDecoration: 'none',
+                      marginTop: 12,
+                    }}
+                  >
+                    View <ArrowRight size={12} />
+                  </Link>
+                </>
+              )}
+            </SurfaceCard>
 
-        <DashCard
-          title="Upcoming meetings"
-          icon={Calendar}
-          link="/schedule"
-          linkLabel="Open schedule"
-        >
-          {bookings.isLoading ? (
-            <Skeleton className="h-10 w-full" />
-          ) : upcomingBookings.length === 0 ? (
-            <p className="text-sm text-ink-muted">No upcoming meetings.</p>
-          ) : (
-            <p className="text-3xl font-semibold text-ink-heading">{upcomingBookings.length}</p>
-          )}
-        </DashCard>
+            <SurfaceCard style={{ padding: isMobile ? 20 : 24 }}>
+              {viewers.isLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <>
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 36,
+                      fontWeight: 700,
+                      color: colours.text,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {viewerCount}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      color: colours.text3,
+                      marginTop: 4,
+                    }}
+                  >
+                    Profile viewer{viewerCount !== 1 ? 's' : ''}
+                  </div>
+                  <Link
+                    to="/profile-viewers"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: colours.brand,
+                      textDecoration: 'none',
+                      marginTop: 12,
+                    }}
+                  >
+                    See who viewed <ArrowRight size={12} />
+                  </Link>
+                </>
+              )}
+            </SurfaceCard>
+          </div>
+        </section>
       </div>
     </div>
   );

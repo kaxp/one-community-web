@@ -1,5 +1,22 @@
 import '@testing-library/jest-dom/vitest';
 import { afterAll, afterEach, beforeAll } from 'vitest';
+
+// jsdom does not implement matchMedia — provide a minimal stub so hooks
+// that call window.matchMedia() (e.g. useIsMobile) don't throw in tests.
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string): MediaQueryList =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList,
+});
 import { server } from './msw-node';
 import { resetMswAuthState } from './msw-fixtures/auth-handlers';
 import { resetMswSearchState } from './msw-fixtures/search-handlers';

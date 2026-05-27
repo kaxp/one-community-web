@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { RoleBadge } from '@/components/role-badge';
 import { ErrorState } from '@/components/error-state/ErrorState';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -306,13 +307,10 @@ export function AdminReferralsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Referrals</h1>
-        <p className="text-sm text-ink-muted">
-          Community members can refer potential LPs, VCs, and startups. Approve to create their
-          account, or reject to dismiss.
-        </p>
-      </header>
+      <PageHeader
+        title="Referrals"
+        subtitle="Community members can refer potential LPs, VCs, and startups. Approve to create their account, or reject to dismiss."
+      />
 
       {/* Pending */}
       <Card>

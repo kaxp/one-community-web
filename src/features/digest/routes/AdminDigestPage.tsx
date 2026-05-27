@@ -19,6 +19,7 @@ import { MyDigestPage } from '@/features/digest/routes/MyDigestPage';
 import type { DigestRow, DigestWorkflow } from '@/features/digest/schemas';
 import { cn } from '@/lib/cn';
 import type { ApiError } from '@/api/errors';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const TABS = ['workflows', 'pending', 'history', 'active'] as const;
 type DigestTab = (typeof TABS)[number];
@@ -309,12 +310,10 @@ export function AdminDigestPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Digest console</h1>
-        <p className="text-sm text-ink-muted">
-          Manage workflows, review AI-drafted digests, and audit past sends.
-        </p>
-      </header>
+      <PageHeader
+        title="Digest console"
+        subtitle="Manage workflows, review AI-drafted digests, and audit past sends."
+      />
 
       <nav role="tablist" aria-label="Digest section" className="flex flex-wrap gap-2">
         {TABS.map((t) => {

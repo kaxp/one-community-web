@@ -7,6 +7,7 @@ import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { useConnections } from '@/features/connections/hooks/use-connections';
 import { AcceptedConnectionCard } from '@/features/connections/components/AcceptedConnectionCard';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // PRD §7.6.4 — `/connections` accepted list. Cursor-paginated infinite scroll
 // with explicit Load-more button (matches AdminConnectionsPage pagination UX).
@@ -16,13 +17,10 @@ export function ConnectionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Network</h1>
-        <p className="text-sm text-ink-muted">
-          People you&apos;re connected with. Contact details are visible after the connection is
-          accepted.
-        </p>
-      </div>
+      <PageHeader
+        title="Network"
+        subtitle="People you're connected with. Contact details are visible after the connection is accepted."
+      />
 
       {list.isLoading ? (
         <div className="flex flex-col gap-3" data-testid="connections-loading">

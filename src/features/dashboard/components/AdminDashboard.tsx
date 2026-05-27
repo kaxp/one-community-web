@@ -4,7 +4,6 @@ import {
   ArrowRight,
   CheckCircle2,
   ExternalLink,
-  FileCheck,
   Inbox,
   Mail,
   Newspaper,
@@ -12,259 +11,566 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { useAdminSummary } from '@/features/admin/hooks/use-admin-summary';
 import { useQuarterlyReports } from '@/features/admin/hooks/use-quarterly-reports';
+import { useUser, useRole } from '@/auth/use-auth';
+import { colours, fonts, radius, spacing } from '@/design-system/tokens';
+import { SurfaceCard } from '@/design-system/components';
+import { DashboardHero } from './DashboardHero';
+import { QuickGrid } from './QuickGrid';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
+
+const eyebrow: React.CSSProperties = {
+  fontFamily: fonts.sans,
+  fontSize: 11,
+  fontWeight: 500,
+  letterSpacing: '.1em',
+  textTransform: 'uppercase',
+  color: colours.text3,
+  marginBottom: 12,
+};
 
 export function AdminDashboard() {
+  const user = useUser();
+  const role = useRole();
   const summary = useAdminSummary();
   const reports = useQuarterlyReports({ quarter: null });
   const recentReports = (reports.data ?? []).slice(0, 3);
+  const isMobile = useIsMobile();
+
+  const pendingCount = summary.data?.pending_connection_count ?? 0;
+  const contextLine =
+    pendingCount > 0
+      ? `${pendingCount} connection request${pendingCount !== 1 ? 's' : ''} awaiting review`
+      : 'Community overview at a glance';
 
   return (
-    <div className="flex flex-col gap-6" data-testid="admin-dashboard">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Dashboard</h1>
-        <p className="text-sm text-ink-muted">
-          KPIs and recent activity across the community. Refreshes when you tab back in.
-        </p>
-      </header>
+    <div style={{ background: colours.pageBg, minHeight: '100%' }} data-testid="admin-dashboard">
+      <DashboardHero name={user?.name ?? null} role={role ?? 'admin'} contextLine={contextLine} />
 
-      {summary.isLoading ? (
-        <div
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-          data-testid="admin-summary-loading"
-        >
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
-      ) : summary.isError ? (
-        <ErrorState
-          error={summary.error}
-          onRetry={() => {
-            void summary.refetch();
-          }}
-        />
-      ) : summary.data ? (
-        <>
-          <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-ink-muted">
-                  Pending connections
-                </CardTitle>
-                <Inbox className="h-4 w-4 text-ink-muted" aria-hidden />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-semibold text-ink-heading">
-                  {summary.data.pending_connection_count}
-                </p>
-                <Link
-                  to="/admin/connections?status=pending_admin"
-                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-                  data-testid="kpi-pending-link"
-                >
-                  Review queue
-                  <ArrowRight className="h-3 w-3" aria-hidden />
-                </Link>
-              </CardContent>
-            </Card>
+      <div
+        style={{
+          padding: isMobile ? '24px 20px' : '32px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.sectionGap,
+        }}
+      >
+        {/* Quick access */}
+        <section>
+          <div style={eyebrow}>Quick access</div>
+          <QuickGrid
+            tiles={[
+              {
+                key: 'connections',
+                label: 'Connections',
+                path: '/admin/connections',
+                subtitle: pendingCount > 0 ? `${pendingCount} pending` : 'Manage all',
+              },
+              { key: 'search', label: 'Users', path: '/admin/users', subtitle: 'Manage members' },
+              { key: 'digest', label: 'Digest', path: '/admin/digest', subtitle: 'Send digest' },
+              {
+                key: 'matchmaking',
+                label: 'Matching',
+                path: '/admin/matchmaking',
+                subtitle: 'Manage matches',
+              },
+            ]}
+          />
+        </section>
 
-            <Card data-testid="kpi-mis-card">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-ink-muted">
-                  MIS — current month
-                </CardTitle>
-                <Users className="h-4 w-4 text-ink-muted" aria-hidden />
-              </CardHeader>
-              <CardContent>
-                {summary.data.mis_status.length === 0 ? (
-                  <p className="text-sm text-ink-muted">No portfolio companies yet.</p>
-                ) : (
-                  <ul className="flex flex-col gap-2">
-                    {summary.data.mis_status.map((row) => (
-                      <li
-                        key={row.startup_id}
-                        className="flex items-center justify-between gap-2 text-sm"
-                      >
-                        {row.user_id ? (
-                          <Link
-                            to={`/search/profile/${row.user_id}`}
-                            className="truncate font-medium text-brand hover:underline"
-                          >
-                            {row.company_name}
-                          </Link>
-                        ) : (
-                          <span className="truncate text-ink-heading">{row.company_name}</span>
-                        )}
-                        {row.submitted ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-success">
-                            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                            Submitted
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-warning">
-                            <XCircle className="h-3.5 w-3.5" aria-hidden />
-                            Pending
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <Link
-                  to="/admin/mis-overview"
-                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-                >
-                  View MIS overview <ArrowRight className="h-3 w-3" aria-hidden />
-                </Link>
-              </CardContent>
-            </Card>
+        {/* KPIs */}
+        {summary.isLoading ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
+              gap: 14,
+            }}
+            data-testid="admin-summary-loading"
+          >
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
+        ) : summary.isError ? (
+          <ErrorState
+            error={summary.error}
+            onRetry={() => {
+              void summary.refetch();
+            }}
+          />
+        ) : summary.data ? (
+          <>
+            <section>
+              <div style={eyebrow}>KPIs</div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
+                  gap: 14,
+                }}
+              >
+                {/* Pending connections */}
+                <SurfaceCard style={{ padding: isMobile ? 20 : 24 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div style={{ fontFamily: fonts.sans, fontSize: 12, color: colours.text3 }}>
+                      Pending connections
+                    </div>
+                    <Inbox size={14} color={colours.text3} aria-hidden />
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 36,
+                      fontWeight: 700,
+                      color: colours.text,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {summary.data.pending_connection_count}
+                  </div>
+                  <Link
+                    to="/admin/connections?status=pending_admin"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: colours.brand,
+                      textDecoration: 'none',
+                      marginTop: 12,
+                    }}
+                    data-testid="kpi-pending-link"
+                  >
+                    Review queue <ArrowRight size={12} />
+                  </Link>
+                </SurfaceCard>
 
-            <Card data-testid="kpi-recent-digests">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-ink-muted">
-                  Recent digests
-                </CardTitle>
-                <Newspaper className="h-4 w-4 text-ink-muted" aria-hidden />
-              </CardHeader>
-              <CardContent>
-                {summary.data.recent_digests.length === 0 ? (
-                  <p className="text-sm text-ink-muted">No digests sent yet.</p>
-                ) : (
-                  <ul className="flex flex-col gap-2 text-sm">
-                    {summary.data.recent_digests.map((d) => (
-                      <li key={d.id} className="flex items-center justify-between gap-2">
-                        <Badge variant="secondary">{d.digest_type}</Badge>
-                        <span
-                          className="text-xs text-ink-muted"
-                          title={format(parseISO(d.sent_at), 'PPpp')}
+                {/* MIS status */}
+                <SurfaceCard style={{ padding: isMobile ? 20 : 24 }} data-testid="kpi-mis-card">
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div style={{ fontFamily: fonts.sans, fontSize: 12, color: colours.text3 }}>
+                      MIS — current month
+                    </div>
+                    <Users size={14} color={colours.text3} aria-hidden />
+                  </div>
+                  {summary.data.mis_status.length === 0 ? (
+                    <div style={{ fontFamily: fonts.sans, fontSize: 13, color: colours.text2 }}>
+                      No portfolio companies yet.
+                    </div>
+                  ) : (
+                    <ul
+                      style={{
+                        listStyle: 'none',
+                        margin: 0,
+                        padding: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                      }}
+                    >
+                      {summary.data.mis_status.map((row) => (
+                        <li
+                          key={row.startup_id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8,
+                          }}
                         >
-                          {formatDistanceToNow(parseISO(d.sent_at), { addSuffix: true })}
-                        </span>
+                          {row.user_id ? (
+                            <Link
+                              to={`/search/profile/${row.user_id}`}
+                              style={{
+                                fontFamily: fonts.sans,
+                                fontSize: 13,
+                                fontWeight: 500,
+                                color: colours.brand,
+                                textDecoration: 'none',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap' as const,
+                              }}
+                            >
+                              {row.company_name}
+                            </Link>
+                          ) : (
+                            <span
+                              style={{
+                                fontFamily: fonts.sans,
+                                fontSize: 13,
+                                color: colours.text,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap' as const,
+                              }}
+                            >
+                              {row.company_name}
+                            </span>
+                          )}
+                          {row.submitted ? (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                fontFamily: fonts.sans,
+                                fontSize: 11,
+                                color: colours.positive,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <CheckCircle2 size={12} aria-hidden /> Submitted
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                fontFamily: fonts.sans,
+                                fontSize: 11,
+                                color: colours.caution,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <XCircle size={12} aria-hidden /> Pending
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <Link
+                    to="/admin/mis-overview"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: colours.brand,
+                      textDecoration: 'none',
+                      marginTop: 12,
+                    }}
+                  >
+                    MIS overview <ArrowRight size={12} />
+                  </Link>
+                </SurfaceCard>
+
+                {/* Recent digests */}
+                <SurfaceCard
+                  style={{ padding: isMobile ? 20 : 24 }}
+                  data-testid="kpi-recent-digests"
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div style={{ fontFamily: fonts.sans, fontSize: 12, color: colours.text3 }}>
+                      Recent digests
+                    </div>
+                    <Newspaper size={14} color={colours.text3} aria-hidden />
+                  </div>
+                  {summary.data.recent_digests.length === 0 ? (
+                    <div style={{ fontFamily: fonts.sans, fontSize: 13, color: colours.text2 }}>
+                      No digests sent yet.
+                    </div>
+                  ) : (
+                    <ul
+                      style={{
+                        listStyle: 'none',
+                        margin: 0,
+                        padding: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                      }}
+                    >
+                      {summary.data.recent_digests.map((d) => (
+                        <li
+                          key={d.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8,
+                          }}
+                        >
+                          <Badge variant="secondary">{d.digest_type}</Badge>
+                          <span
+                            style={{ fontFamily: fonts.sans, fontSize: 11, color: colours.text3 }}
+                            title={format(parseISO(d.sent_at), 'PPpp')}
+                          >
+                            {formatDistanceToNow(parseISO(d.sent_at), { addSuffix: true })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <Link
+                    to="/admin/digest"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: colours.brand,
+                      textDecoration: 'none',
+                      marginTop: 12,
+                    }}
+                  >
+                    Manage digests <ArrowRight size={12} />
+                  </Link>
+                </SurfaceCard>
+              </div>
+            </section>
+
+            {/* Recent admin actions */}
+            <section>
+              <div style={eyebrow}>Recent admin actions</div>
+              <SurfaceCard style={{ padding: isMobile ? 20 : 28 }}>
+                <div
+                  style={{
+                    fontFamily: fonts.sans,
+                    fontSize: 12,
+                    color: colours.text3,
+                    marginBottom: 16,
+                  }}
+                >
+                  Last 10 actions — audit only.
+                </div>
+                {summary.data.recent_actions.length === 0 ? (
+                  <div style={{ fontFamily: fonts.sans, fontSize: 13, color: colours.text2 }}>
+                    No actions in the last window.
+                  </div>
+                ) : (
+                  <ul
+                    style={{
+                      listStyle: 'none',
+                      margin: 0,
+                      padding: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                    }}
+                    data-testid="admin-recent-actions"
+                  >
+                    {summary.data.recent_actions.map((a) => (
+                      <li
+                        key={`${a.admin_id}-${a.target_id}-${a.created_at}`}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}
+                      >
+                        <Sparkles
+                          size={14}
+                          color={colours.brand}
+                          aria-hidden
+                          style={{ marginTop: 2, flexShrink: 0 }}
+                        />
+                        <div>
+                          <div
+                            style={{ fontFamily: fonts.sans, fontSize: 13, color: colours.text }}
+                          >
+                            <strong>{a.admin_name ?? 'Admin'}</strong>{' '}
+                            <span style={{ color: colours.text2 }}>
+                              {a.action.replaceAll('_', ' ')} on{' '}
+                              {a.target_type.replaceAll('_', ' ')}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: fonts.sans,
+                              fontSize: 11,
+                              color: colours.text3,
+                              marginTop: 2,
+                            }}
+                            title={format(parseISO(a.created_at), 'PPpp')}
+                          >
+                            {formatDistanceToNow(parseISO(a.created_at), { addSuffix: true })}
+                          </div>
+                        </div>
                       </li>
                     ))}
                   </ul>
                 )}
+              </SurfaceCard>
+            </section>
+
+            {/* Quarterly reports */}
+            {recentReports.length > 0 ? (
+              <section>
+                <div style={eyebrow}>Quarterly reports</div>
+                <SurfaceCard
+                  style={{ padding: isMobile ? 20 : 28 }}
+                  data-testid="kpi-quarterly-reports"
+                >
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      color: colours.text3,
+                      marginBottom: 16,
+                    }}
+                  >
+                    Latest 3 — click View report to open the Drive doc.
+                  </div>
+                  <ul
+                    style={{
+                      listStyle: 'none',
+                      margin: 0,
+                      padding: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                    }}
+                  >
+                    {recentReports.map((r) => (
+                      <li
+                        key={r.report_id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap' as const,
+                          gap: 10,
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              fontFamily: fonts.sans,
+                              fontSize: 14,
+                              fontWeight: 600,
+                              color: colours.text,
+                            }}
+                          >
+                            {r.quarter}
+                          </div>
+                          <div
+                            style={{ fontFamily: fonts.sans, fontSize: 11, color: colours.text3 }}
+                          >
+                            {r.status === 'sent'
+                              ? 'Sent'
+                              : r.status === 'approved'
+                                ? 'Approved, distributing…'
+                                : 'Pending'}
+                            {r.generated_at ? ` · ${format(parseISO(r.generated_at), 'PP')}` : ''}
+                          </div>
+                        </div>
+                        {r.drive_url ? (
+                          <Button asChild size="sm" variant="outline">
+                            <a href={r.drive_url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                              <span>View report</span>
+                            </a>
+                          </Button>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to="/admin/quarterly-reports"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontFamily: fonts.sans,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: colours.brand,
+                      textDecoration: 'none',
+                      marginTop: 16,
+                    }}
+                  >
+                    Manage quarterly reports <ArrowRight size={12} />
+                  </Link>
+                </SurfaceCard>
+              </section>
+            ) : null}
+
+            {/* Send digest CTA */}
+            <SurfaceCard style={{ padding: isMobile ? 16 : 20 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  flexWrap: 'wrap' as const,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: radius.sm,
+                      background: colours.brandBg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Mail size={16} color={colours.brand} aria-hidden />
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: colours.text,
+                    }}
+                  >
+                    Want to send a digest now?
+                  </div>
+                </div>
                 <Link
                   to="/admin/digest"
-                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+                  style={{
+                    fontFamily: fonts.sans,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: colours.brand,
+                    textDecoration: 'none',
+                  }}
                 >
-                  Manage digests
-                  <ArrowRight className="h-3 w-3" aria-hidden />
+                  Open the digest console →
                 </Link>
-              </CardContent>
-            </Card>
-          </section>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent admin actions</CardTitle>
-              <CardDescription>
-                Last 10 actions by all admins. Audit-only — read across, not edit.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {summary.data.recent_actions.length === 0 ? (
-                <p className="text-sm text-ink-muted">No actions in the last window.</p>
-              ) : (
-                <ul className="flex flex-col gap-3" data-testid="admin-recent-actions">
-                  {summary.data.recent_actions.map((a) => (
-                    <li
-                      key={`${a.admin_id}-${a.target_id}-${a.created_at}`}
-                      className="flex items-start gap-3 text-sm"
-                    >
-                      <Sparkles className="mt-0.5 h-4 w-4 flex-none text-brand" aria-hidden />
-                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <p className="text-ink-heading">
-                          <span className="font-semibold">{a.admin_name ?? 'Admin'}</span>{' '}
-                          <span className="text-ink-muted">{a.action.replaceAll('_', ' ')}</span>{' '}
-                          <span className="text-ink-muted">on</span>{' '}
-                          <span>{a.target_type.replaceAll('_', ' ')}</span>
-                        </p>
-                        <p
-                          className="text-xs text-ink-muted"
-                          title={format(parseISO(a.created_at), 'PPpp')}
-                        >
-                          {formatDistanceToNow(parseISO(a.created_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-
-          {recentReports.length > 0 ? (
-            <Card data-testid="kpi-quarterly-reports">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle className="text-sm">Recent quarterly reports</CardTitle>
-                  <CardDescription>
-                    Latest 3 — click View report to open the Drive doc.
-                  </CardDescription>
-                </div>
-                <FileCheck className="h-4 w-4 text-ink-muted" aria-hidden />
-              </CardHeader>
-              <CardContent>
-                <ul className="flex flex-col gap-3">
-                  {recentReports.map((r) => (
-                    <li
-                      key={r.report_id}
-                      className="flex flex-wrap items-center justify-between gap-3 text-sm"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-ink-heading">{r.quarter}</span>
-                        <span className="text-xs text-ink-muted">
-                          {r.status === 'sent'
-                            ? 'Sent'
-                            : r.status === 'approved'
-                              ? 'Approved, distributing…'
-                              : 'Pending'}
-                          {r.generated_at ? ` · ${format(parseISO(r.generated_at), 'PP')}` : ''}
-                        </span>
-                      </div>
-                      {r.drive_url ? (
-                        <Button asChild size="sm" variant="outline">
-                          <a href={r.drive_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                            <span>View report</span>
-                          </a>
-                        </Button>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/admin/quarterly-reports"
-                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-                >
-                  Manage quarterly reports
-                  <ArrowRight className="h-3 w-3" aria-hidden />
-                </Link>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-sm">Want to send a digest now?</CardTitle>
-              <Mail className="h-4 w-4 text-ink-muted" aria-hidden />
-            </CardHeader>
-            <CardContent>
-              <Link to="/admin/digest" className="text-sm font-medium text-brand hover:underline">
-                Open the digest console →
-              </Link>
-            </CardContent>
-          </Card>
-        </>
-      ) : null}
+              </div>
+            </SurfaceCard>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

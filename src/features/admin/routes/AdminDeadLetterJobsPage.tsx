@@ -21,6 +21,7 @@ import {
 } from '@/features/admin/schemas';
 import { cn } from '@/lib/cn';
 import type { ApiError } from '@/api/errors';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const TAB_LABEL: Record<DLQRetryStatus, string> = {
   pending: 'Pending',
@@ -140,12 +141,10 @@ export function AdminDeadLetterJobsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Dead-letter jobs</h1>
-        <p className="text-sm text-ink-muted">
-          Failed Celery tasks. Retry pending rows or inspect tracebacks for triage.
-        </p>
-      </header>
+      <PageHeader
+        title="Dead-letter jobs"
+        subtitle="Failed Celery tasks. Retry pending rows or inspect tracebacks for triage."
+      />
 
       <nav role="tablist" aria-label="Retry status" className="flex flex-wrap gap-2">
         {DLQ_RETRY_STATUSES.map((s) => {

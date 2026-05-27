@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { cn } from '@/lib/cn';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // PRD §13 G3 — `/documents` is gated until backend ships POST /documents/upload
 // + GET /documents listing. Until then, this page renders the full UI shell
@@ -25,13 +26,10 @@ const FILTER_CHIPS = [
 export function DocumentsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Documents</h1>
-        <p className="text-sm text-ink-muted">
-          A shared vault for pitch decks, term sheets, and portfolio reporting. Backend ships in
-          Phase 4 — for now, please continue sharing files through the existing channel.
-        </p>
-      </header>
+      <PageHeader
+        title="Documents"
+        subtitle="A shared vault for pitch decks, term sheets, and portfolio reporting. Backend ships in Phase 4 — for now, please continue sharing files through the existing channel."
+      />
 
       <div
         role="status"

@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { useAppConfig, useUpdateAppConfig } from '@/features/admin/hooks/use-app-config';
 import type { ApiError } from '@/api/errors';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // Simple accessible toggle switch — no external dep needed.
 function Toggle({
@@ -66,12 +67,10 @@ export function AdminAppConfigPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">App Settings</h1>
-        <p className="text-sm text-ink-muted">
-          Toggle runtime features on or off without a deployment. Changes take effect immediately.
-        </p>
-      </header>
+      <PageHeader
+        title="App Settings"
+        subtitle="Toggle runtime features on or off without a deployment. Changes take effect immediately."
+      />
 
       <Card>
         <CardHeader>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { HomeCityPanel } from '@/features/travel/components/HomeCityPanel';
 import { TripList } from '@/features/travel/components/TripList';
 import { AddTripDialog } from '@/features/travel/components/AddTripDialog';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // PRD §7.11 — travel page. Two sections: home city (single input
 // ExecutionPanel) + trips list with "Add trip" CTA. The "Show past trips"
@@ -25,12 +26,10 @@ export function TravelPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Travel</h1>
-        <p className="text-sm text-ink-muted">
-          Tell us where you&apos;re going so we can introduce you to the right people on each trip.
-        </p>
-      </header>
+      <PageHeader
+        title="Travel"
+        subtitle="Tell us where you're going so we can introduce you to the right people on each trip."
+      />
 
       <HomeCityPanel />
 

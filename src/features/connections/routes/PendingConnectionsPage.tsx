@@ -3,6 +3,7 @@ import type { ConnectionStatus } from '@/features/connections/schemas';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
@@ -67,10 +68,7 @@ export function PendingConnectionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Pending Actions</h1>
-        <p className="text-sm text-ink-muted">{DIRECTION_DESCRIPTION[direction]}</p>
-      </div>
+      <PageHeader title="Pending Actions" subtitle={DIRECTION_DESCRIPTION[direction]} />
 
       <nav role="tablist" aria-label="Direction" className="flex flex-wrap gap-2">
         {PENDING_DIRECTIONS.map((d) => {

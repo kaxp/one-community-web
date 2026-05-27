@@ -112,11 +112,11 @@ describe('LPDashboard', () => {
 });
 
 describe('StartupOnboardingDashboard', () => {
-  it('shows the CTA linking to /pitch', async () => {
+  it('shows the CTA linking to /my-pitch', async () => {
     signedInAs('startup_inprogress');
     renderWithProviders(<DashboardPage />);
     const cta = await screen.findByTestId('onboarding-dash-cta');
-    expect(cta).toHaveAttribute('href', '/pitch');
+    expect(cta).toHaveAttribute('href', '/my-pitch');
   });
 });
 

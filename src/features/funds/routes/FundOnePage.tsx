@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 import {
   Bar,
   BarChart,
@@ -590,10 +591,12 @@ function StickyHeader() {
         background: BG + 'ee',
         backdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${MUTED_BG}`,
-        padding: '12px 24px',
+        padding: '12px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 8,
       }}
     >
       <div>
@@ -686,7 +689,14 @@ function ExecutiveSummary() {
   ];
   return (
     <div>
-      <h2 style={{ color: TEXT, fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
+      <h2
+        style={{
+          color: TEXT,
+          fontSize: 'clamp(0.85rem, 2vw, 1.1rem)',
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
         Executive Summary
       </h2>
       <div
@@ -730,7 +740,14 @@ function MultiplesLeaderboard() {
 
   return (
     <div>
-      <h2 style={{ color: TEXT, fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
+      <h2
+        style={{
+          color: TEXT,
+          fontSize: 'clamp(0.85rem, 2vw, 1.1rem)',
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
         Portfolio Multiples Leaderboard
       </h2>
       <div
@@ -848,20 +865,31 @@ function MultiplesLeaderboard() {
 function PortfolioSnapshot() {
   const { ref: pieRef, inView: pieInView } = useInView();
   const { ref: barRef, inView: barInView } = useInView();
+  const isMobile = useIsMobile();
 
   const capData = pieInView ? CAPITAL_MIX : CAPITAL_MIX.map((d) => ({ ...d, value: 0 }));
   const dealData = pieInView ? DEAL_MIX : DEAL_MIX.map((d) => ({ ...d, value: 0 }));
   const sCapData = barInView ? SECTOR_CAPITAL : SECTOR_CAPITAL.map((d) => ({ ...d, pct: 0 }));
   const sDealsData = barInView ? SECTOR_DEALS : SECTOR_DEALS.map((d) => ({ ...d, pct: 0 }));
 
+  // RESPONSIVE: stack to 1-col on mobile
+  const gridCols = isMobile ? '1fr' : '1fr 1fr';
+
   return (
     <div>
-      <h2 style={{ color: TEXT, fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
+      <h2
+        style={{
+          color: TEXT,
+          fontSize: 'clamp(0.85rem, 2vw, 1.1rem)',
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
         Portfolio Snapshot
       </h2>
       <div
         ref={pieRef}
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}
+        style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 16, marginBottom: 16 }}
       >
         {[
           { title: 'Capital Mix', data: capData },
@@ -881,23 +909,19 @@ function PortfolioSnapshot() {
             >
               {title}
             </div>
-            <ResponsiveContainer width="100%" height={180}>
+            {/* Fixed height prevents label overflow clipping */}
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
                   data={data}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
+                  innerRadius={52}
+                  outerRadius={78}
                   dataKey="value"
                   isAnimationActive
                   animationDuration={1200}
-                  label={(props) => {
-                    const n = props.name as string | undefined;
-                    const val = props.value as number | undefined;
-                    return n && val != null ? `${n} ${val}%` : '';
-                  }}
-                  labelLine={false}
+                  label={false}
                 >
                   {data.map((_, i) => (
                     <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length] ?? CYAN} />
@@ -914,11 +938,30 @@ function PortfolioSnapshot() {
                 />
               </PieChart>
             </ResponsiveContainer>
+            {/* Legend list replaces inline pie labels */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: 8 }}>
+              {data.map((d, i) => (
+                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: PIE_COLORS[i % PIE_COLORS.length] ?? CYAN,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: TEXT_MUTED }}>
+                    {d.name} {d.value}%
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
 
-      <div ref={barRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div ref={barRef} style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 16 }}>
         {[
           { title: 'Sector Mix: Capital', data: sCapData },
           { title: 'Sector Mix: Deals', data: sDealsData },
@@ -952,7 +995,7 @@ function PortfolioSnapshot() {
                   tick={{ fill: TEXT, fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
-                  width={100}
+                  width={isMobile ? 80 : 100}
                 />
                 <Bar
                   dataKey="pct"
@@ -978,14 +1021,30 @@ function PortfolioSnapshot() {
 
 function InvestmentTimeline() {
   const [mounted, setMounted] = useState(false);
+  const isMobile = useIsMobile();
+  // RESPONSIVE: fewer items per row on mobile
+  const itemsPerRow = isMobile ? 3 : 5;
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 200);
     return () => clearTimeout(t);
   }, []);
 
+  // Split entries into rows for snake layout
+  const rows: (typeof TIMELINE_ENTRIES)[] = [];
+  for (let i = 0; i < TIMELINE_ENTRIES.length; i += itemsPerRow) {
+    rows.push(TIMELINE_ENTRIES.slice(i, i + itemsPerRow));
+  }
+
   return (
     <div>
-      <h2 style={{ color: TEXT, fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
+      <h2
+        style={{
+          color: TEXT,
+          fontSize: isMobile ? '0.95rem' : '1.1rem',
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
         Investment Timeline
       </h2>
       <div
@@ -993,91 +1052,117 @@ function InvestmentTimeline() {
           background: SURFACE,
           border: `1px solid ${MUTED_BG}`,
           borderRadius: 16,
-          padding: '32px 24px',
-          overflowX: 'auto',
+          padding: isMobile ? '20px 16px' : '28px 24px',
+          overflow: 'hidden',
         }}
       >
-        <div
-          style={{
-            position: 'relative',
-            minWidth: TIMELINE_ENTRIES.length * 120,
-            paddingBottom: 80,
-          }}
-        >
-          {/* Horizontal line */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 10,
-              left: 0,
-              right: 0,
-              height: 2,
-              background: MUTED_BG,
-            }}
-          />
-          {/* Dots */}
-          <div style={{ display: 'flex', gap: 0 }}>
-            {TIMELINE_ENTRIES.map((entry, i) => (
-              <div
-                key={`${entry.company}-${i}`}
-                style={{
-                  width: 120,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  position: 'relative',
-                }}
-              >
+        {rows.map((row, rowIdx) => {
+          // Odd rows read right-to-left — reverse so chronological order snakes
+          const isReverse = rowIdx % 2 === 1;
+          const displayRow = isReverse ? [...row].reverse() : row;
+          const isLastRow = rowIdx === rows.length - 1;
+
+          return (
+            <div key={rowIdx}>
+              {/* Row of timeline items */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start' }}>
+                {/* Horizontal connector line through dots */}
                 <div
                   style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: entry.color,
-                    border: `3px solid ${BG}`,
-                    boxShadow: `0 0 0 2px ${entry.color}`,
-                    zIndex: 1,
-                    transform: mounted ? 'scale(1)' : 'scale(0)',
-                    transition: `transform 0.3s ease-out ${i * 0.05}s`,
-                    flexShrink: 0,
+                    position: 'absolute',
+                    top: 10,
+                    left: 10,
+                    right: 10,
+                    height: 2,
+                    background: MUTED_BG,
+                    zIndex: 0,
                   }}
                 />
-                <div
-                  style={{
-                    marginTop: 10,
-                    textAlign: 'center',
-                    padding: '0 4px',
-                    opacity: mounted ? 1 : 0,
-                    transition: `opacity 0.3s ease-out ${i * 0.05 + 0.1}s`,
-                  }}
-                >
-                  <div
-                    style={{
-                      color: TEXT_MUTED,
-                      fontSize: '0.65rem',
-                      fontWeight: 600,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {entry.month}
-                  </div>
-                  <div
-                    style={{
-                      color: TEXT,
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {entry.company}
-                  </div>
-                  <SectorBadge label={entry.sector} color={entry.color} />
-                </div>
+                {displayRow.map((entry, colIdx) => {
+                  const globalIdx =
+                    rowIdx * itemsPerRow + (isReverse ? row.length - 1 - colIdx : colIdx);
+                  return (
+                    <div
+                      key={`${entry.company}-${globalIdx}`}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        position: 'relative',
+                        zIndex: 1,
+                        paddingBottom: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          background: entry.color,
+                          border: `3px solid ${BG}`,
+                          boxShadow: `0 0 0 2px ${entry.color}`,
+                          flexShrink: 0,
+                          transform: mounted ? 'scale(1)' : 'scale(0)',
+                          transition: `transform 0.3s ease-out ${globalIdx * 0.04}s`,
+                        }}
+                      />
+                      <div
+                        style={{
+                          marginTop: 8,
+                          textAlign: 'center',
+                          padding: '0 2px',
+                          opacity: mounted ? 1 : 0,
+                          transition: `opacity 0.3s ease-out ${globalIdx * 0.04 + 0.1}s`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            color: TEXT_MUTED,
+                            fontSize: '0.6rem',
+                            fontWeight: 600,
+                            marginBottom: 3,
+                          }}
+                        >
+                          {entry.month}
+                        </div>
+                        <div
+                          style={{
+                            color: TEXT,
+                            fontSize: isMobile ? '0.65rem' : '0.72rem',
+                            fontWeight: 600,
+                            lineHeight: 1.3,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {entry.company}
+                        </div>
+                        <SectorBadge label={entry.sector} color={entry.color} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        </div>
+
+              {/* Vertical connector at end of row → start of next */}
+              {!isLastRow && (
+                <div style={{ position: 'relative', height: 24 }}>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      // Right side for LTR rows, left side for RTL rows
+                      [isReverse ? 'left' : 'right']: 10,
+                      top: 0,
+                      bottom: 0,
+                      width: 2,
+                      background: MUTED_BG,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1091,7 +1176,14 @@ function PortfolioHealth() {
   ];
   return (
     <div>
-      <h2 style={{ color: TEXT, fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
+      <h2
+        style={{
+          color: TEXT,
+          fontSize: 'clamp(0.85rem, 2vw, 1.1rem)',
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
         Portfolio Health Segmentation
       </h2>
       <div
@@ -1161,7 +1253,14 @@ function PortfolioHealth() {
 function PortfolioCards() {
   return (
     <div>
-      <h2 style={{ color: TEXT, fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
+      <h2
+        style={{
+          color: TEXT,
+          fontSize: 'clamp(0.85rem, 2vw, 1.1rem)',
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
         Portfolio Companies
       </h2>
       <div
@@ -1297,7 +1396,16 @@ function CoInvestorEcosystem() {
 function TeamSection() {
   return (
     <div>
-      <h2 style={{ color: TEXT, fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>Team</h2>
+      <h2
+        style={{
+          color: TEXT,
+          fontSize: 'clamp(0.85rem, 2vw, 1.1rem)',
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
+        Team
+      </h2>
       <div
         style={{
           display: 'grid',
@@ -1408,6 +1516,7 @@ function FooterSection() {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export function FundOnePage() {
+  const isMobile = useIsMobile();
   return (
     <>
       <style>{`
@@ -1426,7 +1535,13 @@ export function FundOnePage() {
       >
         <StickyHeader />
         <div
-          style={{ display: 'flex', flexDirection: 'column', gap: 40, padding: '32px 24px 48px' }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 40,
+            // RESPONSIVE: reduce page padding on mobile
+            padding: isMobile ? '20px 16px 48px' : '32px 24px 48px',
+          }}
         >
           <HeroStrip />
           <ExecutiveSummary />

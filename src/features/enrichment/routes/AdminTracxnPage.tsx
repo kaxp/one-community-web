@@ -7,6 +7,7 @@ import {
   type TracxnRequest,
   type TracxnResponse,
 } from '@/features/enrichment/schemas';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // PRD §7.15.1 — manual Tracxn ingest console. Backend is idempotent on
 // (website_domain, company_name) and returns one of three actions; the
@@ -26,13 +27,10 @@ export function AdminTracxnPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Tracxn ingest</h1>
-        <p className="text-sm text-ink-muted">
-          Manual entry path for the Tracxn Chrome Extension data. Idempotent on website +
-          company_name — duplicate submissions skip silently.
-        </p>
-      </header>
+      <PageHeader
+        title="Tracxn ingest"
+        subtitle="Manual entry path for the Tracxn Chrome Extension data. Idempotent on website + company_name — duplicate submissions skip silently."
+      />
 
       <ExecutionPanel<TracxnRequest, TracxnResponse>
         title="Add or update a startup"

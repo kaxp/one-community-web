@@ -19,6 +19,7 @@ import {
   type MISUploadInput,
   type MISUploadResponse,
 } from '@/features/mis/schemas';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // PRD §7.9 — MIS file-upload page (decisions.md [P-23], 2026-04-27).
 //
@@ -94,12 +95,7 @@ export function MISPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Monthly MIS</h1>
-        <p className="text-sm text-ink-muted">
-          {form.company_name} · {periodLabel}
-        </p>
-      </div>
+      <PageHeader title="Monthly MIS" subtitle={`${form.company_name} · ${periodLabel}`} />
 
       {lastSub ? (
         <div

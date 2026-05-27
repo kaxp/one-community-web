@@ -35,6 +35,7 @@ import { fmtDateTime } from '@/lib/date';
 import { qk } from '@/api/query-keys';
 import type { ApiError } from '@/api/errors';
 import { cn } from '@/lib/cn';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const DEFAULT_TAB: AdminTabStatus = 'pending_admin';
 
@@ -260,12 +261,10 @@ export function AdminConnectionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Connection queue</h1>
-        <p className="text-sm text-ink-muted">
-          Review and act on connection requests across the community.
-        </p>
-      </div>
+      <PageHeader
+        title="Connection queue"
+        subtitle="Review and act on connection requests across the community."
+      />
 
       <nav role="tablist" aria-label="Connection status" className="flex flex-wrap gap-2">
         {ADMIN_TAB_STATUSES.map((s) => {

@@ -13,6 +13,7 @@ import type { MISOverviewItem, MISOverviewRange } from '@/features/admin/schemas
 import { MIS_OVERVIEW_RANGES } from '@/features/admin/schemas';
 import { fmtDateTime } from '@/lib/date';
 import { cn } from '@/lib/cn';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 function ExternalLinkButton({
   href,
@@ -185,12 +186,10 @@ export function AdminMISOverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">MIS overview</h1>
-        <p className="text-sm text-ink-muted">
-          Monthly investment summary — pending and submitted across all funded startups.
-        </p>
-      </header>
+      <PageHeader
+        title="MIS overview"
+        subtitle="Monthly investment summary — pending and submitted across all funded startups."
+      />
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Range filter">
         {MIS_OVERVIEW_RANGES.map((r) => (

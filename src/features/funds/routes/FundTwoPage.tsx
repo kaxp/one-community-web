@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 import {
   BarChart,
   Bar,
@@ -145,7 +146,6 @@ function BizUpdate({ title, badge, desc }: { title: string; badge: string; desc:
   return (
     <div
       style={{
-        borderLeft: `3px solid ${CYAN}`,
         paddingLeft: 14,
         marginBottom: 18,
       }}
@@ -310,6 +310,7 @@ function TeamMemberCard({ name, role, delay }: { name: string; role: string; del
 export function FundTwoPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const [heroInView, setHeroInView] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const el = heroRef.current;
@@ -368,7 +369,7 @@ export function FundTwoPage() {
           backdropFilter: 'blur(16px)',
           background: 'rgba(15,23,42,0.85)',
           borderBottom: `1px solid ${MUTED}`,
-          padding: '14px 32px',
+          padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -394,7 +395,13 @@ export function FundTwoPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 60px' }}>
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          padding: isMobile ? '0 16px 60px' : '0 24px 60px',
+        }}
+      >
         {/* 2. Hero Strip */}
         <div ref={heroRef} style={{ paddingTop: 48, paddingBottom: 48 }}>
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
@@ -414,7 +421,8 @@ export function FundTwoPage() {
           <h1
             style={{
               textAlign: 'center',
-              fontSize: 36,
+              // RESPONSIVE: reduce font size on mobile
+              fontSize: isMobile ? 24 : 36,
               fontWeight: 800,
               color: TEXT_PRIMARY,
               marginBottom: 8,
@@ -422,7 +430,14 @@ export function FundTwoPage() {
           >
             Warmup Ventures Fund II
           </h1>
-          <p style={{ textAlign: 'center', color: TEXT_MUTED, fontSize: 16, marginBottom: 36 }}>
+          <p
+            style={{
+              textAlign: 'center',
+              color: TEXT_MUTED,
+              fontSize: isMobile ? 13 : 16,
+              marginBottom: 36,
+            }}
+          >
             Seed to Series-A - INR 4 to 7 Cr per startup
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
@@ -436,7 +451,14 @@ export function FundTwoPage() {
 
         {/* 3. Thesis Overview */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Investment Thesis
           </h2>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -534,7 +556,14 @@ export function FundTwoPage() {
 
         {/* 4. Focus Areas */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Focus Areas
           </h2>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
@@ -545,7 +574,6 @@ export function FundTwoPage() {
                 borderRadius: 16,
                 padding: 24,
                 flex: '1 1 280px',
-                borderTop: `3px solid ${CYAN}`,
                 animation: 'fadeInUp 0.45s ease-out both',
                 animationDelay: '0ms',
               }}
@@ -595,7 +623,6 @@ export function FundTwoPage() {
                 borderRadius: 16,
                 padding: 24,
                 flex: '1 1 280px',
-                borderTop: `3px solid ${GREEN}`,
                 animation: 'fadeInUp 0.45s ease-out both',
                 animationDelay: '100ms',
               }}
@@ -640,7 +667,6 @@ export function FundTwoPage() {
                 borderRadius: 16,
                 padding: 24,
                 flex: '1 1 280px',
-                borderTop: `3px solid ${ORANGE}`,
                 animation: 'fadeInUp 0.45s ease-out both',
                 animationDelay: '200ms',
               }}
@@ -678,7 +704,14 @@ export function FundTwoPage() {
 
         {/* 5. Startups Funnel */}
         <section ref={funnelRef} style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Q4 Pipeline: Source-Wise Inbound
           </h2>
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -810,38 +843,18 @@ export function FundTwoPage() {
 
         {/* 6. Portfolio Deals */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
-            Portfolio Deals
-          </h2>
-          <div
+          <h2
             style={{
-              background: SURFACE,
-              borderRadius: 16,
-              overflow: 'hidden',
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
             }}
           >
-            {/* Table header */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1.2fr 1.2fr 1fr 1.2fr 2fr 0.8fr',
-                padding: '12px 20px',
-                background: MUTED,
-                color: TEXT_MUTED,
-                fontSize: 12,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              <div>Deal</div>
-              <div>Sector</div>
-              <div>Round Size</div>
-              <div>Co-Investors</div>
-              <div>Description</div>
-              <div>Status</div>
-            </div>
-            {[
+            Portfolio Deals
+          </h2>
+          {(() => {
+            const deals = [
               {
                 deal: 'Olee Space',
                 sector: 'Space-Tech',
@@ -882,49 +895,143 @@ export function FundTwoPage() {
                 desc: 'Tech-driven lending, Rs 300 Cr+ AUM in origination and collection',
                 status: 'Pipeline',
               },
-            ].map((row, i) => (
-              <div
-                key={row.deal}
+            ];
+            const statusBadge = (status: string) => (
+              <span
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.2fr 1.2fr 1fr 1.2fr 2fr 0.8fr',
-                  padding: '14px 20px',
-                  borderBottom: i < 4 ? `1px solid ${MUTED}` : 'none',
-                  alignItems: 'center',
-                  animation: 'fadeInUp 0.45s ease-out both',
-                  animationDelay: `${i * 80}ms`,
+                  background:
+                    status === 'Deployed' ? 'rgba(16,185,129,0.15)' : 'rgba(37,99,235,0.15)',
+                  color: status === 'Deployed' ? GREEN : BLUE,
+                  borderRadius: 6,
+                  padding: '3px 10px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap' as const,
                 }}
               >
-                <div style={{ color: TEXT_PRIMARY, fontWeight: 700, fontSize: 14 }}>{row.deal}</div>
-                <div style={{ color: TEXT_MUTED, fontSize: 13 }}>{row.sector}</div>
-                <div style={{ color: TEXT_MUTED, fontSize: 13 }}>{row.roundSize}</div>
-                <div style={{ color: TEXT_MUTED, fontSize: 13 }}>{row.coInvestors}</div>
-                <div style={{ color: TEXT_MUTED, fontSize: 13 }}>{row.desc}</div>
-                <div>
-                  <span
+                {status}
+              </span>
+            );
+            // RESPONSIVE: card list on mobile, table on desktop
+            if (isMobile) {
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {deals.map((row, i) => (
+                    <div
+                      key={row.deal}
+                      style={{
+                        background: SURFACE,
+                        borderRadius: 12,
+                        padding: 16,
+                        animation: 'fadeInUp 0.45s ease-out both',
+                        animationDelay: `${i * 60}ms`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: 6,
+                        }}
+                      >
+                        <div style={{ color: TEXT_PRIMARY, fontWeight: 700, fontSize: 15 }}>
+                          {row.deal}
+                        </div>
+                        {statusBadge(row.status)}
+                      </div>
+                      <div
+                        style={{
+                          color: TEXT_MUTED,
+                          fontSize: 11,
+                          textTransform: 'uppercase' as const,
+                          letterSpacing: '.04em',
+                          marginBottom: 6,
+                        }}
+                      >
+                        {row.sector}
+                      </div>
+                      <div style={{ color: TEXT_MUTED, fontSize: 13, marginBottom: 4 }}>
+                        {row.roundSize} · {row.coInvestors}
+                      </div>
+                      <div
+                        style={{
+                          color: TEXT_MUTED,
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical' as const,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {row.desc}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+            return (
+              <div style={{ background: SURFACE, borderRadius: 16, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1.2fr 1.2fr 1fr 1.2fr 2fr 0.8fr',
+                    padding: '12px 20px',
+                    background: MUTED,
+                    color: TEXT_MUTED,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    textTransform: 'uppercase' as const,
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  <div>Deal</div>
+                  <div>Sector</div>
+                  <div>Round Size</div>
+                  <div>Co-Investors</div>
+                  <div>Description</div>
+                  <div>Status</div>
+                </div>
+                {deals.map((row, i) => (
+                  <div
+                    key={row.deal}
                     style={{
-                      background:
-                        row.status === 'Deployed'
-                          ? 'rgba(16,185,129,0.15)'
-                          : 'rgba(37,99,235,0.15)',
-                      color: row.status === 'Deployed' ? GREEN : BLUE,
-                      borderRadius: 6,
-                      padding: '3px 10px',
-                      fontSize: 12,
-                      fontWeight: 600,
+                      display: 'grid',
+                      gridTemplateColumns: '1.2fr 1.2fr 1fr 1.2fr 2fr 0.8fr',
+                      padding: '14px 20px',
+                      borderBottom: i < 4 ? `1px solid ${MUTED}` : 'none',
+                      alignItems: 'center',
+                      animation: 'fadeInUp 0.45s ease-out both',
+                      animationDelay: `${i * 80}ms`,
                     }}
                   >
-                    {row.status}
-                  </span>
-                </div>
+                    <div style={{ color: TEXT_PRIMARY, fontWeight: 700, fontSize: 14 }}>
+                      {row.deal}
+                    </div>
+                    <div style={{ color: TEXT_MUTED, fontSize: 13 }}>{row.sector}</div>
+                    <div style={{ color: TEXT_MUTED, fontSize: 13 }}>{row.roundSize}</div>
+                    <div style={{ color: TEXT_MUTED, fontSize: 13 }}>{row.coInvestors}</div>
+                    <div style={{ color: TEXT_MUTED, fontSize: 13 }}>{row.desc}</div>
+                    <div>{statusBadge(row.status)}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
         </section>
 
         {/* 7. Olee Space Deep Dive */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Portfolio Deep Dive
           </h2>
           <div
@@ -933,7 +1040,6 @@ export function FundTwoPage() {
               borderRadius: 20,
               padding: 32,
               marginBottom: 32,
-              borderTop: `3px solid ${CYAN}`,
               animation: 'fadeInUp 0.45s ease-out both',
             }}
           >
@@ -1092,7 +1198,6 @@ export function FundTwoPage() {
               background: SURFACE,
               borderRadius: 20,
               padding: 32,
-              borderTop: `3px solid ${PURPLE}`,
               animation: 'fadeInUp 0.45s ease-out both',
               animationDelay: '100ms',
             }}
@@ -1229,7 +1334,14 @@ export function FundTwoPage() {
 
         {/* 9. Investor Network */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Investor Network
           </h2>
 
@@ -1308,7 +1420,14 @@ export function FundTwoPage() {
 
         {/* 10. Team Section */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             The Team
           </h2>
 

@@ -4,6 +4,8 @@ import { ArrowRight, ChevronDown, ChevronUp, ExternalLink, X } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { can } from '@/lib/role-capabilities';
 import { useUser } from '@/auth/use-auth';
+import { colours, fonts } from '@/design-system/tokens';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 
 // ── Inject editorial fonts + keyframe animations once ──────────────────────
 
@@ -34,28 +36,28 @@ function useDigestStyles() {
   }, []);
 }
 
-// ── Design tokens ──────────────────────────────────────────────────────────
+// ── Design tokens — alias to shared design system ─────────────────────────
 
 const T = {
-  serif: "'Instrument Serif', Georgia, serif",
-  sans: "'DM Sans', system-ui, sans-serif",
-  dark: '#0F1923',
-  text: '#1a1a1a',
-  text2: '#6b6b6b',
-  text3: '#9a9a9a',
-  border: 'rgba(0,0,0,0.08)',
-  border2: 'rgba(0,0,0,0.12)',
-  purple: '#6d28d9',
-  purpleBg: '#ede9fe',
-  purpleText: '#5b21b6',
-  green: '#15803d',
-  greenBg: '#dcfce7',
-  amber: '#b45309',
-  amberBg: '#fef3c7',
-  blue: '#1d4ed8',
-  blueBg: '#dbeafe',
-  pageBg: '#F8F7F4',
-  surface: '#ffffff',
+  serif: fonts.serif,
+  sans: fonts.sans,
+  dark: colours.dark,
+  text: colours.text,
+  text2: colours.text2,
+  text3: colours.text3,
+  border: colours.border,
+  border2: colours.border2,
+  purple: colours.brand,
+  purpleBg: colours.brandBg,
+  purpleText: colours.brandText,
+  green: colours.positive,
+  greenBg: colours.positiveBg,
+  amber: colours.caution,
+  amberBg: colours.cautionBg,
+  blue: colours.info,
+  blueBg: colours.infoBg,
+  pageBg: colours.pageBg,
+  surface: colours.surface,
 } as const;
 
 // ── Data — verified and production-accurate ────────────────────────────────
@@ -394,26 +396,7 @@ type ArchiveEdition = (typeof ARCHIVE)[0];
 
 // ── Small shared components ────────────────────────────────────────────────
 
-function Tag({ label, color, bg }: { label: string; color: string; bg: string }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        fontSize: 10,
-        fontWeight: 500,
-        padding: '3px 10px',
-        borderRadius: 100,
-        letterSpacing: '.04em',
-        textTransform: 'uppercase',
-        background: bg,
-        color,
-      }}
-    >
-      {label}
-    </span>
-  );
-}
+import { Tag } from '@/design-system/components';
 
 function MomentumBar({
   sector,
@@ -426,8 +409,8 @@ function MomentumBar({
   dir: string;
   val: string;
 }) {
-  const barColor = dir === 'up' ? '#4ade80' : '#fb923c';
-  const valColor = dir === 'up' ? '#4ade80' : '#f97316';
+  const barColor = dir === 'up' ? '#3BBF7A' : '#E07A3B';
+  const valColor = dir === 'up' ? '#3BBF7A' : '#D96A2A';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
       <div style={{ width: 80, fontSize: 12, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>
@@ -463,34 +446,37 @@ function MomentumBar({
 // ── SECTION 1: Hero ────────────────────────────────────────────────────────
 
 function HeroSection({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
+  const isMobile = useIsMobile();
   return (
     <div
       style={{
         background: T.dark,
-        padding: '52px 40px 44px',
+        padding: isMobile ? '28px 20px 24px' : '52px 40px 44px',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      {/* Subtle glow orb */}
-      <div
-        style={{
-          position: 'absolute',
-          top: -120,
-          right: -80,
-          width: 480,
-          height: 480,
-          borderRadius: '50%',
-          background: 'rgba(109,40,217,0.05)',
-          pointerEvents: 'none',
-        }}
-      />
+      {/* Subtle glow orb — hidden on mobile */}
+      {!isMobile && (
+        <div
+          style={{
+            position: 'absolute',
+            top: -120,
+            right: -80,
+            width: 480,
+            height: 480,
+            borderRadius: '50%',
+            background: 'rgba(109,40,217,0.05)',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
 
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 320px',
-          gap: 56,
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 320px',
+          gap: isMobile ? 24 : 56,
           maxWidth: 1060,
           position: 'relative',
         }}
@@ -512,7 +498,7 @@ function HeroSection({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
           <h1
             style={{
               fontFamily: T.serif,
-              fontSize: 34,
+              fontSize: isMobile ? 22 : 34,
               lineHeight: 1.18,
               color: '#fff',
               marginBottom: 28,
@@ -572,8 +558,10 @@ function HeroSection({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 10,
               letterSpacing: '.01em',
+              width: isMobile ? '100%' : undefined,
             }}
           >
             {isOpen ? (
@@ -628,6 +616,7 @@ function HeroSection({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
 const TABS = ['Portfolio', 'Startup News', 'Tool of Month', "Warmup's View"] as const;
 
 function PortfolioTab() {
+  const isMobile = useIsMobile();
   return (
     <div>
       <div
@@ -660,7 +649,7 @@ function PortfolioTab() {
           {/* Card head */}
           <div
             style={{
-              padding: '20px 24px',
+              padding: isMobile ? '16px 16px' : '20px 24px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'flex-start',
@@ -702,9 +691,13 @@ function PortfolioTab() {
           </div>
 
           {/* Card body */}
-          <div style={{ padding: '20px 24px' }}>
+          <div style={{ padding: isMobile ? '16px 16px' : '20px 24px' }}>
             <div
-              style={{ display: 'grid', gridTemplateColumns: co.wide ? '1fr 1fr' : '1fr', gap: 24 }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: co.wide && !isMobile ? '1fr 1fr' : '1fr',
+                gap: 24,
+              }}
             >
               <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                 <tbody>
@@ -731,9 +724,8 @@ function PortfolioTab() {
               </table>
               <div
                 style={{
-                  background: '#faf9ff',
+                  background: '#F3F4FF',
                   borderRadius: 8,
-                  borderLeft: `3px solid ${T.purple}`,
                   padding: '14px 16px',
                 }}
               >
@@ -790,6 +782,7 @@ function PortfolioTab() {
 }
 
 function NewsTab() {
+  const isMobile = useIsMobile();
   return (
     <div>
       <div
@@ -807,7 +800,7 @@ function NewsTab() {
       <div style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 400, marginBottom: 24 }}>
         Startup News
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
         {NEWS.map((n) => (
           <div
             key={n.title}
@@ -954,9 +947,8 @@ function ToolTab() {
 
         <div
           style={{
-            background: '#faf9ff',
+            background: '#F3F4FF',
             borderRadius: 8,
-            borderLeft: `3px solid ${T.purple}`,
             padding: '14px 16px',
           }}
         >
@@ -1223,6 +1215,7 @@ function FullDigestSection({
   setActiveTab: (i: number) => void;
   onCollapse: () => void;
 }) {
+  const isMobile = useIsMobile();
   return (
     <div style={{ background: T.surface, borderTop: `1px solid ${T.border}` }}>
       {/* Sticky tab nav */}
@@ -1263,7 +1256,7 @@ function FullDigestSection({
         ))}
       </div>
 
-      <div style={{ padding: '40px 40px' }}>
+      <div style={{ padding: isMobile ? '24px 20px' : '40px 40px' }}>
         {activeTab === 0 && <PortfolioTab />}
         {activeTab === 1 && <NewsTab />}
         {activeTab === 2 && <ToolTab />}
@@ -1272,7 +1265,7 @@ function FullDigestSection({
 
       <div
         style={{
-          padding: '16px 40px',
+          padding: isMobile ? '16px 20px' : '16px 40px',
           borderTop: `1px solid ${T.border}`,
           display: 'flex',
           justifyContent: 'center',
@@ -1325,8 +1318,9 @@ const SIGNALS = [
 ];
 
 function FeaturedSection() {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ padding: '40px', background: T.surface }}>
+    <div style={{ padding: isMobile ? '24px 20px' : '40px', background: T.surface }}>
       <div
         style={{
           fontSize: 10,
@@ -1340,9 +1334,18 @@ function FeaturedSection() {
         Featured This Week
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 0 }}>
+      <div
+        style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr 1fr', gap: 0 }}
+      >
         {/* Large feature — Balwaan Krishi */}
-        <div style={{ borderRight: `1px solid ${T.border}`, paddingRight: 32, gridRow: '1 / 3' }}>
+        <div
+          style={{
+            borderRight: isMobile ? 'none' : `1px solid ${T.border}`,
+            paddingRight: isMobile ? 0 : 32,
+            gridRow: isMobile ? undefined : '1 / 3',
+            marginBottom: isMobile ? 24 : 0,
+          }}
+        >
           <div
             style={{
               fontSize: 10,
@@ -1403,7 +1406,13 @@ function FeaturedSection() {
         </div>
 
         {/* Medium — Olee Space */}
-        <div style={{ padding: '24px 28px', borderBottom: `1px solid ${T.border}` }}>
+        <div
+          style={{
+            padding: isMobile ? '16px 0' : '24px 28px',
+            borderBottom: isMobile ? 'none' : `1px solid ${T.border}`,
+            marginBottom: isMobile ? 24 : 0,
+          }}
+        >
           <div
             style={{
               fontSize: 10,
@@ -1449,9 +1458,10 @@ function FeaturedSection() {
         {/* Medium — Boba Bhai */}
         <div
           style={{
-            padding: '24px 28px',
-            borderLeft: `1px solid ${T.border}`,
-            borderBottom: `1px solid ${T.border}`,
+            padding: isMobile ? '16px 0' : '24px 28px',
+            borderLeft: isMobile ? 'none' : `1px solid ${T.border}`,
+            borderBottom: isMobile ? 'none' : `1px solid ${T.border}`,
+            marginBottom: isMobile ? 24 : 0,
           }}
         >
           <div
@@ -1511,7 +1521,13 @@ function FeaturedSection() {
         >
           Ecosystem Signals
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 16 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(5,1fr)',
+            gap: 16,
+          }}
+        >
           {SIGNALS.map((s) => (
             <div key={s.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <div
@@ -1552,9 +1568,10 @@ const CONVICTION = [
 ];
 
 function IntelStrip() {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ padding: '40px', background: T.pageBg }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+    <div style={{ padding: isMobile ? '24px 20px' : '40px', background: T.pageBg }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 32 }}>
         {/* Sector momentum */}
         <div>
           <div
@@ -1570,7 +1587,7 @@ function IntelStrip() {
             Sector Momentum Index
           </div>
           {SECTORS.map((s) => {
-            const barColor = s.dir === 'up' ? '#22c55e' : '#f97316';
+            const barColor = s.dir === 'up' ? '#3BBF7A' : '#E07A3B';
             const valColor = s.dir === 'up' ? T.green : T.amber;
             return (
               <div
@@ -1900,9 +1917,8 @@ function EditionDrawer({ edition, onClose }: { edition: ArchiveEdition; onClose:
                 fontStyle: 'italic',
                 lineHeight: 1.65,
                 padding: 16,
-                background: T.pageBg,
+                background: '#F3F4FF',
                 borderRadius: 8,
-                borderLeft: `3px solid ${T.purple}`,
                 color: T.text,
               }}
             >
@@ -1939,8 +1955,9 @@ function ArchiveSection({
   filteredArchive: ArchiveEdition[];
   onOpenDrawer: (e: ArchiveEdition) => void;
 }) {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ padding: '0 40px 60px', background: T.surface }}>
+    <div style={{ padding: isMobile ? '0 20px 40px' : '0 40px 60px', background: T.surface }}>
       <div
         style={{
           display: 'flex',
@@ -1976,7 +1993,13 @@ function ArchiveSection({
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+          gap: 16,
+        }}
+      >
         {filteredArchive.map((ed) => (
           <div
             key={ed.id}
@@ -2114,7 +2137,15 @@ export function MyDigestPage() {
     activeFilter === 'all' ? ARCHIVE : ARCHIVE.filter((e) => e.tags.includes(activeFilter));
 
   return (
-    <div style={{ fontFamily: T.sans, color: T.text, margin: '-24px -16px', overflow: 'hidden' }}>
+    <div
+      style={{
+        fontFamily: T.sans,
+        color: T.text,
+        margin: '-24px -16px',
+        overflow: 'hidden',
+        maxWidth: '100vw',
+      }}
+    >
       <HeroSection
         isOpen={digestOpen}
         onToggle={() => {
