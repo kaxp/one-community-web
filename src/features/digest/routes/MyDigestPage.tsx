@@ -4,6 +4,7 @@ import { ArrowRight, ChevronDown, ChevronUp, ExternalLink, X } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { can } from '@/lib/role-capabilities';
 import { useUser } from '@/auth/use-auth';
+import { colours, fonts } from '@/design-system/tokens';
 
 // ── Inject editorial fonts + keyframe animations once ──────────────────────
 
@@ -34,28 +35,28 @@ function useDigestStyles() {
   }, []);
 }
 
-// ── Design tokens ──────────────────────────────────────────────────────────
+// ── Design tokens — alias to shared design system ─────────────────────────
 
 const T = {
-  serif: "'Instrument Serif', Georgia, serif",
-  sans: "'DM Sans', system-ui, sans-serif",
-  dark: '#0F1923',
-  text: '#1a1a1a',
-  text2: '#6b6b6b',
-  text3: '#9a9a9a',
-  border: 'rgba(0,0,0,0.08)',
-  border2: 'rgba(0,0,0,0.12)',
-  purple: '#6d28d9',
-  purpleBg: '#ede9fe',
-  purpleText: '#5b21b6',
-  green: '#15803d',
-  greenBg: '#dcfce7',
-  amber: '#b45309',
-  amberBg: '#fef3c7',
-  blue: '#1d4ed8',
-  blueBg: '#dbeafe',
-  pageBg: '#F8F7F4',
-  surface: '#ffffff',
+  serif: fonts.serif,
+  sans: fonts.sans,
+  dark: colours.dark,
+  text: colours.text,
+  text2: colours.text2,
+  text3: colours.text3,
+  border: colours.border,
+  border2: colours.border2,
+  purple: colours.brand,
+  purpleBg: colours.brandBg,
+  purpleText: colours.brandText,
+  green: colours.positive,
+  greenBg: colours.positiveBg,
+  amber: colours.caution,
+  amberBg: colours.cautionBg,
+  blue: colours.info,
+  blueBg: colours.infoBg,
+  pageBg: colours.pageBg,
+  surface: colours.surface,
 } as const;
 
 // ── Data — verified and production-accurate ────────────────────────────────
@@ -394,26 +395,7 @@ type ArchiveEdition = (typeof ARCHIVE)[0];
 
 // ── Small shared components ────────────────────────────────────────────────
 
-function Tag({ label, color, bg }: { label: string; color: string; bg: string }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        fontSize: 10,
-        fontWeight: 500,
-        padding: '3px 10px',
-        borderRadius: 100,
-        letterSpacing: '.04em',
-        textTransform: 'uppercase',
-        background: bg,
-        color,
-      }}
-    >
-      {label}
-    </span>
-  );
-}
+import { Tag } from '@/design-system/components';
 
 function MomentumBar({
   sector,
@@ -426,8 +408,8 @@ function MomentumBar({
   dir: string;
   val: string;
 }) {
-  const barColor = dir === 'up' ? '#4ade80' : '#fb923c';
-  const valColor = dir === 'up' ? '#4ade80' : '#f97316';
+  const barColor = dir === 'up' ? '#3BBF7A' : '#E07A3B';
+  const valColor = dir === 'up' ? '#3BBF7A' : '#D96A2A';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
       <div style={{ width: 80, fontSize: 12, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>
@@ -731,9 +713,8 @@ function PortfolioTab() {
               </table>
               <div
                 style={{
-                  background: '#faf9ff',
+                  background: '#F3F4FF',
                   borderRadius: 8,
-                  borderLeft: `3px solid ${T.purple}`,
                   padding: '14px 16px',
                 }}
               >
@@ -954,9 +935,8 @@ function ToolTab() {
 
         <div
           style={{
-            background: '#faf9ff',
+            background: '#F3F4FF',
             borderRadius: 8,
-            borderLeft: `3px solid ${T.purple}`,
             padding: '14px 16px',
           }}
         >
@@ -1570,7 +1550,7 @@ function IntelStrip() {
             Sector Momentum Index
           </div>
           {SECTORS.map((s) => {
-            const barColor = s.dir === 'up' ? '#22c55e' : '#f97316';
+            const barColor = s.dir === 'up' ? '#3BBF7A' : '#E07A3B';
             const valColor = s.dir === 'up' ? T.green : T.amber;
             return (
               <div
@@ -1900,9 +1880,8 @@ function EditionDrawer({ edition, onClose }: { edition: ArchiveEdition; onClose:
                 fontStyle: 'italic',
                 lineHeight: 1.65,
                 padding: 16,
-                background: T.pageBg,
+                background: '#F3F4FF',
                 borderRadius: 8,
-                borderLeft: `3px solid ${T.purple}`,
                 color: T.text,
               }}
             >

@@ -756,6 +756,56 @@ export const USER_MESSAGES: Record<string, string> = {
 
 ---
 
+## 7.13 Design System
+
+All UI must use shared tokens and components from `src/design-system/`.
+Never hardcode colour hex values, font names, border radii, or shadows inline.
+
+### Imports
+
+```ts
+import { colours, fonts, radius, shadow, spacing } from '@/design-system/tokens';
+import {
+  Tag,
+  SurfaceCard,
+  EyebrowLabel,
+  SectionHeading,
+  Divider,
+  TextButton,
+} from '@/design-system/components';
+```
+
+### Rules — enforced, not optional
+
+1. **Fonts:** Use `fonts.serif` (Instrument Serif) for display/editorial headings. Use `fonts.sans` (DM Sans) for all body text, labels, and UI.
+
+2. **Colours:** Use only tokens from `colours.*`. Semantic meanings:
+   - `colours.brand / brandBg / brandText` — primary action, links, selected state
+   - `colours.positive / positiveBg` — confirmed rounds, bullish signals, success
+   - `colours.caution / cautionBg` — watchlist, risk flags, warnings
+   - `colours.info / infoBg` — neutral labels, metadata, secondary badges
+   - `colours.dark` — dark hero sections only
+   - `colours.pageBg` — page background
+   - `colours.surface` — card/panel background
+
+3. **Cards:** All content cards must use `<SurfaceCard>`. Do not create one-off card divs with inline border + boxShadow.
+
+4. **Headings:** Section headings use `<SectionHeading>`. Eyebrow labels use `<EyebrowLabel>`. Never set `fontFamily: fonts.serif` inline unless inside a one-off editorial component that genuinely cannot use the shared heading.
+
+5. **Tags/Badges:** Always use `<Tag color={} bg={}>` from the design system. Use the semantic presets (`SemanticTag.Positive`, etc.) wherever the meaning maps cleanly.
+
+6. **Hover states:** Use `SurfaceCard`'s built-in hover for cards. For text links use `TextButton`. Do not implement custom hover logic via `onMouseOver` / `onMouseOut` unless absolutely unavoidable.
+
+7. **Spacing:** Horizontal page padding is `spacing.pagePadH` (40px desktop) / `spacing.pagePadHMd` (20px mobile). Section vertical gap is `spacing.sectionGap` (48px). Do not use arbitrary values.
+
+8. **Mobile-first:** All new components must be functional and well-laid-out at 375px viewport width. Use `useIsMobile()` from `@/lib/hooks/use-is-mobile` for responsive logic. Test in DevTools before marking a task done.
+
+9. **No Tailwind pastels:** The following Tailwind default hex values are banned — they make the product look AI-generated:
+   `#ede9fe`, `#dcfce7`, `#fef3c7`, `#dbeafe`, `#6d28d9`, `#15803d`, `#b45309`, `#1d4ed8`
+   If you find them, replace with the equivalent `colours.*` token.
+
+---
+
 ## 8. DO / DON'T
 
 ### 8.1 Do
@@ -1137,4 +1187,60 @@ _Builder rule:_ when you find a new non-blocking gotcha, add a dated row here in
 
 ---
 
-_End of frontend_claude.md. Version 1.1 — 2026-04-24. Paired with frontend_prd.md v1.1._
+## 18. Responsive UI — Testing Checklist (mandatory before shipping)
+
+Every UI change must be verified at all three breakpoints before committing.
+Unresponsive UI will be rejected in review.
+
+### Breakpoints
+
+| Name    | Width  | Represents                    |
+| ------- | ------ | ----------------------------- |
+| Mobile  | 375px  | iPhone SE / most Android      |
+| Tablet  | 768px  | iPad / large phones landscape |
+| Desktop | 1280px | Laptop / monitor              |
+
+### How to test
+
+In Chrome/Safari DevTools:
+
+1. Open DevTools → toggle device toolbar (Ctrl+Shift+M / Cmd+Shift+M)
+2. Set width to 375px → scroll through the entire page → confirm no horizontal overflow, no clipped content, no unreadable text
+3. Set width to 768px → repeat
+4. Set width to 1280px → repeat
+
+### Checklist — verify all of these at each breakpoint
+
+- [ ] No horizontal scrollbar on the page (check `document.body.scrollWidth === window.innerWidth`)
+- [ ] No text is cut off or merges with adjacent text
+- [ ] All tables either reflow to card layout or have proper column widths
+- [ ] All charts render within their container, no clipping
+- [ ] All badges/pills are compact pill shape, not ovals or circles
+- [ ] Navigation drawer opens and closes correctly
+- [ ] Profile access is reachable (either header button or drawer entry)
+- [ ] Cards have appropriate tap target size (minimum 44×44px touch area)
+- [ ] No fixed pixel widths that prevent layout from shrinking below 375px
+- [ ] Font sizes are readable without zooming (minimum 12px for any visible text)
+
+### Responsive hook
+
+Use `useIsMobile()` from `@/lib/hooks/use-is-mobile` for conditional responsive logic in inline-style components. The default breakpoint is 768px. Add `// RESPONSIVE:` comment above any style that changes between mobile and desktop, so future developers can find responsive logic easily.
+
+### PWA feel on mobile
+
+The dashboard should feel like a native mobile app, not a website.
+
+- No visible horizontal scroll at page level (section-level intentional scroll is OK if snap-scrolling)
+- Touch targets are large enough to tap accurately
+- Transitions and hover states are disabled or replaced with active/press states on touch
+- No zoom-on-input (ensure `font-size: 16px` on all `<input>` elements to prevent iOS zoom)
+- The header/nav stays fixed at the top on scroll (`position: sticky`, `top: 0`)
+
+### Rule
+
+If a component passes at 1280px but breaks at 375px, it is broken.
+Mobile is the primary viewport — desktop is the enhancement.
+
+---
+
+_End of frontend_claude.md. Version 1.2 — 2026-05-27. Paired with frontend_prd.md v1.1._

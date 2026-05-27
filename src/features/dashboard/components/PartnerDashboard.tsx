@@ -1,69 +1,178 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Search, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useConnections } from '@/features/connections/hooks/use-connections';
+import { useUser, useRole } from '@/auth/use-auth';
+import { colours, fonts, radius, spacing } from '@/design-system/tokens';
+import { SurfaceCard } from '@/design-system/components';
+import { DashboardHero } from './DashboardHero';
+import { QuickGrid } from './QuickGrid';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 
 export function PartnerDashboard() {
+  const user = useUser();
+  const role = useRole();
   const connections = useConnections({ limit: 5 });
   const connectionCount = connections.data?.pages[0]?.items.length ?? 0;
+  const isMobile = useIsMobile();
+
+  const contextLine =
+    connectionCount > 0
+      ? `${connectionCount} connection${connectionCount !== 1 ? 's' : ''} in your network`
+      : 'Search and connect with startups and LPs';
 
   return (
-    <div className="flex flex-col gap-6" data-testid="partner-dashboard">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Dashboard</h1>
-        <p className="text-sm text-ink-muted">Your partner activity at a glance.</p>
-      </header>
+    <div style={{ background: colours.pageBg, minHeight: '100%' }} data-testid="partner-dashboard">
+      <DashboardHero name={user?.name ?? null} role={role ?? 'partner'} contextLine={contextLine} />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-ink-muted">Connections</CardTitle>
-            <Users className="h-4 w-4 text-ink-muted" aria-hidden />
-          </CardHeader>
-          <CardContent>
+      <div
+        style={{
+          padding: isMobile ? '24px 20px' : '32px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.sectionGap,
+        }}
+      >
+        {/* Quick access */}
+        <section>
+          <div
+            style={{
+              fontFamily: fonts.sans,
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: '.1em',
+              textTransform: 'uppercase' as const,
+              color: colours.text3,
+              marginBottom: 12,
+            }}
+          >
+            Quick access
+          </div>
+          <QuickGrid
+            tiles={[
+              { key: 'search', label: 'Search', path: '/search', subtitle: 'Find startups & LPs' },
+              { key: 'digest', label: 'My Digest', path: '/digest', subtitle: 'Week 47 live' },
+              {
+                key: 'matchmaking',
+                label: 'Opportunities',
+                path: '/matchmaking',
+                subtitle: 'Curated matches',
+              },
+              {
+                key: 'connections',
+                label: 'Network',
+                path: '/connections',
+                subtitle:
+                  connectionCount > 0 ? `${connectionCount} connections` : 'Your connections',
+              },
+              {
+                key: 'pending',
+                label: 'Pending',
+                path: '/connections/pending',
+                subtitle: 'Action required',
+              },
+              { key: 'add-user', label: 'Refer', path: '/add-user', subtitle: 'Invite someone' },
+            ]}
+          />
+        </section>
+
+        {/* Connections snapshot */}
+        <section>
+          <div
+            style={{
+              fontFamily: fonts.sans,
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: '.1em',
+              textTransform: 'uppercase' as const,
+              color: colours.text3,
+              marginBottom: 12,
+            }}
+          >
+            Your network
+          </div>
+          <SurfaceCard style={{ padding: isMobile ? 20 : 28 }}>
             {connections.isLoading ? (
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-12 w-full" />
             ) : (
-              <p
-                className="text-3xl font-semibold text-ink-heading"
-                data-testid="partner-connection-count"
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  flexWrap: 'wrap' as const,
+                }}
               >
-                {connectionCount}
-              </p>
+                <div>
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 40,
+                      fontWeight: 700,
+                      color: colours.text,
+                      lineHeight: 1,
+                    }}
+                    data-testid="partner-connection-count"
+                  >
+                    {connectionCount}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 13,
+                      color: colours.text2,
+                      marginTop: 4,
+                    }}
+                  >
+                    accepted connection{connectionCount !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
+                  <Link
+                    to="/connections"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontFamily: fonts.sans,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: colours.brand,
+                      textDecoration: 'none',
+                      padding: '10px 18px',
+                      background: colours.brandBg,
+                      borderRadius: radius.sm,
+                      whiteSpace: 'nowrap' as const,
+                    }}
+                  >
+                    View connections <ArrowRight size={14} />
+                  </Link>
+                  <Link
+                    to="/search"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontFamily: fonts.sans,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: colours.surface,
+                      textDecoration: 'none',
+                      padding: '10px 18px',
+                      background: colours.brand,
+                      borderRadius: radius.sm,
+                      whiteSpace: 'nowrap' as const,
+                    }}
+                    data-testid="partner-search-cta"
+                  >
+                    Search community
+                  </Link>
+                </div>
+              </div>
             )}
-            <p className="text-xs text-ink-muted">
-              accepted connection{connectionCount !== 1 ? 's' : ''}
-            </p>
-            <Button asChild variant="ghost" size="sm" className="mt-3 -ml-2 h-auto p-2">
-              <Link
-                to="/connections"
-                className="inline-flex items-center gap-1 text-xs font-medium text-brand"
-              >
-                View connections <ArrowRight className="h-3 w-3" aria-hidden />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-ink-muted">
-              Discover startups
-            </CardTitle>
-            <Search className="h-4 w-4 text-ink-muted" aria-hidden />
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-ink-body">
-              Browse startups and LPs in the community. Request a connection to unlock contact
-              details.
-            </p>
-            <Button asChild size="sm" className="mt-3" data-testid="partner-search-cta">
-              <Link to="/search">Search community</Link>
-            </Button>
-          </CardContent>
-        </Card>
+          </SurfaceCard>
+        </section>
       </div>
     </div>
   );

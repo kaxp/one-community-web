@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 import {
   Bar,
   BarChart,
@@ -848,11 +849,15 @@ function MultiplesLeaderboard() {
 function PortfolioSnapshot() {
   const { ref: pieRef, inView: pieInView } = useInView();
   const { ref: barRef, inView: barInView } = useInView();
+  const isMobile = useIsMobile();
 
   const capData = pieInView ? CAPITAL_MIX : CAPITAL_MIX.map((d) => ({ ...d, value: 0 }));
   const dealData = pieInView ? DEAL_MIX : DEAL_MIX.map((d) => ({ ...d, value: 0 }));
   const sCapData = barInView ? SECTOR_CAPITAL : SECTOR_CAPITAL.map((d) => ({ ...d, pct: 0 }));
   const sDealsData = barInView ? SECTOR_DEALS : SECTOR_DEALS.map((d) => ({ ...d, pct: 0 }));
+
+  // RESPONSIVE: stack to 1-col on mobile
+  const gridCols = isMobile ? '1fr' : '1fr 1fr';
 
   return (
     <div>
@@ -861,7 +866,7 @@ function PortfolioSnapshot() {
       </h2>
       <div
         ref={pieRef}
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}
+        style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 16, marginBottom: 16 }}
       >
         {[
           { title: 'Capital Mix', data: capData },
@@ -918,7 +923,7 @@ function PortfolioSnapshot() {
         ))}
       </div>
 
-      <div ref={barRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div ref={barRef} style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 16 }}>
         {[
           { title: 'Sector Mix: Capital', data: sCapData },
           { title: 'Sector Mix: Deals', data: sDealsData },
@@ -952,7 +957,7 @@ function PortfolioSnapshot() {
                   tick={{ fill: TEXT, fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
-                  width={100}
+                  width={isMobile ? 80 : 100}
                 />
                 <Bar
                   dataKey="pct"
@@ -978,6 +983,7 @@ function PortfolioSnapshot() {
 
 function InvestmentTimeline() {
   const [mounted, setMounted] = useState(false);
+  const isMobile = useIsMobile();
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 200);
     return () => clearTimeout(t);
@@ -993,70 +999,62 @@ function InvestmentTimeline() {
           background: SURFACE,
           border: `1px solid ${MUTED_BG}`,
           borderRadius: 16,
-          padding: '32px 24px',
-          overflowX: 'auto',
+          padding: isMobile ? '20px 16px' : '32px 24px',
+          // RESPONSIVE: horizontal scroll on desktop, vertical stack on mobile
+          overflowX: isMobile ? 'hidden' : 'auto',
         }}
       >
-        <div
-          style={{
-            position: 'relative',
-            minWidth: TIMELINE_ENTRIES.length * 120,
-            paddingBottom: 80,
-          }}
-        >
-          {/* Horizontal line */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 10,
-              left: 0,
-              right: 0,
-              height: 2,
-              background: MUTED_BG,
-            }}
-          />
-          {/* Dots */}
-          <div style={{ display: 'flex', gap: 0 }}>
+        {isMobile ? (
+          // RESPONSIVE: vertical timeline on mobile
+          <div style={{ position: 'relative', paddingLeft: 28 }}>
+            {/* Vertical line */}
+            <div
+              style={{
+                position: 'absolute',
+                left: 9,
+                top: 10,
+                bottom: 10,
+                width: 2,
+                background: MUTED_BG,
+              }}
+            />
             {TIMELINE_ENTRIES.map((entry, i) => (
               <div
                 key={`${entry.company}-${i}`}
                 style={{
-                  width: 120,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
                   position: 'relative',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  marginBottom: 18,
+                  opacity: mounted ? 1 : 0,
+                  transition: `opacity 0.3s ease-out ${i * 0.03}s`,
                 }}
               >
+                {/* Dot on the vertical line */}
                 <div
                   style={{
-                    width: 20,
-                    height: 20,
+                    position: 'absolute',
+                    left: -28 + 4,
+                    top: 3,
+                    width: 12,
+                    height: 12,
                     borderRadius: '50%',
                     background: entry.color,
-                    border: `3px solid ${BG}`,
+                    border: `2px solid ${BG}`,
                     boxShadow: `0 0 0 2px ${entry.color}`,
-                    zIndex: 1,
-                    transform: mounted ? 'scale(1)' : 'scale(0)',
-                    transition: `transform 0.3s ease-out ${i * 0.05}s`,
                     flexShrink: 0,
+                    transform: mounted ? 'scale(1)' : 'scale(0)',
+                    transition: `transform 0.3s ease-out ${i * 0.03}s`,
                   }}
                 />
-                <div
-                  style={{
-                    marginTop: 10,
-                    textAlign: 'center',
-                    padding: '0 4px',
-                    opacity: mounted ? 1 : 0,
-                    transition: `opacity 0.3s ease-out ${i * 0.05 + 0.1}s`,
-                  }}
-                >
+                <div style={{ flex: 1 }}>
                   <div
                     style={{
                       color: TEXT_MUTED,
                       fontSize: '0.65rem',
                       fontWeight: 600,
-                      marginBottom: 4,
+                      marginBottom: 2,
                     }}
                   >
                     {entry.month}
@@ -1064,7 +1062,7 @@ function InvestmentTimeline() {
                   <div
                     style={{
                       color: TEXT,
-                      fontSize: '0.72rem',
+                      fontSize: '0.82rem',
                       fontWeight: 600,
                       lineHeight: 1.3,
                       marginBottom: 4,
@@ -1077,7 +1075,88 @@ function InvestmentTimeline() {
               </div>
             ))}
           </div>
-        </div>
+        ) : (
+          // Desktop: original horizontal scroll layout
+          <div
+            style={{
+              position: 'relative',
+              minWidth: TIMELINE_ENTRIES.length * 120,
+              paddingBottom: 80,
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: 10,
+                left: 0,
+                right: 0,
+                height: 2,
+                background: MUTED_BG,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 0 }}>
+              {TIMELINE_ENTRIES.map((entry, i) => (
+                <div
+                  key={`${entry.company}-${i}`}
+                  style={{
+                    width: 120,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    position: 'relative',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: entry.color,
+                      border: `3px solid ${BG}`,
+                      boxShadow: `0 0 0 2px ${entry.color}`,
+                      zIndex: 1,
+                      transform: mounted ? 'scale(1)' : 'scale(0)',
+                      transition: `transform 0.3s ease-out ${i * 0.05}s`,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
+                      marginTop: 10,
+                      textAlign: 'center',
+                      padding: '0 4px',
+                      opacity: mounted ? 1 : 0,
+                      transition: `opacity 0.3s ease-out ${i * 0.05 + 0.1}s`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: TEXT_MUTED,
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {entry.month}
+                    </div>
+                    <div
+                      style={{
+                        color: TEXT,
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {entry.company}
+                    </div>
+                    <SectorBadge label={entry.sector} color={entry.color} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1408,6 +1487,7 @@ function FooterSection() {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export function FundOnePage() {
+  const isMobile = useIsMobile();
   return (
     <>
       <style>{`
@@ -1426,7 +1506,13 @@ export function FundOnePage() {
       >
         <StickyHeader />
         <div
-          style={{ display: 'flex', flexDirection: 'column', gap: 40, padding: '32px 24px 48px' }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 40,
+            // RESPONSIVE: reduce page padding on mobile
+            padding: isMobile ? '20px 16px 48px' : '32px 24px 48px',
+          }}
         >
           <HeroStrip />
           <ExecutiveSummary />
