@@ -86,7 +86,7 @@ function LpDetailDrawer({
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
-  const [noteType, setNoteType] = useState<LpCrmNoteType>('meeting');
+  const [noteType, setNoteType] = useState<LpCrmNoteType>('follow_up');
   const [noteDate, setNoteDate] = useState<string>(today);
   const [comment, setComment] = useState('');
 

@@ -475,13 +475,13 @@ export type AppConfigListResponse = z.infer<typeof zAppConfigListResponse>;
 
 // ── LP CRM (LP Funnel relationship tracking) ─────────────────────────────────
 
-export const LP_CRM_NOTE_TYPES = ['meeting', 'call', 'follow_up', 'deck_shared'] as const;
+export const LP_CRM_NOTE_TYPES = ['follow_up', 'meeting', 'call', 'deck_shared'] as const;
 export type LpCrmNoteType = (typeof LP_CRM_NOTE_TYPES)[number];
 
 export const LP_CRM_NOTE_LABELS: Record<LpCrmNoteType, string> = {
+  follow_up: 'Follow-up',
   meeting: 'Meeting',
   call: 'Call',
-  follow_up: 'Follow-up',
   deck_shared: 'Deck Shared',
 };
 
