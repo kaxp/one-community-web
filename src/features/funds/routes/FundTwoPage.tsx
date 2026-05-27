@@ -360,12 +360,12 @@ export function FundTwoPage() {
         }
       `}</style>
 
-      {/* 1. Sticky Header */}
+      {/* 1. Sticky Header — zIndex kept below mobile drawer overlay (Radix Sheet z-50) */}
       <div
         style={{
           position: 'sticky',
           top: 0,
-          zIndex: 100,
+          zIndex: 10,
           backdropFilter: 'blur(16px)',
           background: 'rgba(15,23,42,0.85)',
           borderBottom: `1px solid ${MUTED}`,

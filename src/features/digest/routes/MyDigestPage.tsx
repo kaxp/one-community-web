@@ -1700,6 +1700,7 @@ const FILTER_CHIPS = [
 
 function EditionDrawer({ edition, onClose }: { edition: ArchiveEdition; onClose: () => void }) {
   const drawerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -1716,25 +1717,26 @@ function EditionDrawer({ edition, onClose }: { edition: ArchiveEdition; onClose:
         onClick={onClose}
         style={{ position: 'fixed', inset: 0, background: 'rgba(15,25,35,0.4)', zIndex: 200 }}
       />
-      {/* Drawer */}
+      {/* Drawer — RESPONSIVE: full-width on mobile, 600px on desktop */}
       <div
         ref={drawerRef}
         style={{
           position: 'fixed',
           top: 0,
           right: 0,
-          width: 600,
+          width: 'min(100vw, 600px)',
           height: '100vh',
           background: T.surface,
           zIndex: 201,
           overflowY: 'auto',
+          overflowX: 'hidden',
           boxShadow: '-8px 0 40px rgba(0,0,0,0.12)',
           fontFamily: T.sans,
         }}
       >
         <div
           style={{
-            padding: '20px 28px',
+            padding: isMobile ? '16px 20px' : '20px 28px',
             borderBottom: `1px solid ${T.border}`,
             display: 'flex',
             alignItems: 'center',
@@ -1782,7 +1784,7 @@ function EditionDrawer({ edition, onClose }: { edition: ArchiveEdition; onClose:
           </button>
         </div>
 
-        <div style={{ padding: 28 }}>
+        <div style={{ padding: isMobile ? 20 : 28 }}>
           <div style={{ fontFamily: T.serif, fontSize: 22, lineHeight: 1.3, marginBottom: 20 }}>
             {edition.headline}
           </div>

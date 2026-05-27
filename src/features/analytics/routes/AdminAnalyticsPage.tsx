@@ -370,7 +370,7 @@ function UserActivityDrawer({
                       <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
                         {entry.ip_address && <span>IP {entry.ip_address}</span>}
                         {entry.user_agent && (
-                          <span className="truncate" title={entry.user_agent}>
+                          <span className="break-words min-w-0" title={entry.user_agent}>
                             {entry.user_agent}
                           </span>
                         )}
