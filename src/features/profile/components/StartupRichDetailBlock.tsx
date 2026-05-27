@@ -1,9 +1,15 @@
 import { ExternalLink } from 'lucide-react';
+import { useRole } from '@/auth/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fmtCr } from '@/features/search/lib/labels';
 import type { SearchDetailStartup } from '@/features/search/schemas';
+import type { UserRole } from '@/types/enums';
 import { InfoRow } from './InfoRow';
+
+// Financials and pitch deck are restricted to LPs + admins. Other roles
+// (potential_lp, vc, partner, advisor, startup_*) do not see these blocks.
+const FINANCIAL_ROLES: ReadonlySet<UserRole> = new Set(['lp', 'admin', 'super_admin']);
 
 interface Props {
   detail: SearchDetailStartup;
@@ -29,6 +35,10 @@ function ExternalLinkRow({ label, href }: { label: string; href: string | null |
 }
 
 export function StartupRichDetailBlock({ detail }: Props) {
+  const role = useRole();
+  const canSeeFinancials = role != null && FINANCIAL_ROLES.has(role);
+  const pitchDeckUrl = canSeeFinancials ? detail.pitch_deck_url : null;
+
   const hasAbout =
     detail.founding_year != null ||
     detail.team_size != null ||
@@ -37,16 +47,17 @@ export function StartupRichDetailBlock({ detail }: Props) {
     detail.traction;
 
   const hasFinancials =
-    detail.funding_target_cr != null ||
-    detail.raising_raw ||
-    detail.mrr_arr ||
-    detail.revenue_monthly != null ||
-    detail.burn_monthly != null ||
-    detail.runway_months != null ||
-    detail.existing_investors ||
-    detail.money_raised ||
-    detail.last_round_valuation ||
-    detail.valuation_sought;
+    canSeeFinancials &&
+    (detail.funding_target_cr != null ||
+      detail.raising_raw ||
+      detail.mrr_arr ||
+      detail.revenue_monthly != null ||
+      detail.burn_monthly != null ||
+      detail.runway_months != null ||
+      detail.existing_investors ||
+      detail.money_raised ||
+      detail.last_round_valuation ||
+      detail.valuation_sought);
 
   const hasAdminFields =
     detail.ai_pitch_summary ||
@@ -57,7 +68,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
 
   const hasFounders = detail.founders && detail.founders.length > 0;
   const hasLinks =
-    detail.website_url || detail.company_linkedin_url || detail.tracxn_url || detail.pitch_deck_url;
+    detail.website_url || detail.company_linkedin_url || detail.tracxn_url || pitchDeckUrl;
 
   return (
     <>
@@ -148,7 +159,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
             <ExternalLinkRow label="Website" href={detail.website_url} />
             <ExternalLinkRow label="LinkedIn" href={detail.company_linkedin_url} />
             <ExternalLinkRow label="Tracxn" href={detail.tracxn_url} />
-            <ExternalLinkRow label="Pitch deck" href={detail.pitch_deck_url} />
+            <ExternalLinkRow label="Pitch deck" href={pitchDeckUrl} />
           </CardContent>
         </Card>
       ) : null}
