@@ -41,6 +41,7 @@ export interface EditableUser {
   role: UserRole;
   organisation?: string | null;
   designation?: string | null;
+  poc?: string | null;
 }
 
 interface Props {
@@ -64,6 +65,7 @@ export function EditUserDialog({ user, onClose, onSaved }: Props) {
         role: user.role,
         organisation: user.organisation ?? '',
         designation: user.designation ?? '',
+        poc: user.poc ?? '',
       });
     }
   }, [user]);
@@ -83,6 +85,7 @@ export function EditUserDialog({ user, onClose, onSaved }: Props) {
       body.organisation = form.organisation || undefined;
     if (form.designation !== undefined && form.designation !== (user.designation ?? ''))
       body.designation = form.designation || undefined;
+    if (form.poc !== undefined && form.poc !== (user.poc ?? '')) body.poc = form.poc || undefined;
 
     update.mutate(
       { userId: user.id, body },
@@ -169,6 +172,15 @@ export function EditUserDialog({ user, onClose, onSaved }: Props) {
                 id="edit-designation"
                 value={form.designation ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))}
+              />
+            </div>
+            <div className="col-span-2 flex flex-col gap-1.5">
+              <Label htmlFor="edit-poc">POC (Point of Contact)</Label>
+              <Input
+                id="edit-poc"
+                placeholder="e.g. Kapil Sahu"
+                value={form.poc ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, poc: e.target.value }))}
               />
             </div>
           </div>

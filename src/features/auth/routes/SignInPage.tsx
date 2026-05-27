@@ -32,6 +32,7 @@ import { nextRouteForUser } from '@/features/auth/lib/post-signin-navigate';
 export function SignInPage() {
   const navigate = useNavigate();
   const [postSigninError, setPostSigninError] = useState<unknown>(null);
+  const [countryCode, setCountryCode] = useState('+91');
 
   const phoneForm = useForm<PhoneInputForm>({
     resolver: zodResolver(zPhoneInput),
@@ -44,7 +45,9 @@ export function SignInPage() {
 
   // TODO(kaxp): Commenting out the OTP flow for now — auto-verify after phone submit
   const handlePhoneSubmit = phoneForm.handleSubmit(({ phone: rawPhone }) => {
-    const canonical = toE164(rawPhone);
+    // Strip the leading '+' from countryCode for toE164's defaultCountryCode param
+    const dialDigits = countryCode.replace(/^\+/, '');
+    const canonical = toE164(rawPhone, dialDigits);
     if (!isValidE164(canonical)) {
       phoneForm.setError('phone', { message: 'Enter a valid mobile number' });
       return;
@@ -118,6 +121,8 @@ export function SignInPage() {
                   id="signin-phone"
                   autoFocus
                   disabled={isPending}
+                  countryCode={countryCode}
+                  onCountryCodeChange={setCountryCode}
                   {...phoneForm.register('phone')}
                 />
               </FormField>

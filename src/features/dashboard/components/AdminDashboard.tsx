@@ -68,7 +68,7 @@ export function AdminDashboard() {
               {
                 key: 'search',
                 label: 'Search',
-                path: '/admin/search',
+                path: '/search',
                 subtitle: 'Community search',
               },
               {
