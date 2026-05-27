@@ -10,6 +10,8 @@ import {
   BarChart3,
   UserPlus,
   Home,
+  TrendingUp,
+  Activity,
 } from 'lucide-react';
 import { colours, fonts, radius, shadow } from '@/design-system/tokens';
 import { useIsMobile } from '@/lib/hooks/use-is-mobile';
@@ -25,6 +27,8 @@ const ICON_MAP = {
   mis: BarChart3,
   'add-user': UserPlus,
   dashboard: Home,
+  analytics: TrendingUp,
+  'lp-funnel': Activity,
 } as const;
 
 interface Tile {

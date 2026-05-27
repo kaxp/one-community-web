@@ -68,7 +68,8 @@ export function MobileNavDrawer() {
           </Link>
         ) : null}
 
-        <div className="flex-1 overflow-y-auto px-3 pb-4 pt-2">
+        {/* overscroll-contain prevents scroll from propagating to the background page */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
           <NavList onItemClick={close} />
         </div>
       </SheetContent>

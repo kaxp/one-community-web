@@ -587,7 +587,7 @@ function StickyHeader() {
       style={{
         position: 'sticky',
         top: 0,
-        zIndex: 10,
+        zIndex: 10, // below mobile drawer overlay
         background: BG + 'ee',
         backdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${MUTED_BG}`,

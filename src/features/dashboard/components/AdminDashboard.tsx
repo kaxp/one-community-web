@@ -66,19 +66,36 @@ export function AdminDashboard() {
           <QuickGrid
             tiles={[
               {
-                key: 'connections',
-                label: 'Connections',
-                path: '/admin/connections',
-                subtitle: pendingCount > 0 ? `${pendingCount} pending` : 'Manage all',
+                key: 'search',
+                label: 'Search',
+                path: '/admin/search',
+                subtitle: 'Community search',
               },
-              { key: 'search', label: 'Users', path: '/admin/users', subtitle: 'Manage members' },
-              { key: 'digest', label: 'Digest', path: '/admin/digest', subtitle: 'Send digest' },
               {
-                key: 'matchmaking',
-                label: 'Matching',
-                path: '/admin/matchmaking',
-                subtitle: 'Manage matches',
+                key: 'add-user',
+                label: 'Add Contact',
+                path: '/add-user',
+                subtitle: 'Add new member',
               },
+              {
+                key: 'connections',
+                label: 'Users',
+                path: '/admin/users',
+                subtitle: pendingCount > 0 ? `${pendingCount} pending` : 'Manage members',
+              },
+              {
+                key: 'lp-funnel',
+                label: 'LP Funnel',
+                path: '/admin/lp-funnel',
+                subtitle: 'Track LP pipeline',
+              },
+              {
+                key: 'analytics',
+                label: 'Analytics',
+                path: '/admin/analytics',
+                subtitle: 'Platform insights',
+              },
+              { key: 'digest', label: 'Digests', path: '/admin/digest', subtitle: 'Send digest' },
             ]}
           />
         </section>
