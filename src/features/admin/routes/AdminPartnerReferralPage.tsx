@@ -7,6 +7,7 @@ import {
   type PartnerReferralRequest,
   type PartnerReferralResponse,
 } from '@/features/admin/schemas';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // PRD §7.12.6 — admin partner-referral broadcast. Single ExecutionPanel
 // with sector + message + startup_name. The toast surfaces the count of
@@ -16,12 +17,10 @@ export function AdminPartnerReferralPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Partner referral</h1>
-        <p className="text-sm text-ink-muted">
-          Broadcast a referral request to all partners that match a sector tag.
-        </p>
-      </header>
+      <PageHeader
+        title="Partner referral"
+        subtitle="Broadcast a referral request to all partners that match a sector tag."
+      />
 
       <ExecutionPanel<PartnerReferralRequest, PartnerReferralResponse>
         title="Send a referral request"

@@ -6,6 +6,7 @@ import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { useProfileViewers } from '@/features/profile-viewers/hooks/use-profile-viewers';
 import { ViewerCard } from '@/features/profile-viewers/components/ViewerCard';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // PRD §7.7.3 — "Who viewed me". Cursor-paginated infinite list with
 // click-through to /profile/:user_id. PII rule (§13 G11) is enforced inside
@@ -21,12 +22,10 @@ export function ProfileViewersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Who viewed me</h1>
-        <p className="text-sm text-ink-muted">
-          People who&apos;ve looked at your profile recently. Tap a card to see theirs.
-        </p>
-      </header>
+      <PageHeader
+        title="Who viewed me"
+        subtitle="People who've looked at your profile recently. Tap a card to see theirs."
+      />
 
       {list.isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2" data-testid="viewers-loading">

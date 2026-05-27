@@ -51,6 +51,7 @@ import {
 } from '@/features/analytics/lib/labels';
 import { LP_FUNNEL_STATUSES, type LPFunnelStatus } from '@/features/admin/schemas';
 import { cn } from '@/lib/cn';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const TABS = ['overview', 'funnel', 'cohort', 'match', 'activities'] as const;
 type AnalyticsTab = (typeof TABS)[number];
@@ -557,12 +558,10 @@ export function AdminAnalyticsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Analytics</h1>
-        <p className="text-sm text-ink-muted">
-          KPIs, funnels, cohort retention, and matchmaking effectiveness.
-        </p>
-      </header>
+      <PageHeader
+        title="Analytics"
+        subtitle="KPIs, funnels, cohort retention, and matchmaking effectiveness."
+      />
 
       <nav role="tablist" aria-label="Analytics section" className="flex flex-wrap gap-2">
         {TABS.map((t) => {

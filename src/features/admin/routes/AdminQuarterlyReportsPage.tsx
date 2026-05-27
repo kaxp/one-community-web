@@ -15,6 +15,7 @@ import { useQuarterlyReports } from '@/features/admin/hooks/use-quarterly-report
 import { QuarterlyReportApproveDialog } from '@/features/admin/components/QuarterlyReportApproveDialog';
 import type { QuarterlyReport, QuarterlyReportStatus } from '@/features/admin/schemas';
 import { fmtDateTime } from '@/lib/date';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 function statusVariant(status: QuarterlyReportStatus): 'default' | 'success' | 'secondary' {
   if (status === 'sent') return 'success';
@@ -120,12 +121,10 @@ export function AdminQuarterlyReportsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Quarterly reports</h1>
-        <p className="text-sm text-ink-muted">
-          Review generated quarterly artefacts and approve them for LP distribution.
-        </p>
-      </header>
+      <PageHeader
+        title="Quarterly reports"
+        subtitle="Review generated quarterly artefacts and approve them for LP distribution."
+      />
 
       <Card>
         <CardHeader>

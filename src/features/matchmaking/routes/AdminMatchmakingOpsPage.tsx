@@ -30,6 +30,7 @@ import {
   type MatchSuggestion,
 } from '@/features/matchmaking/schemas';
 import type { ApiError } from '@/api/errors';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 function nextMonday(today = new Date()): string {
   const monday = startOfWeek(today, { weekStartsOn: 1 });
@@ -173,12 +174,10 @@ export function AdminMatchmakingOpsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Matchmaking ops</h1>
-        <p className="text-sm text-ink-muted">
-          Generate weekly suggestions and approve them for the LP / startup feeds.
-        </p>
-      </header>
+      <PageHeader
+        title="Matchmaking ops"
+        subtitle="Generate weekly suggestions and approve them for the LP / startup feeds."
+      />
 
       <ExecutionPanel<MatchGenerateRequest, MatchGenerateResult, MatchGenerateAck>
         title="Generate this week"

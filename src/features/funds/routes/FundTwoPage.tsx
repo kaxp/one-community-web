@@ -369,7 +369,7 @@ export function FundTwoPage() {
           backdropFilter: 'blur(16px)',
           background: 'rgba(15,23,42,0.85)',
           borderBottom: `1px solid ${MUTED}`,
-          padding: '14px 32px',
+          padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -421,7 +421,8 @@ export function FundTwoPage() {
           <h1
             style={{
               textAlign: 'center',
-              fontSize: 36,
+              // RESPONSIVE: reduce font size on mobile
+              fontSize: isMobile ? 24 : 36,
               fontWeight: 800,
               color: TEXT_PRIMARY,
               marginBottom: 8,
@@ -429,7 +430,14 @@ export function FundTwoPage() {
           >
             Warmup Ventures Fund II
           </h1>
-          <p style={{ textAlign: 'center', color: TEXT_MUTED, fontSize: 16, marginBottom: 36 }}>
+          <p
+            style={{
+              textAlign: 'center',
+              color: TEXT_MUTED,
+              fontSize: isMobile ? 13 : 16,
+              marginBottom: 36,
+            }}
+          >
             Seed to Series-A - INR 4 to 7 Cr per startup
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
@@ -443,7 +451,14 @@ export function FundTwoPage() {
 
         {/* 3. Thesis Overview */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Investment Thesis
           </h2>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -541,7 +556,14 @@ export function FundTwoPage() {
 
         {/* 4. Focus Areas */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Focus Areas
           </h2>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
@@ -682,7 +704,14 @@ export function FundTwoPage() {
 
         {/* 5. Startups Funnel */}
         <section ref={funnelRef} style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Q4 Pipeline: Source-Wise Inbound
           </h2>
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -814,7 +843,14 @@ export function FundTwoPage() {
 
         {/* 6. Portfolio Deals */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Portfolio Deals
           </h2>
           {(() => {
@@ -988,7 +1024,14 @@ export function FundTwoPage() {
 
         {/* 7. Olee Space Deep Dive */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Portfolio Deep Dive
           </h2>
           <div
@@ -1291,7 +1334,14 @@ export function FundTwoPage() {
 
         {/* 9. Investor Network */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             Investor Network
           </h2>
 
@@ -1370,7 +1420,14 @@ export function FundTwoPage() {
 
         {/* 10. Team Section */}
         <section style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 'clamp(1.1rem, 3vw, 1.625rem)',
+              fontWeight: 700,
+              color: TEXT_PRIMARY,
+              marginBottom: 24,
+            }}
+          >
             The Team
           </h2>
 

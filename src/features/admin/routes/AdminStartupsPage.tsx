@@ -19,6 +19,7 @@ import {
 } from '@/features/admin/schemas';
 import { fmtDateTime } from '@/lib/date';
 import { cn } from '@/lib/cn';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const DEFAULT_LIMIT = 100;
 
@@ -237,10 +238,7 @@ export function AdminStartupsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Startups</h1>
-        <p className="text-sm text-ink-muted">All startups in the database — read-only view.</p>
-      </div>
+      <PageHeader title="Startups" subtitle="All startups in the database — read-only view." />
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">

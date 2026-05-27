@@ -3,26 +3,13 @@ import type { UserRole } from '@/types/enums';
 import { colours, fonts } from '@/design-system/tokens';
 import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  lp: 'LP',
-  potential_lp: 'Potential LP',
-  vc: 'VC',
-  startup_inprogress: 'Startup',
-  startup_onboarded: 'Startup',
-  startup_funded: 'Portfolio Startup',
-  partner: 'Partner',
-  advisor: 'Advisor',
-  admin: 'Admin',
-  super_admin: 'Super Admin',
-};
-
 interface Props {
   name: string | null;
   role: UserRole;
   contextLine?: string;
 }
 
-export function DashboardHero({ name, role, contextLine }: Props) {
+export function DashboardHero({ name, contextLine }: Props) {
   const isMobile = useIsMobile();
   const greeting = getGreeting();
   const displayName = name?.split(' ')[0] ?? 'there';
@@ -63,43 +50,19 @@ export function DashboardHero({ name, role, contextLine }: Props) {
         }}
       >
         <div>
-          <div
+          <h1
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginBottom: 6,
-              flexWrap: 'wrap',
+              fontFamily: fonts.serif,
+              fontSize: isMobile ? 22 : 26,
+              fontWeight: 400,
+              color: '#ffffff',
+              letterSpacing: '-0.3px',
+              margin: 0,
+              marginBottom: contextLine ? 6 : 0,
             }}
           >
-            <span
-              style={{
-                fontFamily: fonts.serif,
-                fontSize: isMobile ? 22 : 26,
-                fontWeight: 400,
-                color: '#ffffff',
-                letterSpacing: '-0.3px',
-              }}
-            >
-              {greeting}, {displayName}
-            </span>
-            <span
-              style={{
-                background: 'rgba(59,77,200,0.35)',
-                color: '#a5b4fc',
-                fontSize: 10,
-                fontWeight: 500,
-                padding: '3px 10px',
-                borderRadius: 9999,
-                letterSpacing: '.06em',
-                textTransform: 'uppercase' as const,
-                fontFamily: fonts.sans,
-                border: '1px solid rgba(165,180,252,0.2)',
-              }}
-            >
-              {ROLE_LABELS[role]}
-            </span>
-          </div>
+            {greeting}, {displayName}
+          </h1>
           {contextLine ? (
             <p
               style={{

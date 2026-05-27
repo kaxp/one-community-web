@@ -13,6 +13,7 @@ import { FUNNEL_INDEX, FUNNEL_LABEL } from '@/features/admin/lib/funnel-labels';
 import { LP_FUNNEL_STATUSES, type LPFunnelStatus } from '@/features/admin/schemas';
 import type { ApiError } from '@/api/errors';
 import { isUuid } from '@/lib/zod-helpers';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 interface ConflictState {
   attempted: LPFunnelStatus;
@@ -39,7 +40,7 @@ export function AdminLpFunnelPage() {
   if (!userIdValid) {
     return (
       <div className="flex flex-col gap-6">
-        <header className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <Link
             to="/admin/lp-funnel"
             className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
@@ -47,8 +48,8 @@ export function AdminLpFunnelPage() {
             <ArrowLeft className="h-4 w-4" aria-hidden />
             Back to picker
           </Link>
-          <h1 className="text-3xl font-semibold text-ink-heading">LP funnel</h1>
-        </header>
+          <PageHeader title="LP funnel" />
+        </div>
         <EmptyState
           title="Invalid user id"
           description={`"${userId}" is not a valid UUID. Pick an LP from the search picker, or paste a real user_id (8-4-4-4-12 hex).`}
@@ -111,7 +112,7 @@ export function AdminLpFunnelPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <Link
           to="/admin/lp-funnel"
           className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
@@ -119,11 +120,8 @@ export function AdminLpFunnelPage() {
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Back to picker
         </Link>
-        <h1 className="text-3xl font-semibold text-ink-heading">LP funnel</h1>
-        <p className="text-xs text-ink-muted">
-          User id: <code className="font-mono">{userId}</code>
-        </p>
-      </header>
+        <PageHeader title="LP funnel" subtitle={`User id: ${userId}`} />
+      </div>
 
       <Card>
         <CardHeader>

@@ -11,6 +11,7 @@ import { DeckUploadPanel } from '@/features/pitch/components/DeckUploadPanel';
 import { AIEvaluationCard } from '@/features/pitch/components/AIEvaluationCard';
 import { formatCrore, stageLabel } from '@/features/pitch/lib/stage-label';
 import type { AIEvaluationResult, StartupProfileResponse } from '@/features/pitch/schemas';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const TABS = ['profile', 'deck', 'evaluation'] as const;
 type Tab = (typeof TABS)[number];
@@ -46,12 +47,10 @@ export function PitchPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">My pitch</h1>
-        <p className="text-sm text-ink-muted">
-          Manage your startup profile and submit your deck for an AI evaluation.
-        </p>
-      </div>
+      <PageHeader
+        title="My pitch"
+        subtitle="Manage your startup profile and submit your deck for an AI evaluation."
+      />
 
       <div role="tablist" aria-label="Pitch sections" className="flex gap-1 border-b border-border">
         <TabButton tab="profile" active={activeTab === 'profile'} onClick={() => setTab('profile')}>

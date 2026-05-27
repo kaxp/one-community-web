@@ -29,6 +29,7 @@ import { type AdminUserListItem, type AdminFounderListItem } from '@/features/ad
 import { fmtDateTime } from '@/lib/date';
 import { useRole } from '@/auth/use-auth';
 import type { ApiError } from '@/api/errors';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const DEFAULT_LIMIT = 100;
 
@@ -489,12 +490,10 @@ export function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink-heading">Users</h1>
-        <p className="text-sm text-ink-muted">
-          All platform members by role. Edit details or (super admin only) soft-delete.
-        </p>
-      </div>
+      <PageHeader
+        title="Users"
+        subtitle="All platform members by role. Edit details or (super admin only) soft-delete."
+      />
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as UserTab)}>
         <TabsList className="flex-wrap h-auto gap-1">

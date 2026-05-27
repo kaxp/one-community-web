@@ -31,6 +31,7 @@ import type { ApiEnvelope } from '@/types/api';
 import { qk } from '@/api/query-keys';
 import { fmtDate } from '@/lib/date';
 import { zUUID, zISODateTime } from '@/lib/zod-helpers';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // ── My referrals schemas + fetch ─────────────────────────────────────────────
 
@@ -338,16 +339,14 @@ export function AddUserPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">
-          {isAdmin ? 'Add a contact' : 'Refer someone'}
-        </h1>
-        <p className="text-sm text-ink-muted">
-          {isAdmin
+      <PageHeader
+        title={isAdmin ? 'Add a contact' : 'Refer someone'}
+        subtitle={
+          isAdmin
             ? 'Fill in the details below, or snap a business card to autofill the form automatically.'
-            : 'Know someone who should join? Fill in their details and submit — our team will review and reach out.'}
-        </p>
-      </header>
+            : 'Know someone who should join? Fill in their details and submit — our team will review and reach out.'
+        }
+      />
 
       {/* ── Autofill from business card (optional) ── */}
       <Card>

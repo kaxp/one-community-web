@@ -1,7 +1,5 @@
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { InlineExecutionButton } from '@/components/execution-panel';
 import { useRespondToSuggestion } from '@/features/matchmaking/hooks/use-respond-to-suggestion';
 import {
@@ -12,6 +10,8 @@ import {
 } from '@/features/matchmaking/lib/labels';
 import type { MatchSuggestion, RespondAction, RespondResult } from '@/features/matchmaking/schemas';
 import type { ApiError } from '@/api/errors';
+import { colours, fonts, radius, shadow } from '@/design-system/tokens';
+import { Tag } from '@/design-system/components';
 
 interface Props {
   suggestion: MatchSuggestion;
@@ -35,19 +35,23 @@ function successToast(action: RespondAction, data: RespondResult): string {
   return 'Skipped.';
 }
 
-// PRD §7.8.5 / §7.8.6 — single suggestion row in the user-facing matchmaking
-// list. The OTHER side's snapshot is rendered (company / sector / one_liner)
-// regardless of perspective, since the backend hydrates those fields with
-// the counterpart's data per §7.8.5 transformation note.
+const SCORE_COLORS: Record<string, { color: string; bg: string }> = {
+  success: { color: colours.positive, bg: colours.positiveBg },
+  warning: { color: colours.caution, bg: colours.cautionBg },
+  secondary: { color: colours.info, bg: colours.infoBg },
+};
+
+// PRD §7.8.5 / §7.8.6
 export function SuggestionCard({ suggestion, myUserId, onConflict }: Props) {
   const respond = useRespondToSuggestion();
   const perspective = perspectiveFor(suggestion, myUserId);
   const headerKind = counterpartLabel(perspective);
   const display = suggestion.company_name ?? `${headerKind} · ${suggestion.id.slice(0, 8)}`;
+  const scoreVariant = scoreBadgeVariant(suggestion.score);
+  const scoreStyle = SCORE_COLORS[scoreVariant] ?? { color: colours.text2, bg: colours.pageBg };
 
   const errorToast = (err: ApiError) => {
     if (err.code === 'conflict') {
-      // PRD §7.8.6 UI flow: 409 means already responded — silent refetch.
       onConflict();
       return 'Already responded — refreshing list';
     }
@@ -79,44 +83,103 @@ export function SuggestionCard({ suggestion, myUserId, onConflict }: Props) {
   })();
 
   return (
-    <Card data-testid={`suggestion-card-${suggestion.id}`}>
-      <CardContent className="flex flex-col gap-4 p-5">
-        <header className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-              {headerKind}
-            </p>
-            <Link
-              to={`/search/profile/${suggestion.startup_user_id ?? suggestion.startup_id}`}
-              className="text-base font-semibold text-ink-heading hover:underline hover:text-brand"
-            >
-              {display}
-            </Link>
-            {suggestion.sector ? (
-              <Badge variant="secondary" className="mt-1">
-                {suggestion.sector}
-              </Badge>
-            ) : null}
+    <div
+      data-testid={`suggestion-card-${suggestion.id}`}
+      style={{
+        background: colours.surface,
+        border: `1px solid ${colours.border}`,
+        borderRadius: radius.lg,
+        boxShadow: shadow.card,
+        padding: '20px 22px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div
+            style={{
+              fontFamily: fonts.sans,
+              fontSize: 10,
+              fontWeight: 500,
+              textTransform: 'uppercase' as const,
+              letterSpacing: '.08em',
+              color: colours.text3,
+              marginBottom: 4,
+            }}
+          >
+            {headerKind}
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <Badge variant={scoreBadgeVariant(suggestion.score)}>
-              {fmtScore(suggestion.score)}
-            </Badge>
-            <span className="text-[10px] text-ink-muted">Week of {weekOfLabel}</span>
-          </div>
-        </header>
+          <Link
+            to={`/search/profile/${suggestion.startup_user_id ?? suggestion.startup_id}`}
+            style={{
+              fontFamily: fonts.sans,
+              fontSize: 15,
+              fontWeight: 600,
+              color: colours.text,
+              textDecoration: 'none',
+              display: 'block',
+              marginBottom: 6,
+            }}
+            onMouseOver={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.color = colours.brand;
+            }}
+            onMouseOut={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.color = colours.text;
+            }}
+          >
+            {display}
+          </Link>
+          {suggestion.sector ? (
+            <Tag label={suggestion.sector} color={colours.info} bg={colours.infoBg} />
+          ) : null}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: 6,
+            flexShrink: 0,
+          }}
+        >
+          <Tag label={fmtScore(suggestion.score)} color={scoreStyle.color} bg={scoreStyle.bg} />
+          <span style={{ fontFamily: fonts.sans, fontSize: 10, color: colours.text3 }}>
+            Week of {weekOfLabel}
+          </span>
+        </div>
+      </div>
 
-        {suggestion.one_liner ? (
-          <p className="text-sm text-ink-heading">{suggestion.one_liner}</p>
-        ) : null}
+      {/* One-liner */}
+      {suggestion.one_liner ? (
+        <p
+          style={{
+            fontFamily: fonts.sans,
+            fontSize: 13,
+            color: colours.text2,
+            margin: 0,
+            lineHeight: 1.55,
+          }}
+        >
+          {suggestion.one_liner}
+        </p>
+      ) : null}
 
-        {/* TODO(kaxp): Remove Interest button */}
-        {/* <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-          {renderActionButton('accepted', 'default')}
-          {renderActionButton('rejected', 'outline')}
-          {renderActionButton('skipped', 'ghost')}
-        </div> */}
-      </CardContent>
-    </Card>
+      {/* TODO(kaxp): Remove Interest button */}
+      {/* <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
+        {renderActionButton('accepted', 'default')}
+        {renderActionButton('rejected', 'outline')}
+        {renderActionButton('skipped', 'ghost')}
+      </div> */}
+    </div>
   );
 }

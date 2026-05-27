@@ -7,6 +7,8 @@ import { useMatchSuggestions } from '@/features/matchmaking/hooks/use-match-sugg
 import { SuggestionCard } from '@/features/matchmaking/components/SuggestionCard';
 import { useUser } from '@/auth/use-auth';
 import { qk } from '@/api/query-keys';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 
 // PRD §7.8.5 — user-facing matchmaking list. Card grid (md:grid-cols-2). The
 // empty-state copy nudges users to "check back on Monday" since suggestions
@@ -15,19 +17,20 @@ export function MatchmakingPage() {
   const list = useMatchSuggestions();
   const user = useUser();
   const qc = useQueryClient();
+  const isMobile = useIsMobile();
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Opportunities</h1>
-        <p className="text-sm text-ink-muted">
-          Curated matches for you. Tell us which ones look right and we&apos;ll set up the
-          introduction.
-        </p>
-      </header>
+      <PageHeader
+        title="Opportunities"
+        subtitle="Curated matches for you. Tell us which ones look right and we'll set up the introduction."
+      />
 
       {list.isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2" data-testid="suggestions-loading">
+        <div
+          style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}
+          data-testid="suggestions-loading"
+        >
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-48 w-full" />
           ))}
@@ -46,7 +49,17 @@ export function MatchmakingPage() {
           description="Your personalised opportunities will appear here once matched."
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2" data-testid="suggestions-grid">
+        <ul
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+            gap: 14,
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+          }}
+          data-testid="suggestions-grid"
+        >
           {(list.data ?? []).map((s) => (
             <li key={s.id}>
               <SuggestionCard

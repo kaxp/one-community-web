@@ -21,6 +21,7 @@ import type {
 import { INBOUND_PITCH_RANGES } from '@/features/admin/schemas';
 import { fmtDateTime } from '@/lib/date';
 import { cn } from '@/lib/cn';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // Signal badge — frontend color mapping per spec (not backend).
 function signalVariant(
@@ -364,12 +365,10 @@ export function AdminInboundPitchesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-ink-heading">Inbound pitches</h1>
-        <p className="text-sm text-ink-muted">
-          AI-evaluated startup pitches received via web form and email.
-        </p>
-      </header>
+      <PageHeader
+        title="Inbound pitches"
+        subtitle="AI-evaluated startup pitches received via web form and email."
+      />
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Range filter">
         {INBOUND_PITCH_RANGES.map((r) => (
