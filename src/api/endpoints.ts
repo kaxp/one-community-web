@@ -1138,6 +1138,11 @@ export async function createAdminLpNote(userId: string, body: LpCrmNoteCreate): 
   return zLpCrmNote.parse(unwrap(resp.data, url));
 }
 
+export async function deleteAdminLpNote(userId: string, noteId: string): Promise<void> {
+  const url = `/admin/lps/${encodeURIComponent(userId)}/notes/${encodeURIComponent(noteId)}`;
+  await apiClient.delete(url);
+}
+
 export async function patchAdminLpPoc(userId: string, poc: string | null): Promise<LpCrmDetail> {
   const url = `/admin/lps/${encodeURIComponent(userId)}/poc`;
   const resp = await apiClient.patch<ApiEnvelope<LpCrmDetail>>(url, { poc });
