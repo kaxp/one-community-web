@@ -25,6 +25,7 @@ import { useAuthStore } from '@/auth/auth-store';
 import { getMe } from '@/api/endpoints';
 import { profileFromMe } from '@/features/auth/lib/hydrate-session';
 import { nextRouteForUser } from '@/features/auth/lib/post-signin-navigate';
+import { isSafeNextPath } from '@/features/auth/lib/safe-next-path';
 import type { UserRole } from '@/types/enums';
 import type { UserProfile } from '@/types/domain';
 
@@ -56,6 +57,8 @@ export function MagicLinkPage() {
     attempted.current = true;
 
     const token = searchParams.get('token');
+    const nextRaw = searchParams.get('next');
+    const next = isSafeNextPath(nextRaw) ? nextRaw : null;
 
     if (!token) {
       navigate('/signin', { replace: true });
@@ -64,7 +67,8 @@ export function MagicLinkPage() {
 
     // Strip token from URL immediately — before any await.
     // replaceState keeps the current history entry but removes the token so it
-    // won't appear in browser history or leak via Referer headers.
+    // won't appear in browser history or leak via Referer headers. We strip
+    // `?next=` too — it's already captured in `next` above.
     window.history.replaceState({}, '', '/auth/magic');
 
     const payload = decodeJwtPayload(token);
@@ -97,7 +101,12 @@ export function MagicLinkPage() {
     getMe()
       .then((me) => {
         useAuthStore.getState().setUser(profileFromMe(me));
-        navigate(nextRouteForUser(me), { replace: true });
+        // Phase B deep link: backend mints magic links with `?next=<path>`
+        // pointing at the specific page the user asked for in the WA menu
+        // (e.g. /digest, /opportunities). Honor it when set; otherwise fall
+        // back to the role-based default landing.
+        const target = next ?? nextRouteForUser(me);
+        navigate(target, { replace: true });
       })
       .catch(() => {
         useAuthStore.getState().clear();

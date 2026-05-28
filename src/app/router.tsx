@@ -63,6 +63,11 @@ const PublicPitchPage = lazy(() =>
     default: m.PublicPitchPage,
   })),
 );
+const PublicAddUserPage = lazy(() =>
+  import('@/features/public-add-user/routes/PublicAddUserPage').then((m) => ({
+    default: m.PublicAddUserPage,
+  })),
+);
 const MISPage = lazy(() =>
   import('@/features/mis/routes/MISPage').then((m) => ({ default: m.MISPage })),
 );
@@ -192,6 +197,18 @@ export const router = createBrowserRouter(
       element: (
         <Susp>
           <PublicPitchPage />
+        </Susp>
+      ),
+    },
+    {
+      // Phase 4 menu Phase C1 (2026-05-28) — public Join Community signup.
+      // Anonymous LP / partner / advisor / VC funnel. Backend POST
+      // /api/v1/public/add-user (slowapi 3/hour). Mirrors the WA "Join
+      // Community" Flow payload — both paths land in `public_signups`.
+      path: '/join',
+      element: (
+        <Susp>
+          <PublicAddUserPage />
         </Susp>
       ),
     },
