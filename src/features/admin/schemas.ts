@@ -505,6 +505,7 @@ export const zLpCrmListItem = z
     poc: z.string().nullable(),
     last_meeting_date: z.string().nullable(),
     last_comment: z.string().nullable(),
+    next_follow_up: z.string().nullable().optional(),
     created_at: zISODateTime,
   })
   .passthrough();
@@ -553,6 +554,7 @@ export const zLpCrmNote = z
     note_type: z.enum(LP_CRM_NOTE_TYPES),
     note_date: z.string(),
     comment: z.string(),
+    follow_up_date: z.string().nullable().optional(),
     created_at: zISODateTime,
   })
   .passthrough();
@@ -565,5 +567,6 @@ export const zLpCrmNoteCreate = z.object({
   note_type: z.enum(LP_CRM_NOTE_TYPES),
   note_date: z.string().min(1),
   comment: z.string().trim().optional().default(''),
+  follow_up_date: z.string().nullable().optional(),
 });
 export type LpCrmNoteCreate = z.infer<typeof zLpCrmNoteCreate>;
