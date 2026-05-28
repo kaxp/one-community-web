@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ExternalLink, FileSearch } from 'lucide-react';
+import { ExternalLink, FileSearch, Video } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,16 +12,30 @@ import { EmptyState } from '@/components/empty-state/EmptyState';
 import { DataTable } from '@/components/data-table/DataTable';
 import { useAdminInboundPitches } from '@/features/admin/hooks/use-admin-inbound-pitches';
 import { useAdminInboundPitchDetail } from '@/features/admin/hooks/use-admin-inbound-pitch-detail';
+import { useAdminVideoPitches } from '@/features/admin/hooks/use-admin-video-pitches';
 import type {
   InboundPitch,
   InboundPitchDetail,
   InboundPitchRange,
   InboundPitchSignal,
+  VideoPitchItem,
 } from '@/features/admin/schemas';
 import { INBOUND_PITCH_RANGES } from '@/features/admin/schemas';
 import { fmtDateTime } from '@/lib/date';
 import { cn } from '@/lib/cn';
 import { PageHeader } from '@/components/layout/PageHeader';
+
+// Phase 4 menu Phase C2 (2026-05-28): tab switcher between web/email-sourced
+// pitches and WA video pitches. URL-driven via ?tab=.
+const PITCH_TABS = ['inbound', 'video'] as const;
+type PitchTab = (typeof PITCH_TABS)[number];
+const PITCH_TAB_LABEL: Record<PitchTab, string> = {
+  inbound: 'Inbound (web + email)',
+  video: 'Video pitches',
+};
+function isPitchTab(value: string | null): value is PitchTab {
+  return (PITCH_TABS as readonly string[]).includes(value ?? '');
+}
 
 // Signal badge — frontend color mapping per spec (not backend).
 function signalVariant(
@@ -256,6 +270,126 @@ function DrawerContent({ detail }: { detail: InboundPitchDetail }) {
   );
 }
 
+// Phase 4 menu Phase C2 (2026-05-28): WA video pitches table — sibling to
+// the inbound pitches table below, swapped in based on ?tab=video.
+function VideoPitchesTable({ range }: { range: InboundPitchRange }) {
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAdminVideoPitches(range);
+
+  const items = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
+
+  const columns = useMemo<ColumnDef<VideoPitchItem>[]>(
+    () => [
+      {
+        id: 'company_name',
+        header: 'Company',
+        cell: ({ row }) => (
+          <span className="font-semibold text-ink-heading">{row.original.company_name}</span>
+        ),
+      },
+      {
+        id: 'founder_name',
+        header: 'Founder',
+        cell: ({ row }) => (
+          <span className="text-sm text-ink-body">{row.original.founder_name ?? '—'}</span>
+        ),
+      },
+      {
+        id: 'stage',
+        header: 'Stage',
+        cell: ({ row }) => (
+          <span className="text-sm text-ink-body">{row.original.stage ?? '—'}</span>
+        ),
+      },
+      {
+        id: 'received_at',
+        header: 'Received',
+        cell: ({ row }) => (
+          <span className="text-xs text-ink-muted">
+            {row.original.wa_video_pitch_received_at
+              ? fmtDateTime(row.original.wa_video_pitch_received_at)
+              : '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => {
+          const url = row.original.wa_video_pitch_url;
+          if (!url) return <span className="text-xs text-ink-muted">—</span>;
+          return (
+            <Button asChild size="sm" data-testid={`video-link-${row.original.id}`}>
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                <Video className="h-3.5 w-3.5" aria-hidden />
+                <span>View on Kapso</span>
+              </a>
+            </Button>
+          );
+        },
+      },
+    ],
+    [],
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3" data-testid="video-pitches-loading">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <ErrorState
+        error={error}
+        onRetry={() => {
+          void refetch();
+        }}
+      />
+    );
+  }
+  return (
+    <>
+      <DataTable
+        columns={columns}
+        data={items}
+        getRowId={(r) => r.id}
+        emptyState={
+          <EmptyState
+            icon={Video}
+            title="No video pitches in this range"
+            description="When a founder submits a video pitch over WhatsApp, it will appear here."
+          />
+        }
+      />
+      {hasNextPage ? (
+        <div className="mt-4 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void fetchNextPage()}
+            disabled={isFetchingNextPage}
+            data-testid="video-load-more"
+          >
+            {isFetchingNextPage ? 'Loading…' : 'Load more'}
+          </Button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 // Phase 7.2.f — admin inbound pitches console.
 export function AdminInboundPitchesPage() {
   const [params, setParams] = useSearchParams();
@@ -264,6 +398,8 @@ export function AdminInboundPitchesPage() {
     rawRange && (INBOUND_PITCH_RANGES as readonly string[]).includes(rawRange)
       ? (rawRange as InboundPitchRange)
       : 'weekly';
+  const tabParam = params.get('tab');
+  const tab: PitchTab = isPitchTab(tabParam) ? tabParam : 'inbound';
 
   const [drawerId, setDrawerId] = useState<string | null>(null);
 
@@ -283,6 +419,12 @@ export function AdminInboundPitchesPage() {
   const setRange = (next: InboundPitchRange) => {
     const sp = new URLSearchParams(params);
     sp.set('range', next);
+    setParams(sp, { replace: true });
+  };
+
+  const setTab = (next: PitchTab) => {
+    const sp = new URLSearchParams(params);
+    sp.set('tab', next);
     setParams(sp, { replace: true });
   };
 
@@ -325,7 +467,7 @@ export function AdminInboundPitchesPage() {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => {
-          const { notion_page_id, drive_folder_id, id } = row.original;
+          const { notion_page_id, drive_folder_id, id, wa_video_pitch_url } = row.original;
           return (
             <div className="flex flex-wrap gap-2">
               {notion_page_id ? (
@@ -352,6 +494,14 @@ export function AdminInboundPitchesPage() {
                   </a>
                 </Button>
               ) : null}
+              {wa_video_pitch_url ? (
+                <Button asChild size="sm" variant="outline" data-testid={`video-${id}`}>
+                  <a href={wa_video_pitch_url} target="_blank" rel="noopener noreferrer">
+                    <Video className="h-3.5 w-3.5" aria-hidden />
+                    <span>View video</span>
+                  </a>
+                </Button>
+              ) : null}
               <Button size="sm" onClick={() => setDrawerId(id)} data-testid={`eval-${id}`}>
                 Full evaluation
               </Button>
@@ -369,6 +519,28 @@ export function AdminInboundPitchesPage() {
         title="Inbound pitches"
         subtitle="AI-evaluated startup pitches received via web form and email."
       />
+
+      {/* Phase C2 (2026-05-28): inbound vs video tab switcher. */}
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Pitch source">
+        {PITCH_TABS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={t === tab}
+            onClick={() => setTab(t)}
+            className={cn(
+              'min-h-9 rounded-md border px-4 py-1 text-sm font-medium transition-colors',
+              t === tab
+                ? 'border-brand bg-brand text-brand-foreground'
+                : 'border-border bg-surface text-ink-body hover:bg-surface-muted',
+            )}
+            data-testid={`tab-${t}`}
+          >
+            {PITCH_TAB_LABEL[t]}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Range filter">
         {INBOUND_PITCH_RANGES.map((r) => (
@@ -392,10 +564,12 @@ export function AdminInboundPitchesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Pitches</CardTitle>
+          <CardTitle>{tab === 'video' ? 'Video pitches' : 'Pitches'}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {tab === 'video' ? (
+            <VideoPitchesTable range={range} />
+          ) : isLoading ? (
             <div className="flex flex-col gap-3" data-testid="pitches-loading">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />

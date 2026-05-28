@@ -239,6 +239,10 @@ export const zInboundPitch = z
     notion_page_id: z.string().nullable(),
     drive_folder_id: z.string().nullable(),
     source_channel: z.enum(SOURCE_CHANNELS).nullable(),
+    // Phase 4 menu Phase C2 (2026-05-28): an inbound startup that also sent
+    // a WA video pitch surfaces the click-through URL here too.
+    wa_video_pitch_url: z.string().nullable().optional(),
+    wa_video_pitch_received_at: zISODateTime.nullable().optional(),
   })
   .passthrough();
 export type InboundPitch = z.infer<typeof zInboundPitch>;
@@ -250,6 +254,35 @@ export const zInboundPitchesResponse = z
   })
   .passthrough();
 export type InboundPitchesResponse = z.infer<typeof zInboundPitchesResponse>;
+
+// ── Phase 4 menu Phase C2 (2026-05-28): WA video pitches admin tab ────────
+
+// Source channel may be anything (founded startups can have null/any) — keep open.
+export const zVideoPitchItem = z
+  .object({
+    id: zUUID,
+    company_name: z.string(),
+    founder_name: z.string().nullable().optional(),
+    sector: z.unknown().nullable().optional(),
+    stage: z.string().nullable().optional(),
+    wa_video_pitch_url: z.string().nullable(),
+    wa_video_pitch_received_at: zISODateTime.nullable(),
+    wa_video_pitch_media_id: z.string().nullable().optional(),
+    wa_video_pitch_conversation_id: z.string().nullable().optional(),
+    source_channel: z.string().nullable().optional(),
+    notion_page_id: z.string().nullable().optional(),
+    drive_folder_id: z.string().nullable().optional(),
+  })
+  .passthrough();
+export type VideoPitchItem = z.infer<typeof zVideoPitchItem>;
+
+export const zVideoPitchesResponse = z
+  .object({
+    items: z.array(zVideoPitchItem),
+    next_cursor: z.string().nullable(),
+  })
+  .passthrough();
+export type VideoPitchesResponse = z.infer<typeof zVideoPitchesResponse>;
 
 const zPitchEvaluation = z
   .object({
@@ -328,6 +361,10 @@ export const zMISOverviewItem = z
     headcount: z.number().nullable(),
     notion_page_id: z.string().nullable(),
     drive_folder_id: z.string().nullable(),
+    // Phase 4 menu Phase C2 (2026-05-28): WA upload provenance. When set,
+    // file_url points at the Kapso conversation URL (click-through to view).
+    wa_conversation_id: z.string().nullable().optional(),
+    wa_media_id: z.string().nullable().optional(),
   })
   .passthrough();
 export type MISOverviewItem = z.infer<typeof zMISOverviewItem>;

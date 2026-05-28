@@ -148,3 +148,57 @@ describe('AdminInboundPitchesPage — drawer', () => {
     );
   });
 });
+
+// ── Phase 4 menu Phase C2 (2026-05-28): video pitches tab ────────────────────
+
+describe('AdminInboundPitchesPage — video pitches tab', () => {
+  it('switches to the video tab and renders the WA video rows', async () => {
+    signedInAsAdmin();
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId('tab-inbound');
+
+    await user.click(screen.getByTestId('tab-video'));
+
+    // Wait for BOTH video seed rows by test-id (resilient to CI timing —
+    // matching by text was flaky because both inbound + video seeds use
+    // the same company names, so the order of paint matters).
+    await screen.findByTestId('video-link-00000000-0000-4000-8000-000000000bb1');
+    await screen.findByTestId('video-link-00000000-0000-4000-8000-000000000bb2');
+  });
+
+  it('tab=video on initial URL renders video tab without an inbound flash', async () => {
+    signedInAsAdmin();
+    renderPage('/admin/pitches/inbound?tab=video');
+    await screen.findByTestId('video-link-00000000-0000-4000-8000-000000000bb1');
+    // Inbound table actions (eval-) should not be present in video mode
+    expect(
+      screen.queryByTestId('eval-00000000-0000-4000-8000-000000000aa1'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the range filter applied across tabs (URL preserved)', async () => {
+    signedInAsAdmin();
+    const user = userEvent.setup();
+    renderPage('/admin/pitches/inbound?range=monthly');
+    await screen.findByTestId('tab-inbound');
+
+    await user.click(screen.getByTestId('tab-video'));
+    // range chip stays pressed after the tab swap
+    expect(screen.getByTestId('range-monthly').getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+// ── Phase 4 menu Phase C2 (2026-05-28): inbound row "View video" link ───────
+
+describe('AdminInboundPitchesPage — wa_video_pitch_url on inbound rows', () => {
+  it('does not render a video button when the inbound row has no WA video URL', async () => {
+    signedInAsAdmin();
+    renderPage();
+    await screen.findByTestId('eval-00000000-0000-4000-8000-000000000aa1');
+    // The default seed has no wa_video_pitch_url → no video-* button
+    expect(
+      screen.queryByTestId('video-00000000-0000-4000-8000-000000000aa1'),
+    ).not.toBeInTheDocument();
+  });
+});
