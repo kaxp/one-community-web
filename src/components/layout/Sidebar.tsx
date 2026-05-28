@@ -9,7 +9,9 @@ export function Sidebar() {
       className="hidden w-60 shrink-0 border-r border-border bg-surface-muted lg:block"
       aria-label="Primary sidebar"
     >
-      <div className="h-full p-3">
+      {/* overflow-y-auto gives the sidebar its own scroll controller so nav
+          items scroll independently of the main content area */}
+      <div className="h-full overflow-y-auto overscroll-contain p-3">
         <NavList />
       </div>
     </aside>
