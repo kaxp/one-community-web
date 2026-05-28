@@ -58,10 +58,3 @@
     scroll-behavior: auto !important;
   }
 }
-
-/* When Radix Sheet/Dialog is open it sets data-scroll-locked on <body>.
-   Lock the AppShell's inner scroll container too so background content
-   cannot be scrolled while the mobile nav drawer is open. */
-body[data-scroll-locked] main {
-  overflow: hidden;
-}
