@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search as SearchIcon, ChevronUp, ChevronDown, X, Pencil } from 'lucide-react';
+import { Search as SearchIcon, ChevronUp, ChevronDown, X, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,11 +16,13 @@ import { useAdminLps } from '@/features/admin/hooks/use-admin-lps';
 import { useAdminLpDetail } from '@/features/admin/hooks/use-admin-lp-detail';
 import { useAdminLpNotes } from '@/features/admin/hooks/use-admin-lp-notes';
 import { useAdminLpNoteCreate } from '@/features/admin/hooks/use-admin-lp-note-create';
+import { useAdminLpNoteDelete } from '@/features/admin/hooks/use-admin-lp-note-delete';
 import { EditUserDialog, type EditableUser } from '@/features/admin/components/EditUserDialog';
 import {
   LP_CRM_NOTE_LABELS,
   LP_CRM_NOTE_TYPES,
   type LpCrmListItem,
+  type LpCrmNote,
   type LpCrmNoteType,
   type LpCrmRoleFilter,
   type LpCrmSort,
@@ -37,6 +39,24 @@ function fmtDate(iso: string | null | undefined): string {
     return format(new Date(iso), 'd MMM yyyy');
   } catch {
     return iso;
+  }
+}
+
+function isOverdue(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  try {
+    return new Date(iso) < new Date(new Date().toDateString());
+  } catch {
+    return false;
+  }
+}
+
+function isToday(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  try {
+    return new Date(iso).toDateString() === new Date().toDateString();
+  } catch {
+    return false;
   }
 }
 
@@ -68,6 +88,25 @@ function noteTypeBadge(type: LpCrmNoteType) {
   );
 }
 
+function FollowUpDateLabel({ date }: { date: string | null | undefined }) {
+  if (!date) return null;
+  const overdue = isOverdue(date);
+  const today = isToday(date);
+  return (
+    <p
+      className={`mt-2 text-xs font-medium ${
+        overdue ? 'text-red-600' : today ? 'text-amber-600' : 'text-purple-600'
+      }`}
+    >
+      {overdue
+        ? `Overdue follow-up was ${fmtDate(date)}`
+        : today
+          ? `Follow-up today — ${fmtDate(date)}`
+          : `Follow-up scheduled for ${fmtDate(date)}`}
+    </p>
+  );
+}
+
 // ── LP Detail Drawer ──────────────────────────────────────────────────────────
 
 function LpDetailDrawer({
@@ -83,33 +122,64 @@ function LpDetailDrawer({
   const detail = useAdminLpDetail(userId);
   const notes = useAdminLpNotes(userId);
   const createNote = useAdminLpNoteCreate();
+  const deleteNote = useAdminLpNoteDelete();
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
   const [noteType, setNoteType] = useState<LpCrmNoteType>('follow_up');
   const [noteDate, setNoteDate] = useState<string>(today);
   const [comment, setComment] = useState('');
+  const [followUpDate, setFollowUpDate] = useState<string>(today);
 
   // Reset form when a different LP is opened
   useEffect(() => {
     setNoteType('meeting');
     setNoteDate(today);
     setComment('');
+    setFollowUpDate(today);
   }, [userId, today]);
 
   function handleSave() {
     if (!userId) return;
     createNote.mutate(
-      { userId, body: { note_type: noteType, note_date: noteDate, comment: comment.trim() } },
+      {
+        userId,
+        body: {
+          note_type: noteType,
+          note_date: noteDate,
+          comment: comment.trim(),
+          follow_up_date: noteType === 'follow_up' ? followUpDate : null,
+        },
+      },
       {
         onSuccess: () => {
           toast.success('Interaction saved');
           setComment('');
           setNoteDate(today);
+          setFollowUpDate(today);
           setNoteType('meeting');
         },
         onError: (err) => {
           toast.error(err.message ?? 'Failed to save interaction');
+        },
+      },
+    );
+  }
+
+  function handleDelete(note: LpCrmNote) {
+    if (!userId) return;
+    setDeletingNoteId(note.id);
+    deleteNote.mutate(
+      { userId, noteId: note.id },
+      {
+        onSuccess: () => {
+          toast.success('Follow-up removed');
+          setDeletingNoteId(null);
+        },
+        onError: (err) => {
+          toast.error(err.message ?? 'Failed to remove follow-up');
+          setDeletingNoteId(null);
         },
       },
     );
@@ -262,6 +332,30 @@ function LpDetailDrawer({
                 </div>
               </div>
 
+              {/* ── Schedule follow-up date picker (only when type = follow_up) ── */}
+              {noteType === 'follow_up' && (
+                <div className="mb-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
+                  <h4 className="mb-3 text-sm font-semibold text-purple-800">Schedule Follow-up</h4>
+                  <Label
+                    htmlFor="follow-up-date"
+                    className="mb-2 block text-sm font-medium text-purple-700"
+                  >
+                    Follow-up Date
+                  </Label>
+                  <input
+                    id="follow-up-date"
+                    type="date"
+                    value={followUpDate}
+                    min={today}
+                    onChange={(e) => setFollowUpDate(e.target.value)}
+                    className="w-full rounded-xl border border-purple-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-1"
+                  />
+                  <p className="mt-1.5 text-xs text-purple-600">
+                    You will receive a WhatsApp reminder on this date at 9 AM.
+                  </p>
+                </div>
+              )}
+
               <div className="mb-5">
                 <Label htmlFor="note-comment" className="mb-2 block text-sm font-medium">
                   Comment
@@ -322,9 +416,24 @@ function LpDetailDrawer({
                               </p>
                             )}
                           </div>
-                          {noteTypeBadge(note.note_type)}
+                          <div className="flex items-center gap-2">
+                            {noteTypeBadge(note.note_type)}
+                            {note.note_type === 'follow_up' && (
+                              <button
+                                title="Remove follow-up"
+                                disabled={deletingNoteId === note.id}
+                                onClick={() => handleDelete(note)}
+                                className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="leading-relaxed text-ink-body">{note.comment}</p>
+                        {note.note_type === 'follow_up' && (
+                          <FollowUpDateLabel date={note.follow_up_date} />
+                        )}
                       </div>
                     </li>
                   ))}
@@ -367,6 +476,10 @@ function LpRow({
   onClick: () => void;
   onEdit: () => void;
 }) {
+  const nextFollowUp = lp.next_follow_up ?? null;
+  const overdue = isOverdue(nextFollowUp);
+  const todayFlag = isToday(nextFollowUp);
+
   return (
     <tr
       onClick={onClick}
@@ -381,6 +494,19 @@ function LpRow({
       <td className="px-4 py-4">{roleBadge(lp.role)}</td>
       <td className="px-4 py-4 text-sm text-ink-body">{lp.poc ?? '—'}</td>
       <td className="px-4 py-4 text-sm text-ink-body">{fmtDate(lp.last_meeting_date)}</td>
+      <td className="px-4 py-4 text-sm">
+        {nextFollowUp ? (
+          <span
+            className={`font-medium ${
+              overdue ? 'text-red-600' : todayFlag ? 'text-amber-600' : 'text-ink-body'
+            }`}
+          >
+            {fmtDate(nextFollowUp)}
+          </span>
+        ) : (
+          <span className="text-ink-muted">—</span>
+        )}
+      </td>
       <td className="max-w-[200px] px-4 py-4">
         <p className="truncate text-sm text-ink-muted">{lp.last_comment ?? '—'}</p>
       </td>
@@ -610,6 +736,7 @@ export function AdminLpFunnelPickerPage() {
                   <th className="px-4 py-3 text-left">Role</th>
                   <th className="px-4 py-3 text-left">POC</th>
                   <th className="px-4 py-3 text-left">Last Meeting</th>
+                  <th className="px-4 py-3 text-left">Next Follow-up</th>
                   <th className="px-4 py-3 text-left">Last Comment</th>
                   <th className="px-6 py-3 text-right">Action</th>
                 </tr>
