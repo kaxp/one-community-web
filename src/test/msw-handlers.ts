@@ -24,6 +24,7 @@ import { digestMeHandlers } from './msw-fixtures/digest-me-handlers';
 import { adminPitchesHandlers } from './msw-fixtures/admin-pitches-handlers';
 import { publicPitchHandlers } from './msw-fixtures/public-pitch-handlers';
 import { publicAddUserHandlers } from './msw-fixtures/public-add-user-handlers';
+import { adminWaOnboardingHandlers } from './msw-fixtures/admin-wa-onboarding-handlers';
 import { adminMisHandlers } from './msw-fixtures/admin-mis-handlers';
 
 // Order matters: admin-handlers register `PATCH /connections/:id/admin` and
@@ -55,6 +56,7 @@ export const handlers: HttpHandler[] = [
   ...digestMeHandlers,
   ...publicPitchHandlers,
   ...publicAddUserHandlers,
+  ...adminWaOnboardingHandlers,
   ...adminPitchesHandlers,
   ...adminMisHandlers,
   ...profileHandlers,
