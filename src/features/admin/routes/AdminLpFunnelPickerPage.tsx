@@ -134,7 +134,7 @@ function LpDetailDrawer({
 
   // Reset form when a different LP is opened
   useEffect(() => {
-    setNoteType('meeting');
+    setNoteType('follow_up');
     setNoteDate(today);
     setComment('');
     setFollowUpDate(today);
@@ -158,7 +158,7 @@ function LpDetailDrawer({
           setComment('');
           setNoteDate(today);
           setFollowUpDate(today);
-          setNoteType('meeting');
+          setNoteType('follow_up');
         },
         onError: (err) => {
           toast.error(err.message ?? 'Failed to save interaction');
@@ -546,6 +546,27 @@ export function AdminLpFunnelPickerPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [offset, setOffset] = useState(0);
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
+  // pendingEditId: when a list-row Edit button is clicked we fetch the full LP
+  // detail (which includes phone) before opening the dialog.
+  const [pendingEditId, setPendingEditId] = useState<string | null>(null);
+  const pendingLpDetail = useAdminLpDetail(pendingEditId);
+
+  // Open the edit dialog once the full LP detail (with phone) has loaded
+  useEffect(() => {
+    if (!pendingEditId || !pendingLpDetail.data) return;
+    const lp = pendingLpDetail.data;
+    setEditTarget({
+      id: lp.id,
+      name: lp.name,
+      phone: lp.phone,
+      email: lp.email,
+      role: lp.role,
+      organisation: lp.organisation,
+      designation: lp.designation,
+      poc: lp.poc,
+    });
+    setPendingEditId(null);
+  }, [pendingEditId, pendingLpDetail.data]);
 
   // Debounce search input
   useEffect(() => {
@@ -748,16 +769,8 @@ export function AdminLpFunnelPickerPage() {
                     lp={lp}
                     selected={lp.id === selectedId}
                     onClick={() => handleRowClick(lp.id)}
-                    onEdit={() =>
-                      setEditTarget({
-                        id: lp.id,
-                        name: lp.name,
-                        phone: lp.phone ?? null,
-                        email: lp.email,
-                        role: lp.role,
-                        organisation: lp.organisation,
-                      })
-                    }
+                    // Fetch full LP detail before opening edit so phone is populated
+                    onEdit={() => setPendingEditId(lp.id)}
                   />
                 ))}
               </tbody>
