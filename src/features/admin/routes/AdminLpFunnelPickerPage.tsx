@@ -86,7 +86,7 @@ function LpDetailDrawer({
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
-  const [noteType, setNoteType] = useState<LpCrmNoteType>('meeting');
+  const [noteType, setNoteType] = useState<LpCrmNoteType>('follow_up');
   const [noteDate, setNoteDate] = useState<string>(today);
   const [comment, setComment] = useState('');
 
@@ -98,7 +98,7 @@ function LpDetailDrawer({
   }, [userId, today]);
 
   function handleSave() {
-    if (!userId || !comment.trim()) return;
+    if (!userId) return;
     createNote.mutate(
       { userId, body: { note_type: noteType, note_date: noteDate, comment: comment.trim() } },
       {
@@ -207,6 +207,7 @@ function LpDetailDrawer({
                     role: lp.role,
                     organisation: lp.organisation,
                     designation: lp.designation,
+                    poc: lp.poc,
                   })
                 }
               >
@@ -276,7 +277,7 @@ function LpDetailDrawer({
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={!comment.trim() || createNote.isPending}>
+                <Button onClick={handleSave} disabled={createNote.isPending}>
                   {createNote.isPending ? 'Saving…' : 'Save Interaction'}
                 </Button>
               </div>
@@ -624,6 +625,7 @@ export function AdminLpFunnelPickerPage() {
                       setEditTarget({
                         id: lp.id,
                         name: lp.name,
+                        phone: lp.phone ?? null,
                         email: lp.email,
                         role: lp.role,
                         organisation: lp.organisation,

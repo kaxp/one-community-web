@@ -410,6 +410,7 @@ export const zAdminUserUpdateRequest = z.object({
   role: zUserRole.optional(),
   organisation: z.string().trim().optional(),
   designation: z.string().trim().optional(),
+  poc: z.string().trim().optional(),
 });
 export type AdminUserUpdateRequest = z.infer<typeof zAdminUserUpdateRequest>;
 
@@ -475,13 +476,13 @@ export type AppConfigListResponse = z.infer<typeof zAppConfigListResponse>;
 
 // ── LP CRM (LP Funnel relationship tracking) ─────────────────────────────────
 
-export const LP_CRM_NOTE_TYPES = ['meeting', 'call', 'follow_up', 'deck_shared'] as const;
+export const LP_CRM_NOTE_TYPES = ['follow_up', 'meeting', 'call', 'deck_shared'] as const;
 export type LpCrmNoteType = (typeof LP_CRM_NOTE_TYPES)[number];
 
 export const LP_CRM_NOTE_LABELS: Record<LpCrmNoteType, string> = {
+  follow_up: 'Follow-up',
   meeting: 'Meeting',
   call: 'Call',
-  follow_up: 'Follow-up',
   deck_shared: 'Deck Shared',
 };
 
@@ -495,6 +496,7 @@ export const zLpCrmListItem = z
   .object({
     id: zUUID,
     name: z.string().nullable(),
+    phone: z.string().nullable().optional(),
     email: z.string().nullable(),
     organisation: z.string().nullable(),
     role: zUserRole,
@@ -562,6 +564,6 @@ export type LpCrmNotesResponse = z.infer<typeof zLpCrmNotesResponse>;
 export const zLpCrmNoteCreate = z.object({
   note_type: z.enum(LP_CRM_NOTE_TYPES),
   note_date: z.string().min(1),
-  comment: z.string().trim().min(1, 'Comment is required'),
+  comment: z.string().trim().optional().default(''),
 });
 export type LpCrmNoteCreate = z.infer<typeof zLpCrmNoteCreate>;

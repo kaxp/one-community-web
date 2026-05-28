@@ -714,9 +714,23 @@ export function FundTwoPage() {
           >
             Q4 Pipeline: Source-Wise Inbound
           </h2>
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 32,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+            }}
+          >
             {/* Big stat */}
-            <div style={{ textAlign: 'center', minWidth: 160 }}>
+            <div
+              style={{
+                textAlign: 'center',
+                minWidth: isMobile ? 'auto' : 160,
+                width: isMobile ? '100%' : 'auto',
+              }}
+            >
               <div
                 style={{
                   width: 140,
@@ -777,10 +791,10 @@ export function FundTwoPage() {
               </ResponsiveContainer>
             </div>
 
-            {/* Deal status donut */}
-            <div style={{ minWidth: 180, textAlign: 'center' }}>
+            {/* Deal status donut — RESPONSIVE: full width on mobile */}
+            <div style={{ width: isMobile ? '100%' : 180, textAlign: 'center', flexShrink: 0 }}>
               <div style={{ color: TEXT_MUTED, fontSize: 13, marginBottom: 8 }}>Deal Status</div>
-              <ResponsiveContainer width={160} height={160}>
+              <ResponsiveContainer width="100%" height={160}>
                 <PieChart>
                   <Pie
                     data={dealStatusData}
