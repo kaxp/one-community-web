@@ -83,6 +83,9 @@ export const qk = {
     inboundPitchesAll: ['admin', 'inbound-pitches'] as const,
     inboundPitches: (range: string) => ['admin', 'inbound-pitches', { range }] as const,
     inboundPitchDetail: (id: string) => ['admin', 'inbound-pitches', 'detail', id] as const,
+    // Phase 4 menu Phase C2 (2026-05-28): WA video pitches admin tab.
+    videoPitchesAll: ['admin', 'video-pitches'] as const,
+    videoPitches: (range: string) => ['admin', 'video-pitches', { range }] as const,
     misOverviewAll: ['admin', 'mis-overview'] as const,
     misOverview: (range: string) => ['admin', 'mis-overview', { range }] as const,
     calendarAll: ['admin', 'calendar'] as const,

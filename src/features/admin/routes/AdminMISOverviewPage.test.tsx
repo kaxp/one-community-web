@@ -156,4 +156,27 @@ describe('AdminMISOverviewPage — list', () => {
     // We look for the runway "18 mo" text from Greenleaf.
     expect(screen.getByText('18 mo')).toBeInTheDocument();
   });
+
+  // ── Phase 4 menu Phase C2 (2026-05-28): WA-sourced MIS rows ───────────────
+  it('renders "View on WhatsApp" label on WA-sourced rows', async () => {
+    signedInAsAdmin();
+    renderPage('/admin/mis-overview?range=yearly');
+    await screen.findByText('WhatsAppCo');
+    const waLink = screen.getByTestId('file-00000000-0000-4000-8000-000000000b04');
+    // Label flipped from file_name to the WA branding string
+    expect(waLink.textContent).toContain('View on WhatsApp');
+    // Click-through still points at the Kapso URL stored in file_url
+    expect(waLink.getAttribute('href')).toBe(
+      'https://app.kapso.ai/projects/p1/conversations/conv-mis-1',
+    );
+  });
+
+  it('keeps the existing "filename" label when wa_conversation_id is absent', async () => {
+    signedInAsAdmin();
+    renderPage();
+    await screen.findByText('Greenleaf Agritech');
+    const fileLink = screen.getByTestId('file-00000000-0000-4000-8000-000000000b01');
+    expect(fileLink.textContent).toContain('greenleaf-apr-2026.pdf');
+    expect(fileLink.textContent).not.toContain('WhatsApp');
+  });
 });

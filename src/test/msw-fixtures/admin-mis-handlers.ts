@@ -57,6 +57,27 @@ const SEED: MISOverviewItem[] = [
     notion_page_id: null,
     drive_folder_id: null,
   },
+  // Phase 4 menu Phase C2 (2026-05-28): WA-sourced MIS row — file_url is the
+  // Kapso conversation URL, wa_conversation_id flags the render path.
+  {
+    id: '00000000-0000-4000-8000-000000000b04',
+    startup_id: '00000000-0000-4000-8000-000000000c04',
+    user_id: '00000000-0000-4000-8000-000000000d04',
+    company_name: 'WhatsAppCo',
+    period: '2026-04',
+    submitted_at: '2026-04-27T15:00:00Z',
+    file_url: 'https://app.kapso.ai/projects/p1/conversations/conv-mis-1',
+    file_name: 'Submitted via WhatsApp',
+    comment: 'Submitted via WhatsApp',
+    revenue: 90000,
+    burn: 80000,
+    runway_months: 4,
+    headcount: 3,
+    notion_page_id: null,
+    drive_folder_id: null,
+    wa_conversation_id: 'conv-mis-1',
+    wa_media_id: 'media-mis-1',
+  } as MISOverviewItem,
 ];
 
 let nextListError: ErrorEnvelope | null = null;

@@ -57,6 +57,7 @@ import {
   zLpCrmNotesResponse,
   zMISOverviewListResponse,
   zPartnerReferralResponse,
+  zVideoPitchesResponse,
   zQuarterlyReportApproveResponse,
   zQuarterlyReportsResponse,
   type AdminActionRequest,
@@ -86,6 +87,7 @@ import {
   type QuarterlyReportApproveRequest,
   type QuarterlyReportApproveResponse,
   type QuarterlyReportsResponse,
+  type VideoPitchesResponse,
 } from '@/features/admin/schemas';
 import {
   zAnalyticsCohort,
@@ -936,6 +938,22 @@ export async function getAdminInboundPitches(args: {
   const url = `/admin/pitches/inbound?${params.toString()}`;
   const resp = await apiClient.get<ApiEnvelope<InboundPitchesResponse>>(url);
   return zInboundPitchesResponse.parse(unwrap(resp.data, url));
+}
+
+// Phase 4 menu Phase C2 (2026-05-28) — `GET /admin/pitches/video`.
+// Paginated list of startups (ANY source_channel) that have submitted a WA
+// video pitch within the rolling window. Sibling of /admin/pitches/inbound.
+export async function getAdminVideoPitches(args: {
+  range: InboundPitchRange;
+  cursor?: string;
+  limit?: number;
+}): Promise<VideoPitchesResponse> {
+  const params = new URLSearchParams({ range: args.range });
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.cursor) params.set('cursor', args.cursor);
+  const url = `/admin/pitches/video?${params.toString()}`;
+  const resp = await apiClient.get<ApiEnvelope<VideoPitchesResponse>>(url);
+  return zVideoPitchesResponse.parse(unwrap(resp.data, url));
 }
 
 // Phase 7.2.f — `GET /admin/pitches/{startup_id}`.

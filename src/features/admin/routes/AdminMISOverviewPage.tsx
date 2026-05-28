@@ -103,12 +103,16 @@ export function AdminMISOverviewPage() {
         id: 'file',
         header: 'File',
         cell: ({ row }) => {
-          const { file_url, file_name, id } = row.original;
+          const { file_url, file_name, id, wa_conversation_id } = row.original;
           if (!file_url) return <span className="text-xs text-ink-muted">—</span>;
+          // Phase 4 menu Phase C2 (2026-05-28): WA-uploaded MIS rows store
+          // the Kapso conversation URL as file_url. Surface that so admins
+          // know the click-through opens Kapso (not a Drive file).
+          const isWa = Boolean(wa_conversation_id);
           return (
             <ExternalLinkButton
               href={file_url}
-              label={file_name ?? 'Open file'}
+              label={isWa ? 'View on WhatsApp' : (file_name ?? 'Open file')}
               testId={`file-${id}`}
             />
           );

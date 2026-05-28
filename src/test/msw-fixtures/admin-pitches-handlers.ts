@@ -1,5 +1,5 @@
 import { http, HttpResponse, type HttpHandler } from 'msw';
-import type { InboundPitch, InboundPitchDetail } from '@/features/admin/schemas';
+import type { InboundPitch, InboundPitchDetail, VideoPitchItem } from '@/features/admin/schemas';
 
 // Phase 7.2.f fixtures — inbound pitches list + drawer.
 
@@ -107,12 +107,50 @@ const DETAIL_SEED_NO_EVAL: InboundPitchDetail = {
   evaluation: null,
 };
 
+// Phase 4 menu Phase C2 (2026-05-28): video pitches seed for the new tab.
+const VIDEO_SEED: VideoPitchItem[] = [
+  {
+    id: '00000000-0000-4000-8000-000000000bb1',
+    company_name: 'Greenleaf Agritech',
+    founder_name: 'Priya Nair',
+    sector: 'agritech',
+    stage: 'seed',
+    wa_video_pitch_url: 'https://app.kapso.ai/projects/p1/conversations/conv-greenleaf',
+    wa_video_pitch_received_at: '2026-05-27T11:00:00Z',
+    wa_video_pitch_media_id: 'media-v-1',
+    wa_video_pitch_conversation_id: 'conv-greenleaf',
+    source_channel: 'web_form',
+    notion_page_id: null,
+    drive_folder_id: null,
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000bb2',
+    company_name: 'PayKart',
+    founder_name: 'Rohan Mehta',
+    sector: 'fintech',
+    stage: 'pre_seed',
+    wa_video_pitch_url: 'https://app.kapso.ai/projects/p1/conversations/conv-paykart',
+    wa_video_pitch_received_at: '2026-05-26T16:45:00Z',
+    wa_video_pitch_media_id: 'media-v-2',
+    wa_video_pitch_conversation_id: 'conv-paykart',
+    source_channel: null,
+    notion_page_id: null,
+    drive_folder_id: null,
+  },
+];
+
 let nextListError: ErrorEnvelope | null = null;
 let nextDetailError: ErrorEnvelope | null = null;
+let nextVideoError: ErrorEnvelope | null = null;
 
 export function resetMswAdminPitchesState() {
   nextListError = null;
   nextDetailError = null;
+  nextVideoError = null;
+}
+
+export function queueAdminVideoPitchesError(err: ErrorEnvelope) {
+  nextVideoError = err;
 }
 
 resetMswAdminPitchesState();
@@ -146,6 +184,25 @@ export const adminPitchesHandlers: HttpHandler[] = [
     const count = range === 'weekly' ? 2 : range === 'monthly' ? 3 : INBOUND_SEED.length;
     return HttpResponse.json({
       data: { items: INBOUND_SEED.slice(0, count), next_cursor: null },
+      error: null,
+    });
+  }),
+
+  // Phase C2 (2026-05-28): video pitches list — registered BEFORE the
+  // :startupId param handler so '/admin/pitches/video' isn't matched as id="video".
+  http.get('*/api/v1/admin/pitches/video', ({ request }) => {
+    if (nextVideoError) {
+      const err = nextVideoError;
+      nextVideoError = null;
+      return HttpResponse.json(errorBody(err), { status: err.status });
+    }
+    const url = new URL(request.url);
+    const cursor = url.searchParams.get('cursor');
+    if (cursor) {
+      return HttpResponse.json({ data: { items: [], next_cursor: null }, error: null });
+    }
+    return HttpResponse.json({
+      data: { items: VIDEO_SEED, next_cursor: null },
       error: null,
     });
   }),
