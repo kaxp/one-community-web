@@ -160,19 +160,17 @@ describe('AdminInboundPitchesPage — video pitches tab', () => {
 
     await user.click(screen.getByTestId('tab-video'));
 
-    // The video seed rows arrive from the /admin/pitches/video MSW handler
-    await screen.findByText('Greenleaf Agritech');
-    expect(screen.getByText('PayKart')).toBeInTheDocument();
-    // "View on Kapso" CTA per row
-    expect(
-      screen.getByTestId('video-link-00000000-0000-4000-8000-000000000bb1'),
-    ).toBeInTheDocument();
+    // Wait for BOTH video seed rows by test-id (resilient to CI timing —
+    // matching by text was flaky because both inbound + video seeds use
+    // the same company names, so the order of paint matters).
+    await screen.findByTestId('video-link-00000000-0000-4000-8000-000000000bb1');
+    await screen.findByTestId('video-link-00000000-0000-4000-8000-000000000bb2');
   });
 
   it('tab=video on initial URL renders video tab without an inbound flash', async () => {
     signedInAsAdmin();
     renderPage('/admin/pitches/inbound?tab=video');
-    await screen.findByText('Greenleaf Agritech');
+    await screen.findByTestId('video-link-00000000-0000-4000-8000-000000000bb1');
     // Inbound table actions (eval-) should not be present in video mode
     expect(
       screen.queryByTestId('eval-00000000-0000-4000-8000-000000000aa1'),
