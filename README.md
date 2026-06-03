@@ -93,33 +93,6 @@ Feature folders are strictly self-contained: `components/`, `hooks/`, `routes/`,
 
 ---
 
-## How this codebase is built (AI-assisted)
-
-This repo is built by a single Claude Opus 4.7 instance using the protocol in [`CLAUDE.md`](./CLAUDE.md) §0.1. Coordination state lives in [`.claude/`](./.claude/):
-
-| File                    | Role                                                      |
-| ----------------------- | --------------------------------------------------------- |
-| `.claude/decisions.md`  | Living decisions log + pending human-input queue          |
-| `.claude/queue.md`      | Feature build queue (tick boxes as features complete)     |
-| `.claude/session.md`    | "Where I stopped" snapshot (overwritten each session end) |
-| `.claude/issues.md`     | QA-found code issues                                      |
-| `.claude/settings.json` | Claude Code hooks (auto-lint on edit, auto-test on stop)  |
-
-All `.claude/*` files are **committed to git** — they're the institutional memory across sessions.
-
-If you're a human collaborator who needs to contribute manually:
-
-1. Read `CLAUDE.md` (rules) and `docs/frontend_prd.md` (API contracts + data models).
-2. Follow the Definition of Done in `CLAUDE.md §10`.
-3. Run `pnpm lint && pnpm typecheck && pnpm test && pnpm build` — all must pass.
-
-If you're a Claude agent resuming this build:
-
-- Read `docs/plan.md` for the stage-by-stage workflow.
-- Session startup / shutdown protocols are in `CLAUDE.md §0.1.2` and `§0.1.3`.
-
----
-
 ## Testing
 
 - **Unit:** Vitest + React Testing Library. Every hook has a unit test.
