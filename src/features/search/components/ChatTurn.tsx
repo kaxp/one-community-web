@@ -2,6 +2,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResultCard } from '@/features/search/components/ResultCard';
 import { SearchAnswerBlock } from '@/features/search/components/SearchAnswerBlock';
+import { ProseAnswerBlock } from '@/features/search/components/ProseAnswerBlock';
 import { SearchLoadingState } from '@/features/search/components/SearchLoadingState';
 import type { ConversationResponse, StartupResultItem } from '@/features/search/schemas';
 
@@ -92,7 +93,11 @@ export function ChatTurn({ userMessage, response, isError, isMasked, onRetry }: 
         >
           {response.clarification ?? 'Could you clarify what you’re looking for?'}
         </p>
+      ) : response.answer_markdown ? (
+        /* v5: conversational prose rendered from Markdown */
+        <ProseAnswerBlock markdown={response.answer_markdown} />
       ) : response.answer ? (
+        /* v4: structured envelope rendered as before (backward compat) */
         <SearchAnswerBlock answer={response.answer} resultsByUserId={resultsByUserId} />
       ) : (
         <div className="flex flex-col gap-3" data-testid="search-results">

@@ -30,13 +30,29 @@ import {
   zSearchDetailLp,
   zSearchDetailStartup,
   zSearchResponse,
+  zSearchSource,
   type ConversationRequest,
   type ConversationResponse,
   type SearchDetailLp,
   type SearchDetailStartup,
   type SearchRequest,
   type SearchResponse,
+  type SearchSource,
 } from '@/features/search/schemas';
+
+// v5: a pre-loaded conversation turn (WA → web continuity)
+export interface ConversationHistoryTurn {
+  turn: number;
+  user_message: string;
+  answer_markdown: string | null;
+  sources: SearchSource[];
+  intent: string | null;
+  ts: string | null;
+}
+export interface ConversationHistory {
+  conversation_id: string;
+  turns: ConversationHistoryTurn[];
+}
 import {
   zInteractionLogResponse,
   type InteractionLogRequest,
@@ -344,6 +360,23 @@ export async function getSearchDetailLp(userId: string): Promise<SearchDetailLp>
   const path = `/search/detail/lp/${userId}`;
   const resp = await apiClient.get<ApiEnvelope<SearchDetailLp>>(path);
   return zSearchDetailLp.parse(unwrap(resp.data, path));
+}
+
+// v5: load a stored conversation (e.g. started on WhatsApp → continue on web)
+export async function getConversationHistory(conversationId: string): Promise<ConversationHistory> {
+  const path = `/search/conversation/${conversationId}`;
+  const resp = await apiClient.get<ApiEnvelope<ConversationHistory>>(path);
+  const data = unwrap(resp.data, path);
+  // Coerce sources with runtime Zod where possible, fall back gracefully
+  const turns: ConversationHistoryTurn[] = ((data as ConversationHistory).turns ?? []).map((t) => ({
+    turn: t.turn,
+    user_message: t.user_message,
+    answer_markdown: t.answer_markdown ?? null,
+    sources: Array.isArray(t.sources) ? t.sources.map((s) => zSearchSource.parse(s)) : [],
+    intent: t.intent ?? null,
+    ts: t.ts ?? null,
+  }));
+  return { conversation_id: (data as ConversationHistory).conversation_id, turns };
 }
 
 export async function logInteraction(body: InteractionLogRequest): Promise<InteractionLogResponse> {

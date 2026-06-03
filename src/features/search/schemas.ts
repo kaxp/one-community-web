@@ -151,10 +151,17 @@ export type ConversationRequest = z.infer<typeof zConversationRequest>;
 
 // Server always returns startup-shaped results today (LP conversational
 // search is future scope); we keep `target_type` open so we can extend.
+// v5 source item — [{startup_id, company_name}] referenced in the answer.
+export const zSearchSource = z.object({
+  startup_id: z.string(),
+  company_name: z.string(),
+});
+export type SearchSource = z.infer<typeof zSearchSource>;
+
 export const zConversationResponse = z.object({
   conversation_id: z.string(),
   turn: z.number().int(),
-  action: z.enum(['search', 'clarify']),
+  action: z.enum(['search', 'clarify', 'blocked', 'low_confidence']),
   resolved_query: z.string(),
   clarification: z.string().nullable().optional(),
   results: z.array(zStartupResultItem),
@@ -164,6 +171,13 @@ export const zConversationResponse = z.object({
   text: z.string().nullable().optional(),
   answer: zSearchAnswer.nullable().optional(),
   stage3_applied: z.boolean(),
+  // ── Search v5 prose fields (additive) ──────────────────────────────────
+  answer_markdown: z.string().nullable().optional(),
+  sources: z.array(zSearchSource).optional(),
+  cached: z.boolean().optional(),
+  confidence: z.number().nullable().optional(),
+  session_id: z.string().nullable().optional(),
+  latency_ms: z.record(z.number()).nullable().optional(),
 });
 export type ConversationResponse = z.infer<typeof zConversationResponse>;
 

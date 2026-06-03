@@ -68,17 +68,18 @@ describe('SearchPage (PRD §7.4.1)', () => {
     expect(await screen.findByText(/search the community/i)).toBeInTheDocument();
   });
 
-  it('shows a startup result card on success', async () => {
+  it('shows a startup result card on success (v5 prose)', async () => {
     signInAsLP();
     setMswSearchScenario('startup');
     renderWithProviders(<SearchPage />);
 
     await typeAndSubmit('fintech');
 
-    const grid = await screen.findByTestId('search-results');
-    // "Acme Technologies" appears as both company_name (h3) and organisation (p).
-    expect(within(grid).getAllByText('Acme Technologies').length).toBeGreaterThan(0);
-    expect(within(grid).getByText('AI for compliance')).toBeInTheDocument();
+    // v5: answer_markdown is present → prose block renders instead of card grid.
+    const prose = await screen.findByTestId('prose-answer-block');
+    expect(prose).toBeInTheDocument();
+    // Company name appears in prose as a bold link.
+    expect(prose).toHaveTextContent('Acme Technologies');
   });
 
   it('renders the stage3 fallback banner when stage3_applied=false', async () => {
@@ -162,9 +163,11 @@ describe('SearchPage (PRD §7.4.1)', () => {
     expect(within(grid).queryByText(/Strong match on sector/i)).not.toBeInTheDocument();
   });
 
-  it('fires search_view interactions for visible cards', async () => {
+  it('fires search_view interactions for visible result cards', async () => {
+    // Uses the stage3_fallback scenario which renders the card-grid fallback
+    // (no answer_markdown) so ResultCard components mount and log interactions.
     signInAsLP();
-    setMswSearchScenario('startup');
+    setMswSearchScenario('stage3_fallback');
     const start = getMswInteractionLogCount();
     renderWithProviders(<SearchPage />);
 
