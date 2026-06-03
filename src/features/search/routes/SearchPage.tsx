@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/features/search/components/SearchBar';
 import { ChatTurn } from '@/features/search/components/ChatTurn';
+import { ProseAnswerBlock } from '@/features/search/components/ProseAnswerBlock';
 import { useConversation } from '@/features/search/hooks/use-conversation';
 import { type SearchTargetType } from '@/features/search/schemas';
 import { useRole } from '@/auth/use-auth';
 import { isMaskedSearchRole } from '@/lib/role-capabilities';
+import { getConversationHistory, type ConversationHistoryTurn } from '@/api/endpoints';
 
 export function SearchPage() {
   const [params, setParams] = useSearchParams();
@@ -21,6 +23,34 @@ export function SearchPage() {
 
   const conversation = useConversation({ targetType });
   const threadRef = useRef<HTMLDivElement | null>(null);
+
+  // ── WA → web continuity: ?c=<conversation_id> ─────────────────────────
+  // When a user taps "Explore more on your dashboard" from WhatsApp, the magic
+  // link includes ?c=<id>. We fetch the stored turns, seed them as read-only
+  // history, then clear the param so it doesn't re-trigger on navigations.
+  const [preloadedTurns, setPreloadedTurns] = useState<ConversationHistoryTurn[]>([]);
+  const [preloadLoading, setPreloadLoading] = useState(false);
+  const preloadedRef = useRef<string | null>(null);
+  const continuationId = params.get('c')?.trim() ?? '';
+
+  useEffect(() => {
+    if (!continuationId || preloadedRef.current === continuationId) return;
+    if (conversation.turns.length > 0) return; // active session — don't overwrite
+    preloadedRef.current = continuationId;
+    setPreloadLoading(true);
+    getConversationHistory(continuationId)
+      .then((history) => {
+        setPreloadedTurns(history.turns);
+        // Clean the param without a history push
+        const sp = new URLSearchParams(params);
+        sp.delete('c');
+        setParams(sp, { replace: true });
+      })
+      .catch(() => {
+        // Silently ignore — expired / not found; user just sees the empty state
+      })
+      .finally(() => setPreloadLoading(false));
+  }, [continuationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-scroll to the latest turn on every visible state change:
   //  - user just submitted (isPending flips true → show pending spinner at bottom)
@@ -68,7 +98,9 @@ export function SearchPage() {
     if (sp.toString() !== params.toString()) setParams(sp, { replace: true });
   };
 
-  const hasThread = conversation.turns.length > 0 || conversation.isPending;
+  const hasPreloaded = preloadedTurns.length > 0;
+  const hasThread =
+    conversation.turns.length > 0 || conversation.isPending || hasPreloaded || preloadLoading;
 
   const searchControls = (
     <div className="flex flex-col gap-3">
@@ -118,6 +150,32 @@ export function SearchPage() {
           New chat
         </Button>
       </div>
+
+      {/* Pre-loaded history from WhatsApp — read-only, shown before the live thread */}
+      {preloadLoading ? (
+        <div className="text-sm text-ink-muted" data-testid="preload-loading">
+          Loading your WhatsApp conversation…
+        </div>
+      ) : hasPreloaded ? (
+        <div
+          className="flex flex-col gap-6 rounded-md border border-border/50 bg-surface-muted/40 p-4"
+          data-testid="preloaded-turns"
+        >
+          <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+            Continued from WhatsApp
+          </p>
+          {preloadedTurns.map((t) => (
+            <div key={t.turn} className="flex flex-col gap-3">
+              <div className="flex justify-end">
+                <div className="max-w-[85%] rounded-2xl bg-brand/10 px-4 py-2 text-[15px] text-ink-heading">
+                  {t.user_message}
+                </div>
+              </div>
+              {t.answer_markdown ? <ProseAnswerBlock markdown={t.answer_markdown} /> : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {/* Thread — each ChatTurn handles its own loading state.
           A pending turn (response === null) shows the user bubble immediately

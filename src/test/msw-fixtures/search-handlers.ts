@@ -331,6 +331,51 @@ export const searchHandlers: HttpHandler[] = [
         text: inner.text ?? null,
         answer: inner.answer ?? null,
         stage3_applied: inner.stage3_applied,
+        // v5 prose fields — present in v5 mode; optional so v4 tests still pass
+        // v5 prose: only supplied for the 'startup' scenario (the canonical
+        // v5 success path). All other scenarios (auto, lp, stage3_fallback,
+        // partner_masked, empty) remain on the v4 card-grid path so those
+        // tests continue to validate masking, locked footers, and fallbacks.
+        answer_markdown: (() => {
+          if (scenario !== 'startup') return null;
+          const first = inner.results[0];
+          if (!first) return null;
+          const displayName =
+            ('company_name' in first ? first.company_name : first.name) ?? 'Startup';
+          return `Here are some relevant startups:\n\n- [**${displayName}**](/search/profile/${first.user_id}): A relevant match for your query.`;
+        })(),
+        sources: (() => {
+          if (scenario !== 'startup') return [];
+          const first = inner.results[0];
+          if (!first) return [];
+          const displayName =
+            ('company_name' in first ? first.company_name : first.name) ?? 'Startup';
+          return [{ startup_id: first.user_id, company_name: displayName }];
+        })(),
+        cached: false,
+        confidence: 0.75,
+        session_id: conversationId,
+      },
+      error: null,
+    });
+  }),
+
+  // v5: pre-load conversation for WA → web continuity (?c=<id>)
+  http.get('*/api/v1/search/conversation/:id', ({ params: routeParams }) => {
+    return HttpResponse.json({
+      data: {
+        conversation_id: routeParams.id,
+        turns: [
+          {
+            turn: 1,
+            user_message: 'WhatsApp query pre-loaded',
+            answer_markdown:
+              'Here is a startup from WhatsApp:\n\n- [**Acme**](/search/profile/mock-wa-id): Relevant for your needs.',
+            sources: [{ startup_id: 'mock-wa-id', company_name: 'Acme' }],
+            intent: 'list_query',
+            ts: new Date().toISOString(),
+          },
+        ],
       },
       error: null,
     });
