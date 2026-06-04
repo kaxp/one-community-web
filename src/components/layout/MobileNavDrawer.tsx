@@ -5,20 +5,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { Button } from '@/components/ui/button';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { NavList } from './NavList';
-import { useUser, useRole } from '@/auth/use-auth';
-
-const ROLE_LABELS: Record<string, string> = {
-  lp: 'LP',
-  potential_lp: 'Potential LP',
-  vc: 'VC',
-  startup_inprogress: 'Startup',
-  startup_onboarded: 'Startup',
-  startup_funded: 'Portfolio Startup',
-  partner: 'Partner',
-  advisor: 'Advisor',
-  admin: 'Admin',
-  super_admin: 'Super Admin',
-};
+import { useUser } from '@/auth/use-auth';
 
 // Drawer-style navigation for tablet + mobile (< lg). Triggered by a hamburger
 // button rendered inline in the TopBar at sub-lg viewports. See CLAUDE.md §7.11
@@ -27,7 +14,6 @@ const ROLE_LABELS: Record<string, string> = {
 export function MobileNavDrawer() {
   const [open, setOpen] = useState(false);
   const user = useUser();
-  const role = useRole();
 
   const close = () => setOpen(false);
 
@@ -59,9 +45,6 @@ export function MobileNavDrawer() {
                 <div className="truncate text-sm font-medium text-ink-heading">
                   {user.name ?? user.phone}
                 </div>
-                {role ? (
-                  <div className="text-xs text-ink-muted">{ROLE_LABELS[role] ?? role}</div>
-                ) : null}
               </div>
             </div>
             <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
