@@ -440,6 +440,26 @@ export const zAdminFoundersResponse = z
   .passthrough();
 export type AdminFoundersResponse = z.infer<typeof zAdminFoundersResponse>;
 
+export const zAdminFounderUpdateRequest = z.object({
+  name: z.string().trim().min(1).optional(),
+  position: z.string().trim().optional(),
+  email: z.string().trim().email().optional(),
+  phone: z.string().trim().min(1).optional(),
+  linkedin_url: z.string().trim().url().optional().or(z.literal('')),
+  description: z.string().trim().optional(),
+});
+export type AdminFounderUpdateRequest = z.infer<typeof zAdminFounderUpdateRequest>;
+
+export const zAdminFounderUpdateResponse = z
+  .object({
+    id: zUUID,
+    name: z.string().nullable(),
+    position: z.string().nullable(),
+    updated_at: zISODateTime.nullable(),
+  })
+  .passthrough();
+export type AdminFounderUpdateResponse = z.infer<typeof zAdminFounderUpdateResponse>;
+
 export const zAdminUserUpdateRequest = z.object({
   name: z.string().trim().min(1).optional(),
   phone: z.string().trim().min(1).optional(),

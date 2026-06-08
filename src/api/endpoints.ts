@@ -1047,11 +1047,14 @@ export async function patchAppConfigKey(key: string, enabled: boolean): Promise<
 import {
   zAdminUsersResponse,
   zAdminFoundersResponse,
+  zAdminFounderUpdateResponse,
   zAdminUserUpdateResponse,
   zAdminUserDeleteResponse,
   zAdminStartupsResponse,
   type AdminUsersResponse,
   type AdminFoundersResponse,
+  type AdminFounderUpdateRequest,
+  type AdminFounderUpdateResponse,
   type AdminUserUpdateRequest,
   type AdminUserUpdateResponse,
   type AdminUserDeleteResponse,
@@ -1099,6 +1102,18 @@ export async function getAdminFounders(
   const url = `/admin/founders${qs ? `?${qs}` : ''}`;
   const resp = await apiClient.get<ApiEnvelope<AdminFoundersResponse>>(url);
   return zAdminFoundersResponse.parse(unwrap(resp.data, url));
+}
+
+export async function patchAdminFounder(
+  founderId: string,
+  body: AdminFounderUpdateRequest,
+): Promise<AdminFounderUpdateResponse> {
+  const url = `/admin/founders/${encodeURIComponent(founderId)}`;
+  const resp = await apiClient.patch<ApiEnvelope<AdminFounderUpdateResponse>>(
+    url,
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return zAdminFounderUpdateResponse.parse(unwrap(resp.data, url));
 }
 
 export async function patchAdminUser(

@@ -25,6 +25,7 @@ import { useAdminUsers } from '@/features/admin/hooks/use-admin-users';
 import { useAdminFounders } from '@/features/admin/hooks/use-admin-founders';
 import { useAdminUserDelete } from '@/features/admin/hooks/use-admin-user-delete';
 import { EditUserDialog } from '@/features/admin/components/EditUserDialog';
+import { EditFounderDialog } from '@/features/admin/components/EditFounderDialog';
 import { type AdminUserListItem, type AdminFounderListItem } from '@/features/admin/schemas';
 import { fmtDateTime } from '@/lib/date';
 import { useRole } from '@/auth/use-auth';
@@ -35,7 +36,15 @@ const DEFAULT_LIMIT = 100;
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 
-type UserTab = 'lp' | 'potential_lp' | 'vc' | 'partner' | 'startup' | 'founder' | 'admin';
+type UserTab =
+  | 'lp'
+  | 'potential_lp'
+  | 'vc'
+  | 'partner'
+  | 'startup'
+  | 'founder'
+  | 'advisor'
+  | 'admin';
 
 const USER_TABS: { key: UserTab; label: string; roles?: string }[] = [
   { key: 'lp', label: 'LP', roles: 'lp' },
@@ -48,6 +57,7 @@ const USER_TABS: { key: UserTab; label: string; roles?: string }[] = [
     roles: 'startup_inprogress,startup_onboarded,startup_funded',
   },
   { key: 'founder', label: 'Founder' }, // data from founders table
+  { key: 'advisor', label: 'Advisor', roles: 'advisor' },
   { key: 'admin', label: 'Admin', roles: 'admin,super_admin' },
 ];
 
@@ -329,6 +339,7 @@ function FoundersTable() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [search, setSearchValue] = useState('');
   const [offset, setOffset] = useState(0);
+  const [editTarget, setEditTarget] = useState<AdminFounderListItem | null>(null);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -415,6 +426,21 @@ function FoundersTable() {
           <span className="text-xs text-ink-muted">{fmtDateTime(row.original.created_at)}</span>
         ),
       },
+      {
+        id: 'actions',
+        header: () => null,
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            title="Edit founder"
+            onClick={() => setEditTarget(row.original)}
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden />
+          </Button>
+        ),
+      },
     ],
     [],
   );
@@ -477,6 +503,8 @@ function FoundersTable() {
           )}
         </CardContent>
       </Card>
+
+      <EditFounderDialog founder={editTarget} onClose={() => setEditTarget(null)} />
     </>
   );
 }
