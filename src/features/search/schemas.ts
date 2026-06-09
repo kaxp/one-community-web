@@ -161,7 +161,7 @@ export type SearchSource = z.infer<typeof zSearchSource>;
 export const zConversationResponse = z.object({
   conversation_id: z.string(),
   turn: z.number().int(),
-  action: z.enum(['search', 'clarify', 'blocked', 'low_confidence']),
+  action: z.string(),
   resolved_query: z.string(),
   clarification: z.string().nullable().optional(),
   results: z.array(zStartupResultItem),
