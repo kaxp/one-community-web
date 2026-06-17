@@ -145,7 +145,7 @@ Three tools reduce token usage by 60–90%. None change the rules above.
 
 - **RTK** hooks all Bash calls globally — `git`, `pnpm`, `grep`, etc. are compressed automatically. Don't pipe/truncate manually. If a test fails, re-run the specific test directly for the full trace.
 - **Graphify** maintains a code graph at `graphify-out/`. A PreToolUse hook fires before every grep/Read/Glob — run `graphify query "<question>"` first, then read files only for specific lines. Graph auto-rebuilds on `git commit`/`git checkout` via husky hooks. Manually rebuild with `graphify update .` after large structural changes. Never hand-edit `graphify-out/`.
-- **Caveman Lite** is on by default — strips filler, keeps technical accuracy. `/caveman off` to disable for a complex debugging exchange. `/caveman ultra` for maximum compression.
+- **Caveman Lite** is on by default — strips filler, keeps technical accuracy. Type `caveman off` in chat to disable for a complex debugging exchange. `caveman ultra` for maximum compression.
 - **ccusage** — `npx ccusage@latest claude daily` to check token burn before a large session.
 
 ---
