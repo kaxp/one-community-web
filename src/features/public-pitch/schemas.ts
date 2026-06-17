@@ -116,7 +116,8 @@ export const zPublicPitchForm = z.object({
   additional_founders: z.array(zCoFounder).optional(),
 
   // ── Funding ──────────────────────────────────────────────────────────
-  has_raised_funds: z.enum(['yes', 'no']).optional(),
+  // Radio inputs return null in JSDOM when nothing is selected; nullish handles both null and undefined.
+  has_raised_funds: z.enum(['yes', 'no']).nullish(),
   money_raised: optStr(),
   existing_investors: optStr(),
 

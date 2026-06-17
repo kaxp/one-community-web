@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,11 @@ const SUPPORT_EMAIL = 'pitch@warmupventures.com';
 
 const INPUT_CLASS =
   'flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+
+// Same as INPUT_CLASS but w-36 flex-none instead of w-full — used for the country-code <select>
+// so it doesn't expand to full container width.
+const SELECT_CC_CLASS =
+  'h-10 w-36 flex-none rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
 // ── Success / special states ──────────────────────────────────────────────────
 
@@ -104,8 +109,8 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
     register,
     handleSubmit,
     control,
-    setValue,
     setError,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<PublicPitchFormValues>({
     resolver: zodResolver(zPublicPitchForm),
@@ -124,8 +129,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
     name: 'additional_founders',
   });
 
-  const hasRaised = useWatch({ control, name: 'has_raised_funds' });
-  const primaryPhoneCC = useWatch({ control, name: 'phone_country_code' }) ?? '+91';
+  const hasRaised = watch('has_raised_funds');
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
@@ -310,9 +314,8 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
           <FormField label="Phone" htmlFor="phone_number" error={errors.phone_number?.message}>
             <div className="flex gap-2">
               <select
-                value={primaryPhoneCC}
-                onChange={(e) => setValue('phone_country_code', e.target.value)}
-                className={`${INPUT_CLASS} w-36 flex-none`}
+                {...register('phone_country_code')}
+                className={SELECT_CC_CLASS}
                 aria-label="Country code"
               >
                 {COUNTRY_CODES.map((c) => (
@@ -394,7 +397,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
                 <div className="flex gap-2">
                   <select
                     {...register(`additional_founders.${idx}.phone_country_code`)}
-                    className={`${INPUT_CLASS} w-36 flex-none`}
+                    className={SELECT_CC_CLASS}
                     aria-label="Country code"
                   >
                     {COUNTRY_CODES.map((c) => (
