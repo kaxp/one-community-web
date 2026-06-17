@@ -120,3 +120,8 @@ bundle-stats.json
 *.key
 *.csr
 .secrets/
+
+# ──────────────────────────────────────────────────────────────
+# Graphify — auto-generated, rebuilt via git hooks on every commit/checkout
+# ──────────────────────────────────────────────────────────────
+graphify-out/
