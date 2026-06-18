@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fmtCr } from '@/features/search/lib/labels';
 import type { LatestIntelStructured, SearchDetailStartup } from '@/features/search/schemas';
 import type { UserRole } from '@/types/enums';
+import { StartupStageBadge } from '@/components/badges/StartupStageBadge';
 import { InfoRow } from './InfoRow';
 
 const PITCH_DECK_ROLES: ReadonlySet<UserRole> = new Set(['lp', 'admin', 'super_admin']);
@@ -88,12 +89,42 @@ function StatTile({ label, value }: { label: string; value: string | number | nu
 
 // ── Intel sub-section helpers ─────────────────────────────────────────────────
 
+const URL_REGEX = /https?:\/\/[^\s),]+/g;
+
+function TextWithLinks({ text }: { text: string }) {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  URL_REGEX.lastIndex = 0;
+  while ((match = URL_REGEX.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    const url = match[0];
+    parts.push(
+      <a
+        key={match.index}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 underline break-all hover:text-blue-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {url}
+      </a>,
+    );
+    last = match.index + url.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
+
 function IntelRow({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{label}</span>
-      <span className="text-sm text-ink-body">{value}</span>
+      <span className="text-sm text-ink-body break-words">
+        <TextWithLinks text={value} />
+      </span>
     </div>
   );
 }
@@ -253,7 +284,9 @@ function IntelRedFlagsSection({ flags }: { flags: string[] }) {
         {flags.map((f, i) => (
           <li key={i} className="flex gap-2 text-sm text-ink-body">
             <span className="mt-0.5 shrink-0 text-amber-500">•</span>
-            <span>{f}</span>
+            <span className="break-words min-w-0">
+              <TextWithLinks text={f} />
+            </span>
           </li>
         ))}
       </ul>
@@ -272,7 +305,9 @@ function IntelProductUpdatesSection({ updates }: { updates: string[] }) {
         {updates.map((u, i) => (
           <li key={i} className="flex gap-2 text-sm text-ink-body">
             <span className="mt-0.5 shrink-0 text-ink-muted">•</span>
-            <span>{u}</span>
+            <span className="break-words min-w-0">
+              <TextWithLinks text={u} />
+            </span>
           </li>
         ))}
       </ul>
@@ -332,6 +367,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
     detail.founding_year != null ||
     detail.team_size != null ||
     detail.city ||
+    detail.stage ||
     detail.revenue_model ||
     detail.traction;
 
@@ -420,6 +456,14 @@ export function StartupRichDetailBlock({ detail }: Props) {
                     value={detail.team_size != null ? String(detail.team_size) : null}
                     isMasked={false}
                   />
+                  {detail.stage ? (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                        Stage
+                      </span>
+                      <StartupStageBadge stage={detail.stage} />
+                    </div>
+                  ) : null}
                   <InfoRow label="Revenue model" value={detail.revenue_model} isMasked={false} />
                 </div>
                 {detail.traction ? (
@@ -623,7 +667,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-col gap-0.5">
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-ink-muted" aria-hidden />
                 Latest Public Intel
               </CardTitle>
@@ -636,7 +680,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
           <CardContent className="flex flex-col gap-6">
             {/* Quick stats grid */}
             {intel?.quick_stats && hasContent(intel.quick_stats as Record<string, unknown>) ? (
-              <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/40 p-3 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 rounded-lg bg-muted/40 p-3 sm:grid-cols-2">
                 <IntelRow label="HQ" value={intel.quick_stats.hq} />
                 <IntelRow label="Stage" value={intel.quick_stats.stage} />
                 <IntelRow label="Sector" value={intel.quick_stats.sector} />
