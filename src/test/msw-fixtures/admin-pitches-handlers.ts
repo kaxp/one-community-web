@@ -66,7 +66,7 @@ const DETAIL_SEED: InboundPitchDetail = {
   founder_email: 'priya@greenleaf.in',
   founder_phone: '+919876543210',
   founder_linkedin: 'https://linkedin.com/in/priyanair',
-  sector: 'agritech',
+  sector: ['agritech'],
   stage: 'seed',
   founding_year: 2022,
   team_size: 12,

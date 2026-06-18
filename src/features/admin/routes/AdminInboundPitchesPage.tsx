@@ -156,7 +156,10 @@ function DrawerContent({ detail }: { detail: InboundPitchDetail }) {
       </DetailSection>
 
       <DetailSection title="Company">
-        <DetailRow label="Sector" value={detail.sector} />
+        <DetailRow
+          label="Sector"
+          value={Array.isArray(detail.sector) ? detail.sector.join(', ') : detail.sector}
+        />
         <DetailRow label="Stage" value={detail.stage} />
         <DetailRow label="Founded" value={detail.founding_year} />
         <DetailRow label="Team size" value={detail.team_size} />
