@@ -2,10 +2,12 @@ import {
   AlertTriangle,
   Banknote,
   Building2,
+  Database,
   ExternalLink,
   FileText,
   Globe,
   Lock,
+  Presentation,
 } from 'lucide-react';
 import { useRole } from '@/auth/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +35,19 @@ function LinkedInIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Some upstream data sources use "-" (or an em/en dash) as a placeholder for "no value".
+ * Treat those the same as null/empty so we don't render dead links or empty fields.
+ */
+const PLACEHOLDER_VALUES = new Set(['-', '—', '–']);
+
+function cleanText(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  if (trimmed === '' || PLACEHOLDER_VALUES.has(trimmed)) return null;
+  return trimmed;
+}
+
 /** Compact pill-style link, used for "Links & resources" so the section reads as one row instead of a stacked list. */
 function LinkChip({
   icon,
@@ -43,10 +58,11 @@ function LinkChip({
   label: string;
   href: string | null | undefined;
 }) {
-  if (!href) return null;
+  const url = cleanText(href);
+  if (!url) return null;
   return (
     <a
-      href={href}
+      href={url}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
@@ -200,11 +216,12 @@ function IntelNewsSection({ news }: { news: NonNullable<LatestIntelStructured['r
     <div className="flex flex-col gap-3">
       <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Recent news</h4>
       <div className="flex flex-col gap-2">
-        {filtered.map((n, i) =>
-          n.url ? (
+        {filtered.map((n, i) => {
+          const url = cleanText(n.url);
+          return url ? (
             <a
               key={i}
-              href={n.url}
+              href={url}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-start gap-1 text-sm text-brand hover:underline"
@@ -217,8 +234,8 @@ function IntelNewsSection({ news }: { news: NonNullable<LatestIntelStructured['r
             <p key={i} className="text-sm text-ink-body">
               {n.headline}
             </p>
-          ),
-        )}
+          );
+        })}
       </div>
     </div>
   );
@@ -308,7 +325,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
   const canSeeFinancials = role != null && FINANCIAL_ROLES.has(role);
   const isAdmin = role != null && ADMIN_ROLES.has(role);
 
-  const pitchDeckUrl = canSeePitchDeck ? detail.pitch_deck_url : null;
+  const pitchDeckUrl = cleanText(canSeePitchDeck ? detail.pitch_deck_url : null);
   const intel = detail.latest_intel_structured ?? null;
 
   const hasAbout =
@@ -319,8 +336,12 @@ export function StartupRichDetailBlock({ detail }: Props) {
     detail.traction;
 
   const hasFounders = detail.founders && detail.founders.length > 0;
-  const hasLinks = detail.website_url || detail.company_linkedin_url || detail.tracxn_url;
-  const hasResources = hasLinks || pitchDeckUrl;
+  const hasLinks = !!(
+    cleanText(detail.website_url) ||
+    cleanText(detail.company_linkedin_url) ||
+    cleanText(detail.tracxn_url)
+  );
+  const hasResources = hasLinks || !!pitchDeckUrl;
   const hasOverview = hasAbout || hasFounders || hasResources;
 
   const hasFinancials =
@@ -420,54 +441,59 @@ export function StartupRichDetailBlock({ detail }: Props) {
                   Founders
                 </span>
                 <div className="flex flex-col divide-y divide-border">
-                  {detail.founders!.map((f, i) => (
-                    <div key={i} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-ink-heading">
-                          {f.name ?? 'Unknown founder'}
-                          {f.position ? (
-                            <span className="ml-2 text-xs font-normal text-ink-muted">
-                              ({f.position})
-                            </span>
-                          ) : null}
-                        </p>
-                        {f.linkedin_url ? (
-                          <a
-                            href={f.linkedin_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#0A66C2] transition-opacity hover:opacity-75"
-                            aria-label={`${f.name ?? 'Founder'} on LinkedIn`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <LinkedInIcon className="h-4 w-4" />
-                          </a>
-                        ) : null}
-                      </div>
-                      {f.description ? (
-                        <p className="text-sm text-ink-body">{f.description}</p>
-                      ) : null}
-                      {f.email || f.phone ? (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {f.email ? (
+                  {detail.founders!.map((f, i) => {
+                    const founderLinkedIn = cleanText(f.linkedin_url);
+                    const founderEmail = cleanText(f.email);
+                    const founderPhone = cleanText(f.phone);
+                    return (
+                      <div key={i} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-ink-heading">
+                            {f.name ?? 'Unknown founder'}
+                            {f.position ? (
+                              <span className="ml-2 text-xs font-normal text-ink-muted">
+                                ({f.position})
+                              </span>
+                            ) : null}
+                          </p>
+                          {founderLinkedIn ? (
                             <a
-                              href={`mailto:${f.email}`}
-                              className="text-xs text-brand hover:underline"
+                              href={founderLinkedIn}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#0A66C2] transition-opacity hover:opacity-75"
+                              aria-label={`${f.name ?? 'Founder'} on LinkedIn`}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {f.email}
+                              <LinkedInIcon className="h-4 w-4" />
                             </a>
                           ) : null}
-                          {f.email && f.phone ? (
-                            <span className="text-xs text-ink-muted">·</span>
-                          ) : null}
-                          {f.phone ? (
-                            <span className="text-xs text-ink-muted">{f.phone}</span>
-                          ) : null}
                         </div>
-                      ) : null}
-                    </div>
-                  ))}
+                        {f.description ? (
+                          <p className="text-sm text-ink-body">{f.description}</p>
+                        ) : null}
+                        {founderEmail || founderPhone ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {founderEmail ? (
+                              <a
+                                href={`mailto:${founderEmail}`}
+                                className="text-xs text-brand hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {founderEmail}
+                              </a>
+                            ) : null}
+                            {founderEmail && founderPhone ? (
+                              <span className="text-xs text-ink-muted">·</span>
+                            ) : null}
+                            {founderPhone ? (
+                              <span className="text-xs text-ink-muted">{founderPhone}</span>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
@@ -483,7 +509,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
                 </span>
                 <div className="flex flex-wrap gap-2">
                   <LinkChip
-                    icon={<FileText className="h-3.5 w-3.5" aria-hidden />}
+                    icon={<Presentation className="h-3.5 w-3.5" aria-hidden />}
                     label="Pitch deck"
                     href={pitchDeckUrl}
                   />
@@ -498,7 +524,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
                     href={detail.company_linkedin_url}
                   />
                   <LinkChip
-                    icon={<ExternalLink className="h-3.5 w-3.5" aria-hidden />}
+                    icon={<Database className="h-3.5 w-3.5" aria-hidden />}
                     label="Tracxn"
                     href={detail.tracxn_url}
                   />
@@ -694,7 +720,11 @@ export function StartupRichDetailBlock({ detail }: Props) {
                 </div>
               </div>
             ) : null}
-            <ExternalLinkRow label="Investment memo" href={detail.investment_memo_url} />
+            <ExternalLinkRow
+              label="Investment memo"
+              href={detail.investment_memo_url}
+              icon={<FileText className="h-3 w-3 shrink-0 opacity-50" aria-hidden />}
+            />
           </CardContent>
         </Card>
       ) : null}
@@ -702,20 +732,30 @@ export function StartupRichDetailBlock({ detail }: Props) {
   );
 }
 
-function ExternalLinkRow({ label, href }: { label: string; href: string | null | undefined }) {
-  if (!href) return null;
+function ExternalLinkRow({
+  label,
+  href,
+  icon,
+}: {
+  label: string;
+  href: string | null | undefined;
+  icon?: React.ReactNode;
+}) {
+  const url = cleanText(href);
+  if (!url) return null;
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{label}</span>
       <a
-        href={href}
+        href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-sm text-brand hover:underline break-all min-w-0"
+        className="inline-flex items-center gap-1.5 text-sm text-brand hover:underline break-all min-w-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="break-all min-w-0">{href}</span>
-        <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+        {icon}
+        <span className="break-all min-w-0">{url}</span>
+        <ExternalLink className="h-3 w-3 shrink-0 opacity-50" aria-hidden />
       </a>
     </div>
   );
