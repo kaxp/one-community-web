@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { adminActOnConnection } from '@/api/endpoints';
 import { qk } from '@/api/query-keys';
 import type { ApiError } from '@/api/errors';
@@ -13,6 +14,8 @@ interface MutationArgs extends AdminActionRequest {
   connection_id: string;
   // The current tab the row was visible under — drives the optimistic remove.
   current_status: AdminConnectionStatus;
+  // Toast fired from hook-level callbacks so it survives optimistic-remove unmount.
+  successMessage?: string;
 }
 
 interface RollbackContext {
@@ -43,10 +46,18 @@ export function useAdminConnectionAction() {
       }
       return { status: current_status, previous };
     },
-    onError: (_err, _args, ctx) => {
+    onSuccess: (_data, args) => {
+      if (args.successMessage) toast.success(args.successMessage);
+    },
+    onError: (err, _args, ctx) => {
       if (ctx?.previous) {
         qc.setQueryData(qk.admin.connections.list(ctx.status), ctx.previous);
       }
+      toast.error(
+        err.code === 'conflict'
+          ? 'Already handled — refreshing'
+          : (err.userMessage ?? 'Action failed'),
+      );
     },
     onSettled: () => {
       // Server is the source of truth — refetch every list (status-keyed) so the

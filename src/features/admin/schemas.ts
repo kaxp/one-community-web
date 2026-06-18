@@ -215,6 +215,20 @@ export const zPartnerReferralResponse = z
   .passthrough();
 export type PartnerReferralResponse = z.infer<typeof zPartnerReferralResponse>;
 
+// POC options (restricted set — only these 3 are valid POC assignments)
+export const ADMIN_POC_OPTIONS = ['Rajendra', 'Sharad', 'Yogesh'] as const;
+export type AdminPoc = (typeof ADMIN_POC_OPTIONS)[number];
+
+// Known startup statuses for filter UI (backend accepts any string)
+export const STARTUP_STATUS_FILTER_OPTIONS = [
+  { value: 'portfolio', label: 'Portfolio' },
+  { value: 'stay connected', label: 'Stay Connected' },
+  { value: 'partner ref reachouts', label: 'Partner Ref Reachouts' },
+  { value: 'watchlist', label: 'Watchlist' },
+  { value: 'not a fit', label: 'Not a Fit' },
+  { value: 'rejected', label: 'Rejected' },
+] as const;
+
 // Phase 7.2.f — inbound pitches list + drawer.
 // .passthrough() per §13 G8 — tighten to .strict() when backend publishes
 // the formal schema.

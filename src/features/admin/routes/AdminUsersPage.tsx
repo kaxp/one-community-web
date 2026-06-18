@@ -28,6 +28,7 @@ import { EditUserDialog } from '@/features/admin/components/EditUserDialog';
 import { EditFounderDialog } from '@/features/admin/components/EditFounderDialog';
 import { type AdminUserListItem, type AdminFounderListItem } from '@/features/admin/schemas';
 import { fmtDateTime } from '@/lib/date';
+import { cn } from '@/lib/cn';
 import { useRole } from '@/auth/use-auth';
 import type { ApiError } from '@/api/errors';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -110,6 +111,11 @@ function DeleteUserDialog({ user, onClose }: DeleteDialogProps) {
 
 // ── Users table (LP / Potential LP / Partner / Startup / Admin tabs) ──────────
 
+const USER_SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'created_at', label: 'Created' },
+  { value: 'updated_at', label: 'Last Updated' },
+];
+
 function UsersTable({
   roles,
   isSuperAdmin,
@@ -124,8 +130,20 @@ function UsersTable({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [search, setSearchValue] = useState('');
   const [offset, setOffset] = useState(0);
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [editTarget, setEditTarget] = useState<AdminUserListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserListItem | null>(null);
+
+  const toggleSort = (col: string) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(col);
+      setSortDir('desc');
+    }
+    setOffset(0);
+  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -139,6 +157,8 @@ function UsersTable({
   const list = useAdminUsers({
     ...(search ? { search } : {}),
     roles,
+    sort_by: sortBy,
+    sort_dir: sortDir,
     limit: DEFAULT_LIMIT,
     offset,
   });
@@ -276,6 +296,25 @@ function UsersTable({
           onChange={handleSearchChange}
           className="w-64"
         />
+        <div className="flex items-center gap-1.5 text-sm text-ink-muted">
+          Sort:
+          {USER_SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => toggleSort(opt.value)}
+              className={cn(
+                'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+                sortBy === opt.value
+                  ? 'border-brand bg-brand/10 text-brand'
+                  : 'border-border bg-surface text-ink-muted hover:text-ink-body',
+              )}
+            >
+              {opt.label}
+              {sortBy === opt.value ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+            </button>
+          ))}
+        </div>
         {total > 0 ? (
           <span className="ml-auto text-xs text-ink-muted">{total.toLocaleString()} users</span>
         ) : null}

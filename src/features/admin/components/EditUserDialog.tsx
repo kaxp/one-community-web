@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ApiError } from '@/api/errors';
 import { useAdminUserUpdate } from '@/features/admin/hooks/use-admin-user-update';
-import type { AdminUserUpdateRequest } from '@/features/admin/schemas';
+import { type AdminUserUpdateRequest, ADMIN_POC_OPTIONS } from '@/features/admin/schemas';
 import type { UserRole } from '@/types/enums';
 
 const USER_ROLE_OPTIONS = [
@@ -176,12 +176,19 @@ export function EditUserDialog({ user, onClose, onSaved }: Props) {
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="edit-poc">POC (Point of Contact)</Label>
-              <Input
+              <select
                 id="edit-poc"
-                placeholder="e.g. Kapil Sahu"
                 value={form.poc ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, poc: e.target.value }))}
-              />
+                onChange={(e) => setForm((f) => ({ ...f, poc: e.target.value || undefined }))}
+                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink-body focus:outline-none focus:ring-2 focus:ring-brand"
+              >
+                <option value="">— None —</option>
+                {ADMIN_POC_OPTIONS.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <DialogFooter>

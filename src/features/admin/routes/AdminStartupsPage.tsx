@@ -1,19 +1,22 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ExternalLink, ArrowUpDown } from 'lucide-react';
+import { ExternalLink, ArrowUpDown, ChevronDown, Check, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { DataTable } from '@/components/data-table/DataTable';
 import { OffsetPaginator } from '@/components/pagination/OffsetPaginator';
+import { StartupStageBadge, STAGE_FILTER_OPTIONS } from '@/components/badges/StartupStageBadge';
+import { StartupStatusBadge } from '@/components/badges/StartupStatusBadge';
+import { SectorBadgeList } from '@/components/badges/SectorBadge';
 import { useAdminStartups } from '@/features/admin/hooks/use-admin-startups';
 import {
   STARTUP_SORT_OPTIONS,
+  STARTUP_STATUS_FILTER_OPTIONS,
   type AdminStartupListItem,
   type StartupSortOption,
 } from '@/features/admin/schemas';
@@ -30,25 +33,102 @@ const SORT_LABEL: Record<StartupSortOption, string> = {
   status: 'Status',
 };
 
-const STAGE_LABEL: Record<string, string> = {
-  ideation: 'Ideation',
-  pre_seed: 'Pre-Seed',
-  seed: 'Seed',
-  pre_series_a: 'Pre-Series A',
-  series_a: 'Series A',
-  series_b: 'Series B',
-  series_c: 'Series C',
-  growth: 'Growth',
-  late_growth: 'Late Growth',
-};
+// ── Local multi-select filter dropdown ───────────────────────────────────────
 
-function stageBadgeVariant(stage: string | null) {
-  if (!stage) return 'secondary';
-  if (['series_a', 'series_b', 'series_c', 'growth', 'late_growth'].includes(stage))
-    return 'default';
-  if (stage === 'seed' || stage === 'pre_seed') return 'secondary';
-  return 'outline';
+function FilterDropdown({
+  label,
+  options,
+  selected,
+  onToggle,
+  onClear,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+          selected.length > 0
+            ? 'border-brand bg-brand/10 text-brand'
+            : 'border-border bg-surface text-ink-muted hover:text-ink-body',
+        )}
+      >
+        {label}
+        {selected.length > 0 ? (
+          <span className="ml-0.5 rounded-full bg-brand px-1.5 py-0 text-[10px] text-white">
+            {selected.length}
+          </span>
+        ) : null}
+        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open ? (
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border bg-white shadow-md">
+          <div className="flex items-center justify-between border-b px-3 py-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+              {label}
+            </span>
+            {selected.length > 0 ? (
+              <button
+                type="button"
+                onClick={onClear}
+                className="flex items-center gap-0.5 text-[10px] text-ink-muted hover:text-destructive"
+              >
+                <X className="h-3 w-3" /> Clear
+              </button>
+            ) : null}
+          </div>
+          <div className="max-h-60 overflow-y-auto p-1">
+            {options.map((opt) => {
+              const active = selected.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onToggle(opt.value)}
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50',
+                    active ? 'font-medium text-brand' : 'text-ink-body',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border',
+                      active ? 'border-brand bg-brand' : 'border-border',
+                    )}
+                  >
+                    {active ? <Check className="h-2.5 w-2.5 text-white" /> : null}
+                  </span>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export function AdminStartupsPage() {
   const navigate = useNavigate();
@@ -58,6 +138,12 @@ export function AdminStartupsPage() {
   const sortBy = (params.get('sort_by') ?? 'created_at') as StartupSortOption;
   const sortDir = (params.get('sort_dir') ?? 'desc') as 'asc' | 'desc';
   const offset = Math.max(0, Number.parseInt(params.get('offset') ?? '0', 10) || 0);
+
+  // Multi-select filters — comma-separated in URL
+  const selectedStages = params.get('stage') ? params.get('stage')!.split(',').filter(Boolean) : [];
+  const selectedStatuses = params.get('status')
+    ? params.get('status')!.split(',').filter(Boolean)
+    : [];
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -85,6 +171,28 @@ export function AdminStartupsPage() {
     setParams(sp, { replace: true });
   };
 
+  const toggleStage = (value: string) => {
+    const sp = new URLSearchParams(params);
+    const next = selectedStages.includes(value)
+      ? selectedStages.filter((v) => v !== value)
+      : [...selectedStages, value];
+    if (next.length) sp.set('stage', next.join(','));
+    else sp.delete('stage');
+    sp.delete('offset');
+    setParams(sp, { replace: true });
+  };
+
+  const toggleStatus = (value: string) => {
+    const sp = new URLSearchParams(params);
+    const next = selectedStatuses.includes(value)
+      ? selectedStatuses.filter((v) => v !== value)
+      : [...selectedStatuses, value];
+    if (next.length) sp.set('status', next.join(','));
+    else sp.delete('status');
+    sp.delete('offset');
+    setParams(sp, { replace: true });
+  };
+
   const setPagination = ({ offset: nextOffset }: { limit: number; offset: number }) => {
     const sp = new URLSearchParams(params);
     if (nextOffset === 0) sp.delete('offset');
@@ -96,6 +204,8 @@ export function AdminStartupsPage() {
     ...(search ? { search } : {}),
     sort_by: sortBy,
     sort_dir: sortDir,
+    ...(selectedStages.length ? { stage: selectedStages.join(',') } : {}),
+    ...(selectedStatuses.length ? { status: selectedStatuses.join(',') } : {}),
     limit: DEFAULT_LIMIT,
     offset,
   };
@@ -139,48 +249,17 @@ export function AdminStartupsPage() {
             Sector
           </span>
         ),
-        cell: ({ row }) => {
-          const sectors = row.original.sector;
-          if (!sectors.length) return <span className="text-sm text-ink-muted">—</span>;
-          return (
-            <div className="flex flex-wrap gap-1">
-              {sectors.slice(0, 2).map((s) => (
-                <Badge key={s} variant="secondary" className="text-xs">
-                  {s}
-                </Badge>
-              ))}
-              {sectors.length > 2 ? (
-                <span className="text-xs text-ink-muted">+{sectors.length - 2}</span>
-              ) : null}
-            </div>
-          );
-        },
+        cell: ({ row }) => <SectorBadgeList sectors={row.original.sector} />,
       },
       {
         id: 'stage',
         header: () => <SortHeader col="stage" label="Stage" />,
-        cell: ({ row }) => {
-          const s = row.original.stage;
-          if (!s) return <span className="text-sm text-ink-muted">—</span>;
-          return (
-            <Badge variant={stageBadgeVariant(s)} className="text-xs">
-              {STAGE_LABEL[s] ?? s}
-            </Badge>
-          );
-        },
+        cell: ({ row }) => <StartupStageBadge stage={row.original.stage} />,
       },
       {
         id: 'status',
         header: () => <SortHeader col="status" label="Status" />,
-        cell: ({ row }) => {
-          const s = row.original.status;
-          if (!s) return <span className="text-sm text-ink-muted">—</span>;
-          return (
-            <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-ink-body">
-              {s.replace(/_/g, ' ')}
-            </span>
-          );
-        },
+        cell: ({ row }) => <StartupStatusBadge status={row.original.status} />,
       },
       {
         id: 'website',
@@ -236,6 +315,8 @@ export function AdminStartupsPage() {
     [sortBy, sortDir, navigate],
   );
 
+  const hasActiveFilters = selectedStages.length > 0 || selectedStatuses.length > 0;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Startups" subtitle="All startups in the database — read-only view." />
@@ -248,8 +329,10 @@ export function AdminStartupsPage() {
           onChange={handleSearchChange}
           className="w-64"
         />
+
+        {/* Sort controls */}
         <div className="flex items-center gap-1.5 text-sm text-ink-muted">
-          Sort by:
+          Sort:
           {STARTUP_SORT_OPTIONS.map((opt) => (
             <button
               key={opt}
@@ -267,6 +350,50 @@ export function AdminStartupsPage() {
             </button>
           ))}
         </div>
+
+        {/* Filter controls */}
+        <div className="flex items-center gap-2">
+          <FilterDropdown
+            label="Stage"
+            options={STAGE_FILTER_OPTIONS}
+            selected={selectedStages}
+            onToggle={toggleStage}
+            onClear={() => {
+              const sp = new URLSearchParams(params);
+              sp.delete('stage');
+              sp.delete('offset');
+              setParams(sp, { replace: true });
+            }}
+          />
+          <FilterDropdown
+            label="Status"
+            options={STARTUP_STATUS_FILTER_OPTIONS as unknown as { value: string; label: string }[]}
+            selected={selectedStatuses}
+            onToggle={toggleStatus}
+            onClear={() => {
+              const sp = new URLSearchParams(params);
+              sp.delete('status');
+              sp.delete('offset');
+              setParams(sp, { replace: true });
+            }}
+          />
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={() => {
+                const sp = new URLSearchParams(params);
+                sp.delete('stage');
+                sp.delete('status');
+                sp.delete('offset');
+                setParams(sp, { replace: true });
+              }}
+              className="flex items-center gap-1 text-xs text-ink-muted hover:text-destructive"
+            >
+              <X className="h-3 w-3" /> Clear filters
+            </button>
+          ) : null}
+        </div>
+
         {total > 0 ? (
           <span className="ml-auto text-xs text-ink-muted">{total.toLocaleString()} startups</span>
         ) : null}
@@ -305,7 +432,9 @@ export function AdminStartupsPage() {
                   <EmptyState
                     title="No startups found"
                     description={
-                      search ? 'Try a different search term.' : 'No startups in the database yet.'
+                      search || hasActiveFilters
+                        ? 'Try adjusting your search or filters.'
+                        : 'No startups in the database yet.'
                     }
                   />
                 }

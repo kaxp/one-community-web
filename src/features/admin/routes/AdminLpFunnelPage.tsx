@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,15 @@ import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { useLpFunnelStatus } from '@/features/admin/hooks/use-lp-funnel-status';
+import { useAdminUserUpdate } from '@/features/admin/hooks/use-admin-user-update';
 import { FunnelOverrideDialog } from '@/features/admin/components/FunnelOverrideDialog';
 import { FUNNEL_INDEX, FUNNEL_LABEL } from '@/features/admin/lib/funnel-labels';
-import { LP_FUNNEL_STATUSES, type LPFunnelStatus } from '@/features/admin/schemas';
+import {
+  LP_FUNNEL_STATUSES,
+  ADMIN_POC_OPTIONS,
+  type LPFunnelStatus,
+  type AdminPoc,
+} from '@/features/admin/schemas';
 import type { ApiError } from '@/api/errors';
 import { isUuid } from '@/lib/zod-helpers';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -32,8 +38,10 @@ export function AdminLpFunnelPage() {
   const userId = user_id ?? '';
   const userIdValid = isUuid(userId);
   const mutation = useLpFunnelStatus();
+  const pocMutation = useAdminUserUpdate();
   const [current, setCurrent] = useState<LPFunnelStatus | null>(null);
   const [conflict, setConflict] = useState<ConflictState | null>(null);
+  const [poc, setPoc] = useState<AdminPoc | ''>('');
 
   // issues.md [I-21] — guard against navigation with a non-UUID param so we
   // never PUT a malformed user_id and surface a confusing Zod parse failure.
@@ -176,6 +184,49 @@ export function AdminLpFunnelPage() {
               <ErrorState error={mutation.error} compact />
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Assign POC</CardTitle>
+          <CardDescription>
+            Point of contact for this LP. Selecting a value saves immediately.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <select
+              value={poc}
+              onChange={(e) => {
+                const val = e.target.value as AdminPoc | '';
+                setPoc(val);
+                if (!val) return;
+                pocMutation.mutate(
+                  { userId, body: { poc: val } },
+                  {
+                    onSuccess: () => toast.success(`POC set to ${val}`),
+                    onError: (err: ApiError) => toast.error(err.userMessage ?? 'Failed to set POC'),
+                  },
+                );
+              }}
+              disabled={pocMutation.isPending}
+              className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-ink-body focus:outline-none focus:ring-2 focus:ring-brand"
+            >
+              <option value="">— Select POC —</option>
+              {ADMIN_POC_OPTIONS.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            {pocMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin text-ink-muted" aria-hidden />
+            ) : null}
+            {poc && !pocMutation.isPending ? (
+              <span className="text-xs text-emerald-700">✓ Saved</span>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 

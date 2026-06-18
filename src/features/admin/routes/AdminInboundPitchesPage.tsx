@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { DataTable } from '@/components/data-table/DataTable';
+import { SectorBadgeList } from '@/components/badges/SectorBadge';
 import { useAdminInboundPitches } from '@/features/admin/hooks/use-admin-inbound-pitches';
 import { useAdminInboundPitchDetail } from '@/features/admin/hooks/use-admin-inbound-pitch-detail';
 import { useAdminVideoPitches } from '@/features/admin/hooks/use-admin-video-pitches';
@@ -156,10 +157,12 @@ function DrawerContent({ detail }: { detail: InboundPitchDetail }) {
       </DetailSection>
 
       <DetailSection title="Company">
-        <DetailRow
-          label="Sector"
-          value={Array.isArray(detail.sector) ? detail.sector.join(', ') : detail.sector}
-        />
+        {detail.sector && detail.sector.length > 0 ? (
+          <div className="flex gap-2 text-sm">
+            <span className="w-40 shrink-0 text-ink-muted">Sector</span>
+            <SectorBadgeList sectors={detail.sector} max={5} />
+          </div>
+        ) : null}
         <DetailRow label="Stage" value={detail.stage} />
         <DetailRow label="Founded" value={detail.founding_year} />
         <DetailRow label="Team size" value={detail.team_size} />
