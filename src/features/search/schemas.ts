@@ -231,6 +231,89 @@ export const zFounderDetail = z.object({
 });
 export type FounderDetail = z.infer<typeof zFounderDetail>;
 
+// ── Latest Public Intel sub-schemas ─────────────────────────────────────────
+// Sourced from public internet. Nested inside startups.latest_intel_structured.
+// investment_signal is stripped for non-admin roles by the backend.
+const zIntelCompetitor = z.object({
+  name: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  url: z.string().nullable().optional(),
+});
+
+const zIntelNewsItem = z.object({
+  headline: z.string().nullable().optional(),
+  url: z.string().nullable().optional(),
+  date: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
+  summary: z.string().nullable().optional(),
+});
+
+export const zLatestIntelStructured = z
+  .object({
+    source: z.string().nullable().optional(),
+    last_updated: z.string().nullable().optional(),
+    summary: z.string().nullable().optional(),
+    version: z.string().nullable().optional(),
+    quick_stats: z
+      .object({
+        hq: z.string().nullable().optional(),
+        stage: z.string().nullable().optional(),
+        sector: z.string().nullable().optional(),
+        founded: z.string().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    funding: z
+      .object({
+        valuation: z.string().nullable().optional(),
+        latest_round: z.string().nullable().optional(),
+        total_funding: z.string().nullable().optional(),
+        lead_investors: z.string().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    team: z
+      .object({
+        founders: z.string().nullable().optional(),
+        key_hires: z.string().nullable().optional(),
+        team_size: z.string().nullable().optional(),
+        exits_changes: z.string().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    traction: z
+      .object({
+        mrr_arr: z.string().nullable().optional(),
+        customers: z.string().nullable().optional(),
+        geography: z.string().nullable().optional(),
+        key_customers: z.array(z.string()).nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    competition: z
+      .object({
+        differentiation: z.string().nullable().optional(),
+        competitors: z.array(zIntelCompetitor).nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    recent_news: z.array(zIntelNewsItem).nullable().optional(),
+    red_flags: z.array(z.string()).nullable().optional(),
+    product_updates: z.array(z.string()).nullable().optional(),
+    investment_signal: z
+      .object({
+        color: z.string().nullable().optional(),
+        signal: z.string().nullable().optional(),
+        confidence: z.string().nullable().optional(),
+        line_1: z.string().nullable().optional(),
+        line_2: z.string().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+  })
+  .passthrough();
+export type LatestIntelStructured = z.infer<typeof zLatestIntelStructured>;
+
 export const zSearchDetailStartup = z.object({
   user_id: zUUID,
   company_name: z.string().nullable().optional(),
@@ -266,6 +349,8 @@ export const zSearchDetailStartup = z.object({
   customer_count: z.number().int().nullable().optional(),
   debt_amount: z.array(z.string()).nullable().optional(),
   debt_raise: z.string().nullable().optional(),
+  // Latest Public Intel — always visible when present; investment_signal stripped for non-admin
+  latest_intel_structured: zLatestIntelStructured.nullable().optional(),
   // Admin-only
   ai_pitch_summary: z.string().nullable().optional(),
   ai_signal: z.string().nullable().optional(),
