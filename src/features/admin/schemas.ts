@@ -317,7 +317,7 @@ export const zInboundPitchDetail = z
     founder_email: z.string().nullable(),
     founder_phone: z.string().nullable(),
     founder_linkedin: z.string().nullable(),
-    sector: z.string().nullable(),
+    sector: z.array(z.string()).nullable(),
     stage: z.string().nullable(),
     founding_year: z.number().int().nullable(),
     team_size: z.number().int().nullable(),
