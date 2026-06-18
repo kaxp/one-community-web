@@ -1,4 +1,12 @@
-import { ExternalLink, AlertTriangle } from 'lucide-react';
+import {
+  AlertTriangle,
+  Banknote,
+  Building2,
+  ExternalLink,
+  FileText,
+  Globe,
+  Lock,
+} from 'lucide-react';
 import { useRole } from '@/auth/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,21 +33,39 @@ function LinkedInIcon({ className }: { className?: string }) {
   );
 }
 
-function ExternalLinkRow({ label, href }: { label: string; href: string | null | undefined }) {
+/** Compact pill-style link, used for "Links & resources" so the section reads as one row instead of a stacked list. */
+function LinkChip({
+  icon,
+  label,
+  href,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  href: string | null | undefined;
+}) {
   if (!href) return null;
   return (
-    <div className="flex flex-col gap-1">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm text-ink-body transition-colors hover:border-brand hover:text-brand"
+    >
+      {icon}
+      <span>{label}</span>
+      <ExternalLink className="h-3 w-3 shrink-0 opacity-50" aria-hidden />
+    </a>
+  );
+}
+
+/** Label/value tile used for the financial stat grid — denser and easier to scan than stacked rows. */
+function StatTile({ label, value }: { label: string; value: string | number | null | undefined }) {
+  if (value === null || value === undefined || value === '') return null;
+  return (
+    <div className="flex flex-col gap-1 rounded-lg bg-muted/40 p-3">
       <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{label}</span>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-sm text-brand hover:underline break-all min-w-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <span className="break-all min-w-0">{href}</span>
-        <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
-      </a>
+      <span className="text-base font-semibold text-ink-heading">{value}</span>
     </div>
   );
 }
@@ -75,9 +101,7 @@ function IntelFundingSection({ funding }: { funding: IntelFunding }) {
   if (!hasContent(funding as Record<string, unknown>)) return null;
   return (
     <div className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted border-b pb-1">
-        Funding
-      </h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Funding</h4>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <IntelRow label="Latest round" value={funding.latest_round} />
         <IntelRow label="Total funding" value={funding.total_funding} />
@@ -92,9 +116,7 @@ function IntelTeamSection({ team }: { team: IntelTeam }) {
   if (!hasContent(team as Record<string, unknown>)) return null;
   return (
     <div className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted border-b pb-1">
-        Team
-      </h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Team</h4>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <IntelRow label="Team size" value={team.team_size} />
         <IntelRow label="Founders" value={team.founders} />
@@ -114,9 +136,7 @@ function IntelTractionSection({ traction }: { traction: IntelTraction }) {
   if (!hasSomething) return null;
   return (
     <div className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted border-b pb-1">
-        Traction
-      </h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Traction</h4>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <IntelRow label="MRR / ARR" value={traction.mrr_arr} />
         <IntelRow label="Customers" value={traction.customers} />
@@ -145,9 +165,7 @@ function IntelCompetitionSection({ competition }: { competition: IntelCompetitio
   if (!competition.differentiation && !hasCompetitors) return null;
   return (
     <div className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted border-b pb-1">
-        Competition
-      </h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Competition</h4>
       {competition.differentiation ? (
         <div className="flex flex-col gap-1">
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
@@ -163,7 +181,7 @@ function IntelCompetitionSection({ competition }: { competition: IntelCompetitio
           </span>
           <div className="flex flex-col gap-3">
             {competition.competitors!.map((c, i) => (
-              <div key={i} className="flex flex-col gap-0.5 pl-3 border-l-2 border-border">
+              <div key={i} className="flex flex-col gap-0.5 border-l-2 border-border pl-3">
                 <span className="text-sm font-medium text-ink-heading">{c.name}</span>
                 {c.description ? <p className="text-xs text-ink-muted">{c.description}</p> : null}
               </div>
@@ -180,9 +198,7 @@ function IntelNewsSection({ news }: { news: NonNullable<LatestIntelStructured['r
   if (!filtered.length) return null;
   return (
     <div className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted border-b pb-1">
-        Recent news
-      </h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Recent news</h4>
       <div className="flex flex-col gap-2">
         {filtered.map((n, i) =>
           n.url ? (
@@ -211,8 +227,8 @@ function IntelNewsSection({ news }: { news: NonNullable<LatestIntelStructured['r
 function IntelRedFlagsSection({ flags }: { flags: string[] }) {
   if (!flags.length) return null;
   return (
-    <div className="flex flex-col gap-3">
-      <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-600 border-b border-amber-200 pb-1">
+    <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+      <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700">
         <AlertTriangle className="h-3.5 w-3.5" />
         Caution
       </h4>
@@ -232,7 +248,7 @@ function IntelProductUpdatesSection({ updates }: { updates: string[] }) {
   if (!updates.length) return null;
   return (
     <div className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted border-b pb-1">
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
         Product updates
       </h4>
       <ul className="flex flex-col gap-1.5">
@@ -258,32 +274,29 @@ const SIGNAL_BADGE: Record<string, string> = {
   weak: 'bg-red-100 text-red-800',
 };
 
-function InvestmentSignalCard({ signal }: { signal: IntelSignal }) {
+/** Top-of-page verdict banner (admin only) — surfaced above everything else instead of buried in its own card. */
+function InvestmentSignalBanner({ signal }: { signal: IntelSignal }) {
   if (!signal.signal && !signal.line_1) return null;
-  const containerCls = SIGNAL_CONTAINER[signal.color ?? ''] ?? 'bg-muted/50 border-border';
+  const containerCls = SIGNAL_CONTAINER[signal.color ?? ''] ?? 'bg-muted/40 border-border';
   const badgeCls = SIGNAL_BADGE[signal.signal ?? ''] ?? 'bg-muted text-ink-muted';
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-base">Investment Signal</CardTitle>
-          {signal.signal ? (
-            <span
-              className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase ${badgeCls}`}
-            >
-              {signal.signal}
-              {signal.confidence ? ` · ${signal.confidence} confidence` : ''}
-            </span>
-          ) : null}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className={`flex flex-col gap-1.5 rounded-lg border p-3 ${containerCls}`}>
-          {signal.line_1 ? <p className="text-sm text-ink-body">{signal.line_1}</p> : null}
-          {signal.line_2 ? <p className="text-sm text-ink-muted">{signal.line_2}</p> : null}
-        </div>
-      </CardContent>
-    </Card>
+    <div className={`flex flex-col gap-2 rounded-xl border p-4 ${containerCls}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+          Investment signal
+        </span>
+        {signal.signal ? (
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase ${badgeCls}`}
+          >
+            {signal.signal}
+            {signal.confidence ? ` · ${signal.confidence} confidence` : ''}
+          </span>
+        ) : null}
+      </div>
+      {signal.line_1 ? <p className="text-sm text-ink-body">{signal.line_1}</p> : null}
+      {signal.line_2 ? <p className="text-sm text-ink-muted">{signal.line_2}</p> : null}
+    </div>
   );
 }
 
@@ -305,6 +318,11 @@ export function StartupRichDetailBlock({ detail }: Props) {
     detail.revenue_model ||
     detail.traction;
 
+  const hasFounders = detail.founders && detail.founders.length > 0;
+  const hasLinks = detail.website_url || detail.company_linkedin_url || detail.tracxn_url;
+  const hasResources = hasLinks || pitchDeckUrl;
+  const hasOverview = hasAbout || hasFounders || hasResources;
+
   const hasFinancials =
     canSeeFinancials &&
     (detail.funding_target_cr != null ||
@@ -318,15 +336,20 @@ export function StartupRichDetailBlock({ detail }: Props) {
       detail.last_round_valuation ||
       detail.valuation_sought);
 
+  const hasSecondaryFinancials =
+    detail.existing_investors ||
+    detail.last_round_valuation ||
+    detail.money_raised ||
+    detail.valuation_sought ||
+    detail.debt_amount?.length ||
+    detail.debt_raise;
+
   const hasAdminFields =
     detail.ai_pitch_summary ||
     detail.deal_manager ||
     detail.partner_on_call?.length ||
     detail.notion_status ||
     detail.investment_memo_url;
-
-  const hasFounders = detail.founders && detail.founders.length > 0;
-  const hasLinks = detail.website_url || detail.company_linkedin_url || detail.tracxn_url;
 
   const hasIntel =
     intel != null &&
@@ -347,207 +370,224 @@ export function StartupRichDetailBlock({ detail }: Props) {
 
   return (
     <>
-      {/* About */}
-      {hasAbout ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>About</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <InfoRow
-              label="Founded"
-              value={detail.founding_year != null ? String(detail.founding_year) : null}
-              isMasked={false}
-            />
-            <InfoRow label="City" value={detail.city} isMasked={false} />
-            <InfoRow
-              label="Team size"
-              value={detail.team_size != null ? String(detail.team_size) : null}
-              isMasked={false}
-            />
-            <InfoRow label="Revenue model" value={detail.revenue_model} isMasked={false} />
-            {detail.traction ? (
-              <div className="col-span-2 flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                  Traction
-                </span>
-                <p className="text-sm text-ink-body">{detail.traction}</p>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
+      {/* Investment signal — surfaced first so admins see the verdict before the details */}
+      {isAdmin && intel?.investment_signal ? (
+        <InvestmentSignalBanner signal={intel.investment_signal} />
       ) : null}
 
-      {/* Founders */}
-      {hasFounders ? (
+      {/* Overview — about, founders, and resources in one place instead of three separate cards */}
+      {hasOverview ? (
         <Card>
           <CardHeader>
-            <CardTitle>Founders</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-ink-muted" aria-hidden />
+              Overview
+            </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            {detail.founders!.map((f, i) => (
-              <div key={i} className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-ink-heading">
-                    {f.name ?? 'Unknown founder'}
-                    {f.position ? (
-                      <span className="ml-2 text-xs font-normal text-ink-muted">
-                        ({f.position})
-                      </span>
-                    ) : null}
-                  </p>
-                  {f.linkedin_url ? (
-                    <a
-                      href={f.linkedin_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#0A66C2] transition-opacity hover:opacity-75"
-                      aria-label={`${f.name ?? 'Founder'} on LinkedIn`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <LinkedInIcon className="h-4 w-4" />
-                    </a>
-                  ) : null}
+          <CardContent className="flex flex-col gap-6">
+            {hasAbout ? (
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <InfoRow
+                    label="Founded"
+                    value={detail.founding_year != null ? String(detail.founding_year) : null}
+                    isMasked={false}
+                  />
+                  <InfoRow label="City" value={detail.city} isMasked={false} />
+                  <InfoRow
+                    label="Team size"
+                    value={detail.team_size != null ? String(detail.team_size) : null}
+                    isMasked={false}
+                  />
+                  <InfoRow label="Revenue model" value={detail.revenue_model} isMasked={false} />
                 </div>
-                {f.description ? <p className="text-sm text-ink-body">{f.description}</p> : null}
-                {f.email ? (
-                  <a
-                    href={`mailto:${f.email}`}
-                    className="text-xs text-brand hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {f.email}
-                  </a>
+                {detail.traction ? (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Traction
+                    </span>
+                    <p className="text-sm text-ink-body">{detail.traction}</p>
+                  </div>
                 ) : null}
-                {f.phone ? <span className="text-xs text-ink-muted">{f.phone}</span> : null}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* Pitch deck — lp / admin / super_admin */}
-      {pitchDeckUrl ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Pitch Deck</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <a
-              href={pitchDeckUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-brand hover:underline break-all"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-              {pitchDeckUrl}
-            </a>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* External links */}
-      {hasLinks ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Links</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <ExternalLinkRow label="Website" href={detail.website_url} />
-            {detail.company_linkedin_url ? (
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                  LinkedIn
-                </span>
-                <a
-                  href={detail.company_linkedin_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-[#0A66C2] hover:opacity-75 break-all"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <LinkedInIcon className="h-4 w-4 shrink-0" />
-                  <span className="break-all">{detail.company_linkedin_url}</span>
-                </a>
               </div>
             ) : null}
-            <ExternalLinkRow label="Tracxn" href={detail.tracxn_url} />
-          </CardContent>
-        </Card>
-      ) : null}
 
-      {/* Financials */}
-      {hasFinancials ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Financials</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <InfoRow
-              label="Raising"
-              value={
-                detail.raising_raw ??
-                (detail.funding_target_cr != null ? fmtCr(detail.funding_target_cr) : null)
-              }
-              isMasked={false}
-            />
-            <InfoRow label="MRR / ARR" value={detail.mrr_arr} isMasked={false} />
-            <InfoRow
-              label="Monthly revenue"
-              value={detail.revenue_monthly != null ? fmtCr(detail.revenue_monthly / 100) : null}
-              isMasked={false}
-            />
-            <InfoRow
-              label="Monthly burn"
-              value={detail.burn_monthly != null ? fmtCr(detail.burn_monthly / 100) : null}
-              isMasked={false}
-            />
-            <InfoRow
-              label="Runway"
-              value={detail.runway_months != null ? `${detail.runway_months} months` : null}
-              isMasked={false}
-            />
-            <InfoRow
-              label="Growth"
-              value={detail.growth_pct != null ? `${detail.growth_pct}%` : null}
-              isMasked={false}
-            />
-            <InfoRow
-              label="Gross margin"
-              value={detail.gross_margin_pct != null ? `${detail.gross_margin_pct}%` : null}
-              isMasked={false}
-            />
-            <InfoRow label="Customers" value={detail.customer_count} isMasked={false} />
-            <div className="sm:col-span-2">
-              <InfoRow
-                label="Existing investors"
-                value={detail.existing_investors}
-                isMasked={false}
-              />
-            </div>
-            <InfoRow
-              label="Last round valuation"
-              value={detail.last_round_valuation}
-              isMasked={false}
-            />
-            <InfoRow label="Total raised" value={detail.money_raised} isMasked={false} />
-            <InfoRow label="Valuation sought" value={detail.valuation_sought} isMasked={false} />
-            {detail.debt_amount?.length ? (
-              <div className="flex flex-col gap-1">
+            {hasFounders ? (
+              <div
+                className={`flex flex-col gap-3 ${hasAbout ? 'border-t border-border pt-5' : ''}`}
+              >
                 <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                  Debt
+                  Founders
                 </span>
-                <div className="flex flex-wrap gap-1">
-                  {detail.debt_amount.map((d) => (
-                    <Badge key={d} variant="outline">
-                      {d}
-                    </Badge>
+                <div className="flex flex-col divide-y divide-border">
+                  {detail.founders!.map((f, i) => (
+                    <div key={i} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-ink-heading">
+                          {f.name ?? 'Unknown founder'}
+                          {f.position ? (
+                            <span className="ml-2 text-xs font-normal text-ink-muted">
+                              ({f.position})
+                            </span>
+                          ) : null}
+                        </p>
+                        {f.linkedin_url ? (
+                          <a
+                            href={f.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#0A66C2] transition-opacity hover:opacity-75"
+                            aria-label={`${f.name ?? 'Founder'} on LinkedIn`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <LinkedInIcon className="h-4 w-4" />
+                          </a>
+                        ) : null}
+                      </div>
+                      {f.description ? (
+                        <p className="text-sm text-ink-body">{f.description}</p>
+                      ) : null}
+                      {f.email || f.phone ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {f.email ? (
+                            <a
+                              href={`mailto:${f.email}`}
+                              className="text-xs text-brand hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {f.email}
+                            </a>
+                          ) : null}
+                          {f.email && f.phone ? (
+                            <span className="text-xs text-ink-muted">·</span>
+                          ) : null}
+                          {f.phone ? (
+                            <span className="text-xs text-ink-muted">{f.phone}</span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
               </div>
             ) : null}
-            <InfoRow label="Debt raise" value={detail.debt_raise} isMasked={false} />
+
+            {hasResources ? (
+              <div
+                className={`flex flex-col gap-2 ${
+                  hasAbout || hasFounders ? 'border-t border-border pt-5' : ''
+                }`}
+              >
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  Links &amp; resources
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <LinkChip
+                    icon={<FileText className="h-3.5 w-3.5" aria-hidden />}
+                    label="Pitch deck"
+                    href={pitchDeckUrl}
+                  />
+                  <LinkChip
+                    icon={<Globe className="h-3.5 w-3.5" aria-hidden />}
+                    label="Website"
+                    href={detail.website_url}
+                  />
+                  <LinkChip
+                    icon={<LinkedInIcon className="h-3.5 w-3.5 text-[#0A66C2]" />}
+                    label="LinkedIn"
+                    href={detail.company_linkedin_url}
+                  />
+                  <LinkChip
+                    icon={<ExternalLink className="h-3.5 w-3.5" aria-hidden />}
+                    label="Tracxn"
+                    href={detail.tracxn_url}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Financials — key numbers as scannable tiles, supporting details below */}
+      {hasFinancials ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Banknote className="h-4 w-4 text-ink-muted" aria-hidden />
+              Financials
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatTile
+                label="Raising"
+                value={
+                  detail.raising_raw ??
+                  (detail.funding_target_cr != null ? fmtCr(detail.funding_target_cr) : null)
+                }
+              />
+              <StatTile label="MRR / ARR" value={detail.mrr_arr} />
+              <StatTile
+                label="Monthly revenue"
+                value={detail.revenue_monthly != null ? fmtCr(detail.revenue_monthly / 100) : null}
+              />
+              <StatTile
+                label="Monthly burn"
+                value={detail.burn_monthly != null ? fmtCr(detail.burn_monthly / 100) : null}
+              />
+              <StatTile
+                label="Runway"
+                value={detail.runway_months != null ? `${detail.runway_months} months` : null}
+              />
+              <StatTile
+                label="Growth"
+                value={detail.growth_pct != null ? `${detail.growth_pct}%` : null}
+              />
+              <StatTile
+                label="Gross margin"
+                value={detail.gross_margin_pct != null ? `${detail.gross_margin_pct}%` : null}
+              />
+              <StatTile label="Customers" value={detail.customer_count} />
+            </div>
+
+            {hasSecondaryFinancials ? (
+              <div className="grid grid-cols-1 gap-4 border-t border-border pt-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <InfoRow
+                    label="Existing investors"
+                    value={detail.existing_investors}
+                    isMasked={false}
+                  />
+                </div>
+                <InfoRow
+                  label="Last round valuation"
+                  value={detail.last_round_valuation}
+                  isMasked={false}
+                />
+                <InfoRow label="Total raised" value={detail.money_raised} isMasked={false} />
+                <InfoRow
+                  label="Valuation sought"
+                  value={detail.valuation_sought}
+                  isMasked={false}
+                />
+                {detail.debt_amount?.length ? (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Debt
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {detail.debt_amount.map((d) => (
+                        <Badge key={d} variant="outline">
+                          {d}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <InfoRow label="Debt raise" value={detail.debt_raise} isMasked={false} />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
@@ -557,7 +597,10 @@ export function StartupRichDetailBlock({ detail }: Props) {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-col gap-0.5">
-              <CardTitle className="text-base">Latest Public Intel</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Globe className="h-4 w-4 text-ink-muted" aria-hidden />
+                Latest Public Intel
+              </CardTitle>
               <p className="text-xs text-ink-muted">
                 Sourced from public internet
                 {intel?.last_updated ? ` · Updated ${intel.last_updated}` : ''}
@@ -599,16 +642,14 @@ export function StartupRichDetailBlock({ detail }: Props) {
         </Card>
       ) : null}
 
-      {/* Investment Signal — admin / super_admin only */}
-      {isAdmin && intel?.investment_signal ? (
-        <InvestmentSignalCard signal={intel.investment_signal} />
-      ) : null}
-
       {/* Internal — admin only */}
       {hasAdminFields ? (
-        <Card>
+        <Card className="border-dashed">
           <CardHeader>
-            <CardTitle>Internal</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-ink-muted" aria-hidden />
+              Internal
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {detail.ai_signal ? (
@@ -658,5 +699,24 @@ export function StartupRichDetailBlock({ detail }: Props) {
         </Card>
       ) : null}
     </>
+  );
+}
+
+function ExternalLinkRow({ label, href }: { label: string; href: string | null | undefined }) {
+  if (!href) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{label}</span>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-sm text-brand hover:underline break-all min-w-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="break-all min-w-0">{href}</span>
+        <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+      </a>
+    </div>
   );
 }
