@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { InlineExecutionButton } from '@/components/execution-panel';
 import { useRespondToConnection } from '@/features/connections/hooks/use-respond-to-connection';
 import { useCancelConnection } from '@/features/connections/hooks/use-cancel-connection';
-import type { ApiError } from '@/api/errors';
 import type { PendingConnection } from '@/features/connections/schemas';
 import { fmtDate } from '@/lib/date';
 
@@ -32,11 +31,6 @@ function displayName(c: PendingConnection['counterpart']): string {
 
 function Actions({ row }: { row: PendingConnection }) {
   const respond = useRespondToConnection();
-  const errorToast = (err: ApiError) => {
-    if (err.code === 'conflict') return 'This was already handled — refreshing';
-    if (err.code === 'forbidden') return 'You can no longer respond to this request';
-    return err.userMessage;
-  };
   return (
     <div className="flex flex-wrap gap-2">
       <InlineExecutionButton
@@ -46,9 +40,8 @@ function Actions({ row }: { row: PendingConnection }) {
           connection_id: row.connection_id,
           counterpart_id: row.counterpart.user_id,
           action: 'accept' as const,
+          successMessage: 'Connection accepted — contact details unlocked',
         }}
-        onSuccessToast={() => 'Connection accepted — contact details unlocked'}
-        onErrorToast={errorToast}
       >
         <Check className="h-3.5 w-3.5" aria-hidden />
         <span>Accept</span>
@@ -61,9 +54,8 @@ function Actions({ row }: { row: PendingConnection }) {
           connection_id: row.connection_id,
           counterpart_id: row.counterpart.user_id,
           action: 'decline' as const,
+          successMessage: 'Declined',
         }}
-        onSuccessToast={() => 'Declined'}
-        onErrorToast={errorToast}
       >
         <X className="h-3.5 w-3.5" aria-hidden />
         <span>Decline</span>

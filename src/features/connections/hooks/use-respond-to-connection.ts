@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { respondToConnection } from '@/api/endpoints';
 import { qk } from '@/api/query-keys';
 import type { ApiError } from '@/api/errors';
@@ -14,6 +15,8 @@ interface MutationArgs {
   // Counterpart user id — needed so we can invalidate qk.profile.byId(counterpart)
   // after accept so /profile/:id unmasks the contact card. (PRD §7.6.3 transformation note.)
   counterpart_id: string;
+  // Toast fired from hook-level callbacks so it survives optimistic-remove unmount.
+  successMessage?: string;
 }
 
 interface RollbackContext {
@@ -43,10 +46,20 @@ export function useRespondToConnection() {
       }
       return { previous };
     },
-    onError: (_err, _args, ctx) => {
+    onSuccess: (_data, args) => {
+      if (args.successMessage) toast.success(args.successMessage);
+    },
+    onError: (err, _args, ctx) => {
       if (ctx?.previous) {
         qc.setQueryData(qk.connections.pending(50), ctx.previous);
       }
+      toast.error(
+        err.code === 'conflict'
+          ? 'This was already handled — refreshing'
+          : err.code === 'forbidden'
+            ? 'You can no longer respond to this request'
+            : (err.userMessage ?? 'Action failed'),
+      );
     },
     onSettled: (_data, _err, args) => {
       void qc.invalidateQueries({ queryKey: qk.connections.pendingAll });

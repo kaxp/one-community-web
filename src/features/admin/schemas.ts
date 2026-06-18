@@ -215,6 +215,38 @@ export const zPartnerReferralResponse = z
   .passthrough();
 export type PartnerReferralResponse = z.infer<typeof zPartnerReferralResponse>;
 
+// POC options (restricted set — only these 3 are valid POC assignments)
+export const ADMIN_POC_OPTIONS = ['Rajendra', 'Sharad', 'Yogesh'] as const;
+export type AdminPoc = (typeof ADMIN_POC_OPTIONS)[number];
+
+// Startup status values — must match VALID_STATUS on the backend exactly.
+export const STARTUP_STATUS_FILTER_OPTIONS = [
+  { value: 'longlist', label: 'Longlist' },
+  { value: 'straight_pass', label: 'Straight Pass' },
+  { value: 'team_reach_out', label: 'Team Reach Out' },
+  { value: 'schedule_partner_intro_call', label: 'Schedule Partner Intro Call' },
+  { value: 'raghav_calls', label: 'Raghav Calls' },
+  { value: 'sinchana_call', label: 'Sinchana Call' },
+  { value: 'partner_intro_scheduled', label: 'Partner Intro Scheduled' },
+  { value: 'rajendra_sir_feedback', label: 'Rajendra Sir Feedback' },
+  { value: 'sharad_feedback', label: 'Sharad Feedback' },
+  { value: 'request_data', label: 'Request Data' },
+  { value: 'data_received', label: 'Data Received' },
+  { value: 'deep_dive_scheduled', label: 'Deep Dive Scheduled' },
+  { value: 'termsheet_discussion', label: 'Termsheet Discussion' },
+  { value: 'pass_for_now', label: 'Pass for Now' },
+  { value: 'not_shortlisted', label: 'Not Shortlisted' },
+  { value: 'not_responsive', label: 'Not Responsive' },
+  { value: 'ib_mandate', label: 'IB Mandate' },
+  { value: 'portfolio', label: 'Portfolio' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'nikhil_calls', label: 'Nikhil Calls' },
+  { value: 'stay_connected', label: 'Stay Connected' },
+  { value: 'partner_ref_reachouts', label: 'Partner Ref Reachouts' },
+  { value: 'praveens_feedback', label: "Praveen's Feedback" },
+  { value: 'karan_calls', label: 'Karan Calls' },
+] as const;
+
 // Phase 7.2.f — inbound pitches list + drawer.
 // .passthrough() per §13 G8 — tighten to .strict() when backend publishes
 // the formal schema.

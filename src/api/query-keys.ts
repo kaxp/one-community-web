@@ -108,6 +108,8 @@ export const qk = {
       search?: string;
       sort_by?: string;
       sort_dir?: string;
+      stage?: string;
+      status?: string;
       limit?: number;
       offset?: number;
     }) => ['admin', 'startups', args] as const,

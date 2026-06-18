@@ -1140,6 +1140,10 @@ export interface AdminStartupsArgs {
   search?: string;
   sort_by?: string;
   sort_dir?: string;
+  /** Comma-separated stage values, e.g. 'seed,series_a' */
+  stage?: string;
+  /** Comma-separated status values, e.g. 'portfolio,watchlist' */
+  status?: string;
   limit?: number;
   offset?: number;
 }
@@ -1151,6 +1155,8 @@ export async function getAdminStartups(
   if (args.search) params.set('search', args.search);
   if (args.sort_by) params.set('sort_by', args.sort_by);
   if (args.sort_dir) params.set('sort_dir', args.sort_dir);
+  if (args.stage) params.set('stage', args.stage);
+  if (args.status) params.set('status', args.status);
   if (args.limit !== undefined) params.set('limit', String(args.limit));
   if (args.offset !== undefined) params.set('offset', String(args.offset));
   const qs = params.toString();

@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,6 @@ import {
 import { STATUS_LABEL, TAB_LABEL, statusBadgeVariant } from '@/features/admin/lib/status-labels';
 import { fmtDateTime } from '@/lib/date';
 import { qk } from '@/api/query-keys';
-import type { ApiError } from '@/api/errors';
 import { cn } from '@/lib/cn';
 import { PageHeader } from '@/components/layout/PageHeader';
 
@@ -67,9 +65,6 @@ function RowActions({ connectionId }: { connectionId: string }) {
   const [note, setNote] = useState('');
   const action = useAdminConnectionAction();
 
-  const errorToast = (err: ApiError) =>
-    err.code === 'conflict' ? 'Already handled — refreshing' : err.userMessage;
-
   const handleRejectConfirm = () => {
     action.mutate(
       {
@@ -77,15 +72,12 @@ function RowActions({ connectionId }: { connectionId: string }) {
         current_status: 'pending_admin' as AdminConnectionStatus,
         action: 'reject',
         note: note.trim() || undefined,
+        successMessage: 'Rejected',
       },
       {
         onSuccess: () => {
-          toast.success('Rejected');
           setRejectOpen(false);
           setNote('');
-        },
-        onError: (err) => {
-          toast.error(errorToast(err));
         },
       },
     );
@@ -101,9 +93,8 @@ function RowActions({ connectionId }: { connectionId: string }) {
             connection_id: connectionId,
             current_status: 'pending_admin' as AdminConnectionStatus,
             action: 'approve' as const,
+            successMessage: 'Approved',
           }}
-          onSuccessToast={() => 'Approved'}
-          onErrorToast={errorToast}
         >
           Approve
         </InlineExecutionButton>
