@@ -31,7 +31,7 @@ describe('analytics hooks', () => {
     signedInAsAdmin();
     const { result } = renderHookWithProviders(() => useAnalyticsOverview());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.users_total).toBe(412);
+    expect(result.current.data?.total_users).toBe(412);
     // Unknown key from the fixture is preserved (.passthrough()).
     expect(
       (result.current.data as Record<string, unknown> | undefined)?.speculative_signal_count,
