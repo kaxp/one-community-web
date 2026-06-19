@@ -382,7 +382,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
                 />
               </FormField>
               <FormField
-                label="Email"
+                label="Email *"
                 htmlFor={`additional_founders.${idx}.email`}
                 error={errors.additional_founders?.[idx]?.email?.message}
               >
@@ -395,7 +395,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField
-                label="Phone"
+                label="Phone *"
                 htmlFor={`additional_founders.${idx}.phone_number`}
                 error={errors.additional_founders?.[idx]?.phone_number?.message}
               >
@@ -572,22 +572,20 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
       </Section>
 
       {/* ── 5. Anything else ── */}
-      <Section title="Anything else?">
-        <FormField
-          label="Is there anything else you'd like to share with us?"
-          htmlFor="additional_notes"
-          error={errors.additional_notes?.message}
-          hint="Optional — max 2000 characters"
-        >
-          <textarea
-            id="additional_notes"
-            rows={4}
-            className={`${INPUT_CLASS} h-auto`}
-            placeholder="Traction highlights, upcoming milestones, why now — anything you feel is important"
-            {...register('additional_notes')}
-          />
-        </FormField>
-      </Section>
+      <FormField
+        label="Is there anything else you'd like to share with us?"
+        htmlFor="additional_notes"
+        error={errors.additional_notes?.message}
+        hint="Optional — max 2000 characters"
+      >
+        <textarea
+          id="additional_notes"
+          rows={4}
+          className={`${INPUT_CLASS} h-auto`}
+          placeholder="Traction highlights, upcoming milestones, why now — anything you feel is important"
+          {...register('additional_notes')}
+        />
+      </FormField>
 
       {/* ── Error + submit ── */}
       {serverError ? (

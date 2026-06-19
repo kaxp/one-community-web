@@ -76,14 +76,9 @@ const optStr = () =>
 // Co-founder entry (additional founders beyond the primary)
 export const zCoFounder = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
-  email: z
-    .string()
-    .trim()
-    .email('Enter a valid email')
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
+  email: z.string().trim().min(1, 'Required').email('Enter a valid email'),
   phone_country_code: z.string().default('+91'),
-  phone_number: optStr(),
+  phone_number: z.string().trim().min(1, 'Required'),
   linkedin_url: optUrl(),
 });
 export type CoFounderValues = z.input<typeof zCoFounder>;
