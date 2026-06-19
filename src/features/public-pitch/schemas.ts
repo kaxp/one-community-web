@@ -63,6 +63,9 @@ const optUrl = () =>
     .optional()
     .or(z.literal('').transform(() => undefined));
 
+const reqUrl = (msg = 'Enter a valid URL (https://…)') =>
+  z.string().trim().min(1, 'Required').url(msg);
+
 const optStr = () =>
   z
     .string()
@@ -88,7 +91,7 @@ export type CoFounderValues = z.input<typeof zCoFounder>;
 export const zPublicPitchForm = z.object({
   // ── Company ──────────────────────────────────────────────────────────
   company_name: z.string().trim().min(1, 'Required').max(200),
-  city: optStr(),
+  city: z.string().trim().min(1, 'Required'),
   sector: z.string().trim().min(1, 'Required'),
   stage: z.enum(PITCH_STAGES, { required_error: 'Required' }),
   founding_year: z
@@ -99,9 +102,10 @@ export const zPublicPitchForm = z.object({
   team_size: optInt(),
   tagline: z.string().trim().min(1, 'Required').max(280),
   description: z.string().trim().min(1, 'Required').max(4000),
-  website_url: optUrl(),
+  website_url: reqUrl(),
   company_linkedin_url: optUrl(),
-  deck_url: optUrl(),
+  deck_url: reqUrl(),
+  tracxn_url: optUrl(),
 
   // ── Founders ─────────────────────────────────────────────────────────
   founder_name: z.string().trim().min(1, 'Required').max(200),
@@ -111,8 +115,8 @@ export const zPublicPitchForm = z.object({
     .min(1, 'Required')
     .regex(/^[^@\s]+@[^@\s]+\.[^@\s]+$/, 'Enter a valid email address'),
   phone_country_code: z.string().default('+91'),
-  phone_number: optStr(),
-  founder_linkedin_url: optUrl(),
+  phone_number: z.string().trim().min(1, 'Required'),
+  founder_linkedin_url: reqUrl('Enter a valid LinkedIn URL'),
   additional_founders: z.array(zCoFounder).optional(),
 
   // ── Funding ──────────────────────────────────────────────────────────
@@ -148,11 +152,11 @@ export type PublicPitchFormValues = z.input<typeof zPublicPitchForm>;
 // when assigning values that may be explicitly undefined.
 export type PublicPitchInput = {
   company_name: string;
-  city?: string | undefined;
+  city: string;
   founder_name: string;
   email: string;
-  phone?: string | undefined;
-  founder_linkedin_url?: string | undefined;
+  phone: string;
+  founder_linkedin_url: string;
   additional_founders?:
     | Array<{
         name: string;
@@ -167,9 +171,10 @@ export type PublicPitchInput = {
   description: string;
   founding_year: number;
   team_size?: number | undefined;
-  website_url?: string | undefined;
+  website_url: string;
   company_linkedin_url?: string | undefined;
-  deck_url?: string | undefined;
+  deck_url: string;
+  tracxn_url?: string | undefined;
   money_raised?: string | undefined;
   existing_investors?: string | undefined;
   revenue_inr?: number | undefined;
@@ -214,11 +219,11 @@ export function toApiPayload(values: PublicPitchFormValues): PublicPitchInput {
 
   return {
     company_name: values.company_name,
-    city: values.city,
+    city: values.city as string,
     founder_name: values.founder_name,
     email: values.email,
-    phone,
-    founder_linkedin_url: values.founder_linkedin_url,
+    phone: phone as string,
+    founder_linkedin_url: values.founder_linkedin_url as string,
     additional_founders: additional_founders.length ? additional_founders : undefined,
     sector: values.sector,
     stage: values.stage,
@@ -226,9 +231,10 @@ export function toApiPayload(values: PublicPitchFormValues): PublicPitchInput {
     description: values.description,
     founding_year: values.founding_year,
     team_size: values.team_size,
-    website_url: values.website_url,
+    website_url: values.website_url as string,
     company_linkedin_url: values.company_linkedin_url,
-    deck_url: values.deck_url,
+    deck_url: values.deck_url as string,
+    tracxn_url: values.tracxn_url,
     money_raised: values.money_raised,
     existing_investors: values.existing_investors,
     revenue_inr: values.revenue_inr,
