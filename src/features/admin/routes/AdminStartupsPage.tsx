@@ -262,6 +262,22 @@ export function AdminStartupsPage() {
         cell: ({ row }) => <StartupStatusBadge status={row.original.status} />,
       },
       {
+        id: 'deal_manager',
+        header: () => (
+          <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+            Deal Manager
+          </span>
+        ),
+        cell: ({ row }) => {
+          const dm = row.original.deal_manager;
+          return dm ? (
+            <span className="text-sm text-ink-body">{dm}</span>
+          ) : (
+            <span className="text-sm text-ink-muted">—</span>
+          );
+        },
+      },
+      {
         id: 'website',
         header: () => (
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">

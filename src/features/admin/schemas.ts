@@ -534,6 +534,7 @@ export const zAdminStartupListItem = z
     status: z.string().nullable(),
     founder_name: z.string().nullable(),
     website_url: z.string().nullable(),
+    deal_manager: z.string().nullable().optional(),
     created_at: zISODateTime,
   })
   .passthrough();
