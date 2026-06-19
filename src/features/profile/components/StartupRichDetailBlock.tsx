@@ -662,19 +662,29 @@ export function StartupRichDetailBlock({ detail }: Props) {
         </Card>
       ) : null}
 
-      {/* Latest Public Intel — sourced from the web */}
+      {/* Evaluation Summary — AI-generated evaluation */}
       {hasIntel ? (
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-col gap-0.5">
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-ink-muted" aria-hidden />
-                Latest Public Intel
+                Evaluation Summary
               </CardTitle>
               <p className="text-xs text-ink-muted">
-                Sourced from public internet
+                AI-generated evaluation
                 {intel?.last_updated ? ` · Updated ${intel.last_updated}` : ''}
               </p>
+              {intel?.evaluation_generated_at && (
+                <p className="text-xs text-ink-muted mt-0.5">
+                  Evaluated{' '}
+                  {new Date(intel.evaluation_generated_at).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </p>
+              )}
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">

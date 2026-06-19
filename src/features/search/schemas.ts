@@ -310,6 +310,8 @@ export const zLatestIntelStructured = z
       })
       .nullable()
       .optional(),
+    evaluation_generated_at: z.string().nullable().optional(),
+    evaluation_summary: z.record(z.unknown()).nullable().optional(),
   })
   .passthrough();
 export type LatestIntelStructured = z.infer<typeof zLatestIntelStructured>;

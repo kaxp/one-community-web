@@ -19,6 +19,7 @@ import { useAdminLpNoteCreate } from '@/features/admin/hooks/use-admin-lp-note-c
 import { useAdminLpNoteDelete } from '@/features/admin/hooks/use-admin-lp-note-delete';
 import { EditUserDialog, type EditableUser } from '@/features/admin/components/EditUserDialog';
 import {
+  ADMIN_POC_OPTIONS,
   LP_CRM_NOTE_LABELS,
   LP_CRM_NOTE_TYPES,
   type LpCrmListItem,
@@ -580,14 +581,6 @@ export function AdminLpFunnelPickerPage() {
   const lps = useAdminLps(lpsArgs);
 
   const rawItems = lps.data?.items;
-  // Derive unique POC options from the full (unfiltered-by-poc) list
-  const pocOptions = useMemo(() => {
-    const seen = new Set<string>();
-    for (const lp of rawItems ?? []) {
-      if (lp.poc) seen.add(lp.poc);
-    }
-    return Array.from(seen).sort();
-  }, [rawItems]);
 
   // Apply poc filter client-side — the list is always ≤200 rows
   const filtered = useMemo(() => {
@@ -673,20 +666,18 @@ export function AdminLpFunnelPickerPage() {
         </div>
 
         {/* POC filter */}
-        {pocOptions.length > 0 && (
-          <select
-            value={pocFilter}
-            onChange={(e) => setPocFilter(e.target.value)}
-            className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink-body transition-colors hover:bg-surface-secondary focus:outline-none"
-          >
-            <option value="">All POCs</option>
-            {pocOptions.map((poc) => (
-              <option key={poc} value={poc}>
-                {poc}
-              </option>
-            ))}
-          </select>
-        )}
+        <select
+          value={pocFilter}
+          onChange={(e) => setPocFilter(e.target.value)}
+          className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink-body transition-colors hover:bg-surface-secondary focus:outline-none"
+        >
+          <option value="">All POCs</option>
+          {ADMIN_POC_OPTIONS.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
 
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-sm">
