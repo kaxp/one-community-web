@@ -9,17 +9,15 @@ import { z } from 'zod';
 // page renders well-typed cards, but `.passthrough()` keeps any extras.
 export const zAnalyticsOverview = z
   .object({
-    users_total: z.number().int().nonnegative().optional(),
-    lps_total: z.number().int().nonnegative().optional(),
-    potential_lps_total: z.number().int().nonnegative().optional(),
-    vcs_total: z.number().int().nonnegative().optional(),
-    startups_total: z.number().int().nonnegative().optional(),
-    portfolio_startups_total: z.number().int().nonnegative().optional(),
-    connections_accepted: z.number().int().nonnegative().optional(),
-    connections_pending: z.number().int().nonnegative().optional(),
-    digests_sent_30d: z.number().int().nonnegative().optional(),
-    mis_submissions_this_month: z.number().int().nonnegative().optional(),
-    meetings_scheduled_30d: z.number().int().nonnegative().optional(),
+    total_users: z.number().default(0),
+    lps: z.number().default(0),
+    potential_lps: z.number().default(0),
+    startups: z.number().default(0),
+    connections_accepted: z.number().default(0),
+    connections_pending: z.number().default(0),
+    meetings_30d: z.number().default(0),
+    digests_sent_30d: z.number().default(0),
+    mis_this_month: z.number().default(0),
   })
   .passthrough();
 export type AnalyticsOverview = z.infer<typeof zAnalyticsOverview>;

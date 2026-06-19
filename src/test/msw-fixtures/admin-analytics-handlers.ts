@@ -15,17 +15,15 @@ import type {
 type ErrorEnvelope = { status: number; code: string; message: string; detail?: unknown };
 
 const SEED_OVERVIEW: AnalyticsOverview = {
-  users_total: 412,
-  lps_total: 120,
-  potential_lps_total: 85,
-  vcs_total: 45,
-  startups_total: 230,
-  portfolio_startups_total: 12,
+  total_users: 412,
+  lps: 120,
+  potential_lps: 85,
+  startups: 230,
   connections_accepted: 56,
   connections_pending: 8,
+  meetings_30d: 23,
   digests_sent_30d: 8,
-  mis_submissions_this_month: 10,
-  meetings_scheduled_30d: 23,
+  mis_this_month: 10,
   // Intentional unknown key — the page must ignore this without breaking.
   speculative_signal_count: 3,
 };

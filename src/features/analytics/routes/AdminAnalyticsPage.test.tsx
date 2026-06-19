@@ -45,10 +45,10 @@ describe('AdminAnalyticsPage', () => {
   it('renders KPI cards on the Overview tab by default', async () => {
     signedInAsAdmin();
     renderPage();
-    await waitFor(() => expect(screen.getByTestId('kpi-users_total')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('kpi-total_users')).toBeInTheDocument());
     // Indian-numbering: 412 → "412"; 1,234 would render as "1,234".
-    expect(screen.getByTestId('kpi-users_total').textContent).toContain('412');
-    expect(screen.getByTestId('kpi-startups_total').textContent).toContain('230');
+    expect(screen.getByTestId('kpi-total_users').textContent).toContain('412');
+    expect(screen.getByTestId('kpi-startups').textContent).toContain('230');
   });
 
   it('switches to the Funnel tab and renders three funnel charts', async () => {

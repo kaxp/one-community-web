@@ -307,7 +307,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     path: '/admin/lp-funnel',
     icon: 'Route',
     roles: ['admin', 'super_admin'],
-    adminSection: 'system',
+    adminSection: 'core',
   },
   {
     key: 'admin-tracxn',

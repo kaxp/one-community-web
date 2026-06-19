@@ -34,7 +34,7 @@ export function StartupStageBadge({ stage }: { stage: string | null | undefined 
   return (
     <span
       className={cn(
-        'inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium',
+        'w-fit inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium',
         STAGE_COLORS[stage] ?? 'bg-slate-100 text-slate-600',
       )}
     >

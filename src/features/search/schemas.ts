@@ -310,6 +310,26 @@ export const zLatestIntelStructured = z
       })
       .nullable()
       .optional(),
+    evaluation_generated_at: z.string().nullable().optional(),
+    evaluation_summary: z.record(z.unknown()).nullable().optional(),
+    pitch_deck_extracted_at: z.string().nullable().optional(),
+    pitch_deck_extraction: z
+      .object({
+        public: z
+          .object({
+            company_snapshot: z.record(z.unknown()).nullable().optional(),
+            what_they_do: z.record(z.unknown()).nullable().optional(),
+            business_model: z.record(z.unknown()).nullable().optional(),
+            traction_snapshot: z.record(z.unknown()).nullable().optional(),
+            team: z.record(z.unknown()).nullable().optional(),
+            competitive_landscape: z.record(z.unknown()).nullable().optional(),
+          })
+          .nullable()
+          .optional(),
+        lp_only: z.record(z.unknown()).nullable().optional(),
+      })
+      .nullable()
+      .optional(),
   })
   .passthrough();
 export type LatestIntelStructured = z.infer<typeof zLatestIntelStructured>;

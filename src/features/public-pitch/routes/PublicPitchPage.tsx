@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2, Loader2, PlusCircle, Trash2 } from 'lucide-react';
@@ -7,13 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/forms/FormField';
+import { PhoneInput } from '@/components/forms/PhoneInput';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { submitPublicPitch } from '@/api/public/pitch';
 import {
   zPublicPitchForm,
   PITCH_STAGES,
   PITCH_STAGE_LABELS,
-  COUNTRY_CODES,
   toApiPayload,
   type PublicPitchFormValues,
   type PublicPitchSuccess,
@@ -23,11 +23,6 @@ const SUPPORT_EMAIL = 'pitch@warmupventures.com';
 
 const INPUT_CLASS =
   'flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
-
-// Same as INPUT_CLASS but w-36 flex-none instead of w-full — used for the country-code <select>
-// so it doesn't expand to full container width.
-const SELECT_CC_CLASS =
-  'h-10 w-36 flex-none rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
 // ── Success / special states ──────────────────────────────────────────────────
 
@@ -91,7 +86,7 @@ function RateLimitedCard() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <fieldset className="flex flex-col gap-4">
-      <legend className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+      <legend className="mb-2 block w-full border-b border-border pb-2 text-xs font-medium uppercase tracking-widest text-ink-muted">
         {title}
       </legend>
       {children}
@@ -111,6 +106,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
     control,
     setError,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PublicPitchFormValues>({
     resolver: zodResolver(zPublicPitchForm),
@@ -166,8 +162,13 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
               data-testid="field-company_name"
             />
           </FormField>
-          <FormField label="City" htmlFor="city" error={errors.city?.message}>
-            <Input id="city" placeholder="e.g. Bengaluru" {...register('city')} />
+          <FormField label="City *" htmlFor="city" error={errors.city?.message}>
+            <Input
+              id="city"
+              placeholder="e.g. Bengaluru"
+              {...register('city')}
+              data-testid="field-city"
+            />
           </FormField>
         </div>
 
@@ -248,7 +249,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
-            label="Website or Mobile App link"
+            label="Website or Mobile App link *"
             htmlFor="website_url"
             error={errors.website_url?.message}
           >
@@ -257,30 +258,47 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
               type="url"
               placeholder="https://"
               {...register('website_url')}
+              data-testid="field-website_url"
             />
           </FormField>
           <FormField
-            label="Pitch deck URL"
+            label="Pitch deck URL *"
             htmlFor="deck_url"
             error={errors.deck_url?.message}
             hint="Google Drive, Dropbox, etc."
           >
-            <Input id="deck_url" type="url" placeholder="https://" {...register('deck_url')} />
+            <Input
+              id="deck_url"
+              type="url"
+              placeholder="https://"
+              {...register('deck_url')}
+              data-testid="field-deck_url"
+            />
           </FormField>
         </div>
 
-        <FormField
-          label="Company LinkedIn"
-          htmlFor="company_linkedin_url"
-          error={errors.company_linkedin_url?.message}
-        >
-          <Input
-            id="company_linkedin_url"
-            type="url"
-            placeholder="https://linkedin.com/company/…"
-            {...register('company_linkedin_url')}
-          />
-        </FormField>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            label="Company LinkedIn"
+            htmlFor="company_linkedin_url"
+            error={errors.company_linkedin_url?.message}
+          >
+            <Input
+              id="company_linkedin_url"
+              type="url"
+              placeholder="https://linkedin.com/company/…"
+              {...register('company_linkedin_url')}
+            />
+          </FormField>
+          <FormField label="Tracxn URL" htmlFor="tracxn_url" error={errors.tracxn_url?.message}>
+            <Input
+              id="tracxn_url"
+              type="url"
+              placeholder="https://tracxn.com/d/companies/…"
+              {...register('tracxn_url')}
+            />
+          </FormField>
+        </div>
       </Section>
 
       {/* ── 2. Founder details ── */}
@@ -311,31 +329,17 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Phone" htmlFor="phone_number" error={errors.phone_number?.message}>
-            <div className="flex gap-2">
-              <select
-                {...register('phone_country_code')}
-                className={SELECT_CC_CLASS}
-                aria-label="Country code"
-              >
-                {COUNTRY_CODES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              <Input
-                id="phone_number"
-                type="tel"
-                inputMode="tel"
-                placeholder="98765 43210"
-                {...register('phone_number')}
-                className="flex-1"
-              />
-            </div>
+          <FormField label="Phone *" htmlFor="phone_number" error={errors.phone_number?.message}>
+            <PhoneInput
+              id="phone_number"
+              countryCode={watch('phone_country_code') ?? '+91'}
+              onCountryCodeChange={(code) => setValue('phone_country_code', code)}
+              data-testid="field-phone_number"
+              {...register('phone_number')}
+            />
           </FormField>
           <FormField
-            label="LinkedIn"
+            label="LinkedIn *"
             htmlFor="founder_linkedin_url"
             error={errors.founder_linkedin_url?.message}
           >
@@ -344,6 +348,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
               type="url"
               placeholder="https://linkedin.com/in/…"
               {...register('founder_linkedin_url')}
+              data-testid="field-founder_linkedin_url"
             />
           </FormField>
         </div>
@@ -377,7 +382,7 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
                 />
               </FormField>
               <FormField
-                label="Email"
+                label="Email *"
                 htmlFor={`additional_founders.${idx}.email`}
                 error={errors.additional_founders?.[idx]?.email?.message}
               >
@@ -390,30 +395,18 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField
-                label="Phone"
+                label="Phone *"
                 htmlFor={`additional_founders.${idx}.phone_number`}
                 error={errors.additional_founders?.[idx]?.phone_number?.message}
               >
-                <div className="flex gap-2">
-                  <select
-                    {...register(`additional_founders.${idx}.phone_country_code`)}
-                    className={SELECT_CC_CLASS}
-                    aria-label="Country code"
-                  >
-                    {COUNTRY_CODES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    id={`additional_founders.${idx}.phone_number`}
-                    type="tel"
-                    placeholder="98765 43210"
-                    {...register(`additional_founders.${idx}.phone_number`)}
-                    className="flex-1"
-                  />
-                </div>
+                <PhoneInput
+                  id={`additional_founders.${idx}.phone_number`}
+                  countryCode={watch(`additional_founders.${idx}.phone_country_code`) ?? '+91'}
+                  onCountryCodeChange={(code) =>
+                    setValue(`additional_founders.${idx}.phone_country_code`, code)
+                  }
+                  {...register(`additional_founders.${idx}.phone_number`)}
+                />
               </FormField>
               <FormField
                 label="LinkedIn"
@@ -579,22 +572,20 @@ function PitchForm({ onSuccess }: { onSuccess: (data: PublicPitchSuccess) => voi
       </Section>
 
       {/* ── 5. Anything else ── */}
-      <Section title="Anything else?">
-        <FormField
-          label="Is there anything else you'd like to share with us?"
-          htmlFor="additional_notes"
-          error={errors.additional_notes?.message}
-          hint="Optional — max 2000 characters"
-        >
-          <textarea
-            id="additional_notes"
-            rows={4}
-            className={`${INPUT_CLASS} h-auto`}
-            placeholder="Traction highlights, upcoming milestones, why now — anything you feel is important"
-            {...register('additional_notes')}
-          />
-        </FormField>
-      </Section>
+      <FormField
+        label="Is there anything else you'd like to share with us?"
+        htmlFor="additional_notes"
+        error={errors.additional_notes?.message}
+        hint="Optional — max 2000 characters"
+      >
+        <textarea
+          id="additional_notes"
+          rows={4}
+          className={`${INPUT_CLASS} h-auto`}
+          placeholder="Traction highlights, upcoming milestones, why now — anything you feel is important"
+          {...register('additional_notes')}
+        />
+      </FormField>
 
       {/* ── Error + submit ── */}
       {serverError ? (
@@ -655,9 +646,9 @@ export function PublicPitchPage() {
             <BrandLogo size={28} />
             <span className="text-sm font-semibold text-ink-heading">Warmup Ventures</span>
           </div>
-          <Link to="/signin" className="text-sm font-medium text-brand hover:underline">
+          {/* <Link to="/signin" className="text-sm font-medium text-brand hover:underline">
             Already a member? Sign in
-          </Link>
+          </Link> */}
         </div>
       </header>
 
@@ -665,8 +656,16 @@ export function PublicPitchPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-ink-heading">Pitch your startup</h1>
           <p className="mt-2 text-ink-muted">
-            Share your story with the Warmup Ventures community. Our team reviews every pitch and
-            connects promising founders with the right LPs and VCs.
+            Welcome to Warmup Ventures.
+            <br />
+            <br />
+            We&apos;re a founders’ led, sector-agnostic early-stage micro VC firm dedicated to
+            supporting innovative startups. We&apos;re looking for driven teams with disruptive
+            ideas that have the potential to make a real impact.
+            <br />
+            <br />
+            This form allows you to share your vision, team, and plan for success. We believe in the
+            power of collaboration, so let&apos;s build the future together!
           </p>
         </div>
 

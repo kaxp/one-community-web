@@ -31,9 +31,14 @@ function renderPage() {
 // Fill all required fields (setValueAs coerces strings, so plain value works).
 function fillRequired() {
   fireEvent.change(screen.getByTestId('field-company_name'), { target: { value: 'Co' } });
+  fireEvent.change(screen.getByTestId('field-city'), { target: { value: 'Bengaluru' } });
   fireEvent.change(screen.getByTestId('field-sector'), { target: { value: 'Tech' } });
   fireEvent.change(screen.getByTestId('field-founder_name'), { target: { value: 'Jane' } });
   fireEvent.change(screen.getByTestId('field-email'), { target: { value: 'a@b.com' } });
+  fireEvent.change(screen.getByTestId('field-phone_number'), { target: { value: '9876543210' } });
+  fireEvent.change(screen.getByTestId('field-founder_linkedin_url'), {
+    target: { value: 'https://linkedin.com/in/jane' },
+  });
   fireEvent.change(screen.getByTestId('field-tagline'), { target: { value: 'A tagline here.' } });
   fireEvent.change(screen.getByTestId('field-description'), {
     target: { value: 'A description that is long enough for validation purposes here.' },
@@ -41,6 +46,12 @@ function fillRequired() {
   // type="number" inputs need `input` event (not `change`) to trigger React onChange in JSDOM.
   fireEvent.input(screen.getByTestId('field-founding_year'), { target: { value: '2022' } });
   fireEvent.change(screen.getByTestId('field-stage'), { target: { value: 'seed' } });
+  fireEvent.change(screen.getByTestId('field-website_url'), {
+    target: { value: 'https://testco.com' },
+  });
+  fireEvent.change(screen.getByTestId('field-deck_url'), {
+    target: { value: 'https://drive.google.com/deck' },
+  });
 }
 
 describe('PublicPitchPage — submission UI states (mocked API)', () => {

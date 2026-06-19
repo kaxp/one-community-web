@@ -20,15 +20,39 @@ function renderPage() {
   );
 }
 
+// VALID_PAYLOAD matches PublicPitchInput (API shape — used for submitPublicPitch calls)
 const VALID_PAYLOAD = {
   company_name: 'Test Co',
+  city: 'Bengaluru',
   sector: 'Fintech',
   founder_name: 'Jane Doe',
   email: 'jane@test.com',
+  phone: '+919876543210',
+  founder_linkedin_url: 'https://linkedin.com/in/janedoe',
   tagline: 'We fix fintech.',
   description: 'A detailed description of the startup for validation.',
   founding_year: 2022,
   stage: 'seed' as const,
+  website_url: 'https://testco.com',
+  deck_url: 'https://drive.google.com/deck',
+};
+
+// VALID_FORM_DATA matches zPublicPitchForm (RHF form shape)
+const VALID_FORM_DATA = {
+  company_name: 'Test Co',
+  city: 'Bengaluru',
+  sector: 'Fintech',
+  founder_name: 'Jane Doe',
+  email: 'jane@test.com',
+  phone_country_code: '+91',
+  phone_number: '9876543210',
+  founder_linkedin_url: 'https://linkedin.com/in/janedoe',
+  tagline: 'We fix fintech.',
+  description: 'A detailed description of the startup for validation.',
+  founding_year: 2022,
+  stage: 'seed' as const,
+  website_url: 'https://testco.com',
+  deck_url: 'https://drive.google.com/deck',
 };
 
 beforeEach(() => {
@@ -38,15 +62,17 @@ beforeEach(() => {
 // ── Schema unit tests ─────────────────────────────────────────────────────────
 describe('zPublicPitchForm schema', () => {
   it('accepts valid required fields', () => {
-    expect(zPublicPitchForm.safeParse(VALID_PAYLOAD).success).toBe(true);
+    expect(zPublicPitchForm.safeParse(VALID_FORM_DATA).success).toBe(true);
   });
 
   it('rejects missing company_name', () => {
-    expect(zPublicPitchForm.safeParse({ ...VALID_PAYLOAD, company_name: '' }).success).toBe(false);
+    expect(zPublicPitchForm.safeParse({ ...VALID_FORM_DATA, company_name: '' }).success).toBe(
+      false,
+    );
   });
 
   it('rejects invalid email', () => {
-    expect(zPublicPitchForm.safeParse({ ...VALID_PAYLOAD, email: 'not-email' }).success).toBe(
+    expect(zPublicPitchForm.safeParse({ ...VALID_FORM_DATA, email: 'not-email' }).success).toBe(
       false,
     );
   });
@@ -54,7 +80,7 @@ describe('zPublicPitchForm schema', () => {
   it('rejects founding_year in the future', () => {
     expect(
       zPublicPitchForm.safeParse({
-        ...VALID_PAYLOAD,
+        ...VALID_FORM_DATA,
         founding_year: new Date().getFullYear() + 1,
       }).success,
     ).toBe(false);
@@ -102,10 +128,6 @@ describe('PublicPitchPage — rendering', () => {
   it('renders the form with the Warmup Ventures header', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: /pitch your startup/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /already a member/i })).toHaveAttribute(
-      'href',
-      '/signin',
-    );
     expect(screen.getByTestId('pitch-form')).toBeInTheDocument();
   });
 
