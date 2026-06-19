@@ -352,6 +352,80 @@ function InvestmentSignalBanner({ signal }: { signal: IntelSignal }) {
   );
 }
 
+// ── Pitch deck extraction helpers ────────────────────────────────────────────
+
+function asRec(v: unknown): Record<string, unknown> {
+  return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+function asArr(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : [];
+}
+
+function DeckSection({
+  title,
+  lp,
+  children,
+}: {
+  title: string;
+  lp?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{title}</h4>
+        {lp ? (
+          <span className="rounded-full bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand">
+            LP
+          </span>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function DeckField({
+  label,
+  value,
+  multiline,
+}: {
+  label: string;
+  value: unknown;
+  multiline?: boolean;
+}) {
+  const v = value == null || value === '' ? null : String(value);
+  if (!v) return null;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs text-ink-muted">{label}</span>
+      {multiline ? (
+        <p className="whitespace-pre-wrap text-sm text-ink-body">{v}</p>
+      ) : (
+        <span className="text-sm text-ink-body">{v}</span>
+      )}
+    </div>
+  );
+}
+
+function DeckBullets({ label, items }: { label: string; items: unknown }) {
+  const arr = asArr(items).filter((x) => x != null && x !== '') as string[];
+  if (!arr.length) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs text-ink-muted">{label}</span>
+      <ul className="flex flex-col gap-0.5">
+        {arr.map((item, i) => (
+          <li key={i} className="flex gap-2 text-sm text-ink-body">
+            <span className="shrink-0 text-ink-muted">•</span>
+            <span>{String(item)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function StartupRichDetailBlock({ detail }: Props) {
@@ -718,6 +792,316 @@ export function StartupRichDetailBlock({ detail }: Props) {
               <IntelProductUpdatesSection updates={intel.product_updates} />
             ) : null}
             {intel?.red_flags?.length ? <IntelRedFlagsSection flags={intel.red_flags} /> : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Pitch Deck Evaluation */}
+      {intel?.pitch_deck_extraction ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-0.5">
+              <CardTitle className="flex items-center gap-2">
+                <Presentation className="h-4 w-4 text-ink-muted" aria-hidden />
+                Pitch Deck Evaluation
+              </CardTitle>
+              <p className="text-xs text-ink-muted">
+                Extracted from founder&apos;s pitch deck
+                {intel.pitch_deck_extracted_at
+                  ? ` · ${new Date(intel.pitch_deck_extracted_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                  : ''}
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            {/* Company Snapshot */}
+            {intel.pitch_deck_extraction.public?.company_snapshot ? (
+              <DeckSection title="Company Snapshot">
+                <DeckField
+                  label="Brand name"
+                  value={asRec(intel.pitch_deck_extraction.public.company_snapshot).brand_name}
+                />
+                <DeckField
+                  label="Legal name"
+                  value={asRec(intel.pitch_deck_extraction.public.company_snapshot).legal_name}
+                />
+                <DeckField
+                  label="Description"
+                  value={
+                    asRec(intel.pitch_deck_extraction.public.company_snapshot).short_description
+                  }
+                  multiline
+                />
+                <DeckField
+                  label="Founded"
+                  value={asRec(intel.pitch_deck_extraction.public.company_snapshot).founded_year}
+                />
+                <DeckField
+                  label="Location"
+                  value={asRec(intel.pitch_deck_extraction.public.company_snapshot).hq_location}
+                />
+              </DeckSection>
+            ) : null}
+
+            {/* What They Do */}
+            {intel.pitch_deck_extraction.public?.what_they_do ? (
+              <DeckSection title="What They Do">
+                <DeckField
+                  label="Product"
+                  value={asRec(intel.pitch_deck_extraction.public.what_they_do).product_description}
+                  multiline
+                />
+                <DeckBullets
+                  label="Core offering"
+                  items={asRec(intel.pitch_deck_extraction.public.what_they_do).core_offering}
+                />
+                <DeckField
+                  label="Target customer"
+                  value={asRec(intel.pitch_deck_extraction.public.what_they_do).target_customer_icp}
+                />
+              </DeckSection>
+            ) : null}
+
+            {/* Business Model */}
+            {intel.pitch_deck_extraction.public?.business_model ? (
+              <DeckSection title="Business Model">
+                <DeckField
+                  label="Pricing"
+                  value={asRec(intel.pitch_deck_extraction.public.business_model).pricing_structure}
+                />
+                {asArr(
+                  asRec(intel.pitch_deck_extraction.public.business_model).revenue_streams,
+                ).map((s, i) => (
+                  <div key={i} className="flex flex-col gap-0.5 border-l-2 border-border pl-3">
+                    <span className="text-sm font-medium text-ink-body">
+                      {String(asRec(s).name ?? '')}
+                    </span>
+                    {asRec(s).model_type ? (
+                      <span className="text-xs text-ink-muted">{String(asRec(s).model_type)}</span>
+                    ) : null}
+                  </div>
+                ))}
+              </DeckSection>
+            ) : null}
+
+            {/* Traction Snapshot */}
+            {intel.pitch_deck_extraction.public?.traction_snapshot ? (
+              <DeckSection title="Traction Snapshot">
+                <DeckField
+                  label="Revenue bracket"
+                  value={
+                    asRec(intel.pitch_deck_extraction.public.traction_snapshot).revenue_bracket
+                  }
+                />
+                <DeckField
+                  label="Customers"
+                  value={asRec(intel.pitch_deck_extraction.public.traction_snapshot).customer_count}
+                />
+                <DeckField
+                  label="As of"
+                  value={asRec(intel.pitch_deck_extraction.public.traction_snapshot).as_of_date}
+                />
+                {asRec(intel.pitch_deck_extraction.public.traction_snapshot).is_cumulative !=
+                null ? (
+                  <DeckField
+                    label="Metric type"
+                    value={
+                      asRec(intel.pitch_deck_extraction.public.traction_snapshot).is_cumulative
+                        ? 'Cumulative (lifetime)'
+                        : 'Current run-rate'
+                    }
+                  />
+                ) : null}
+              </DeckSection>
+            ) : null}
+
+            {/* Team */}
+            {intel.pitch_deck_extraction.public?.team ? (
+              <DeckSection title="Team">
+                {asArr(asRec(intel.pitch_deck_extraction.public.team).founders).map((f, i) => (
+                  <div key={i} className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-ink-body">
+                      {String(asRec(f).name ?? '')}
+                      {asRec(f).role ? ` — ${String(asRec(f).role)}` : ''}
+                    </span>
+                    {asArr(asRec(f).prior_companies).length ? (
+                      <span className="text-xs text-ink-muted">
+                        {asArr(asRec(f).prior_companies).map(String).join(', ')}
+                      </span>
+                    ) : null}
+                    {asRec(f).linkedin && String(asRec(f).linkedin).startsWith('http') ? (
+                      <a
+                        href={String(asRec(f).linkedin)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-brand underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        LinkedIn
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
+                <DeckField
+                  label="Team size"
+                  value={asRec(intel.pitch_deck_extraction.public.team).team_size}
+                />
+                <DeckField
+                  label="Functional split"
+                  value={asRec(intel.pitch_deck_extraction.public.team).functional_split}
+                />
+                <DeckBullets
+                  label="Open roles"
+                  items={asRec(intel.pitch_deck_extraction.public.team).open_roles}
+                />
+                <DeckBullets
+                  label="Advisors"
+                  items={asRec(intel.pitch_deck_extraction.public.team).advisors}
+                />
+              </DeckSection>
+            ) : null}
+
+            {/* Competitive Landscape */}
+            {intel.pitch_deck_extraction.public?.competitive_landscape ? (
+              <DeckSection title="Competitive Landscape">
+                {asArr(
+                  asRec(intel.pitch_deck_extraction.public.competitive_landscape).founders_framing,
+                ).map((c, i) => (
+                  <div key={i} className="flex flex-col gap-0.5 border-l-2 border-border pl-3">
+                    <span className="text-sm font-medium text-ink-body">
+                      {String(asRec(c).competitor ?? '')}
+                    </span>
+                    {asRec(c).differentiation_claim ? (
+                      <span className="text-xs italic text-ink-muted">
+                        {String(asRec(c).differentiation_claim)}
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+                <DeckField
+                  label="Comparison table"
+                  value={
+                    asRec(intel.pitch_deck_extraction.public.competitive_landscape)
+                      .objective_comparison
+                  }
+                  multiline
+                />
+                <p className="text-xs text-ink-muted">
+                  * Competitive framing as positioned by founder
+                </p>
+              </DeckSection>
+            ) : null}
+
+            {/* LP-only sections */}
+            {canSeePitchDeck && intel.pitch_deck_extraction.lp_only ? (
+              <>
+                {asRec(intel.pitch_deck_extraction.lp_only).traction_metrics ? (
+                  <DeckSection title="Traction Metrics (Exact)" lp>
+                    {Object.entries(
+                      asRec(asRec(intel.pitch_deck_extraction.lp_only).traction_metrics),
+                    ).map(([k, v]) =>
+                      v ? (
+                        <DeckField
+                          key={k}
+                          label={k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                          value={v}
+                        />
+                      ) : null,
+                    )}
+                  </DeckSection>
+                ) : null}
+
+                {asRec(intel.pitch_deck_extraction.lp_only).business_model_figures ? (
+                  <DeckSection title="Business Model (Figures)" lp>
+                    <DeckField
+                      label="Take rate"
+                      value={
+                        asRec(asRec(intel.pitch_deck_extraction.lp_only).business_model_figures)
+                          .take_rate
+                      }
+                    />
+                    <DeckField
+                      label="Margin claims"
+                      value={
+                        asRec(asRec(intel.pitch_deck_extraction.lp_only).business_model_figures)
+                          .margin_claims
+                      }
+                    />
+                  </DeckSection>
+                ) : null}
+
+                {asRec(intel.pitch_deck_extraction.lp_only).funding_history ? (
+                  <DeckSection title="Funding History & Ask" lp>
+                    <DeckField
+                      label="Current ask"
+                      value={
+                        asRec(asRec(intel.pitch_deck_extraction.lp_only).funding_history)
+                          .current_ask
+                      }
+                    />
+                    <DeckField
+                      label="Use of funds"
+                      value={
+                        asRec(asRec(intel.pitch_deck_extraction.lp_only).funding_history)
+                          .use_of_funds
+                      }
+                      multiline
+                    />
+                    {asArr(
+                      asRec(asRec(intel.pitch_deck_extraction.lp_only).funding_history)
+                        .previous_rounds,
+                    ).map((r, i) => (
+                      <div key={i} className="flex flex-col gap-0.5 border-l-2 border-border pl-3">
+                        <span className="text-sm font-medium text-ink-body">
+                          {[asRec(r).round, asRec(r).amount, asRec(r).date]
+                            .filter(Boolean)
+                            .map(String)
+                            .join(' · ')}
+                        </span>
+                        {asArr(asRec(r).investors).length ? (
+                          <span className="text-xs text-ink-muted">
+                            {asArr(asRec(r).investors).map(String).join(', ')}
+                          </span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </DeckSection>
+                ) : null}
+
+                {asRec(intel.pitch_deck_extraction.lp_only).key_risks ? (
+                  <DeckSection title="Key Risks" lp>
+                    <DeckBullets
+                      label="Stated by founder"
+                      items={
+                        asRec(asRec(intel.pitch_deck_extraction.lp_only).key_risks)
+                          .stated_by_founder
+                      }
+                    />
+                    <DeckBullets
+                      label="Identified"
+                      items={asRec(asRec(intel.pitch_deck_extraction.lp_only).key_risks).identified}
+                    />
+                  </DeckSection>
+                ) : null}
+
+                {asArr(asRec(intel.pitch_deck_extraction.lp_only).data_gaps_flags).length ? (
+                  <DeckSection title="Data Gaps & Flags" lp>
+                    {asArr(asRec(intel.pitch_deck_extraction.lp_only).data_gaps_flags).map(
+                      (f, i) => (
+                        <div key={i} className="flex gap-2 text-xs">
+                          <span className="font-medium capitalize text-amber-600">
+                            {String(asRec(f).type ?? '').replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-ink-body">
+                            {String(asRec(f).description ?? '')}
+                          </span>
+                        </div>
+                      ),
+                    )}
+                  </DeckSection>
+                ) : null}
+              </>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
