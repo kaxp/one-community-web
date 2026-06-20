@@ -996,7 +996,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
             {canSeePitchDeck && intel.pitch_deck_extraction.lp_only ? (
               <>
                 {asRec(intel.pitch_deck_extraction.lp_only).traction_metrics ? (
-                  <DeckSection title="Traction Metrics (Exact)" lp>
+                  <DeckSection title="Traction Metrics (Exact)">
                     {Object.entries(
                       asRec(asRec(intel.pitch_deck_extraction.lp_only).traction_metrics),
                     ).map(([k, v]) =>
@@ -1012,7 +1012,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
                 ) : null}
 
                 {asRec(intel.pitch_deck_extraction.lp_only).business_model_figures ? (
-                  <DeckSection title="Business Model (Figures)" lp>
+                  <DeckSection title="Business Model (Figures)">
                     <DeckField
                       label="Take rate"
                       value={
@@ -1031,7 +1031,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
                 ) : null}
 
                 {asRec(intel.pitch_deck_extraction.lp_only).funding_history ? (
-                  <DeckSection title="Funding History & Ask" lp>
+                  <DeckSection title="Funding History & Ask">
                     <DeckField
                       label="Current ask"
                       value={
@@ -1069,7 +1069,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
                 ) : null}
 
                 {asRec(intel.pitch_deck_extraction.lp_only).key_risks ? (
-                  <DeckSection title="Key Risks" lp>
+                  <DeckSection title="Key Risks">
                     <DeckBullets
                       label="Stated by founder"
                       items={
@@ -1085,7 +1085,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
                 ) : null}
 
                 {asArr(asRec(intel.pitch_deck_extraction.lp_only).data_gaps_flags).length ? (
-                  <DeckSection title="Data Gaps & Flags" lp>
+                  <DeckSection title="Data Gaps & Flags">
                     {asArr(asRec(intel.pitch_deck_extraction.lp_only).data_gaps_flags).map(
                       (f, i) => (
                         <div key={i} className="flex gap-2 text-xs">
