@@ -521,7 +521,13 @@ export type AdminUserDeleteResponse = z.infer<typeof zAdminUserDeleteResponse>;
 
 // ── Admin Startups tab ────────────────────────────────────────────────────────
 
-export const STARTUP_SORT_OPTIONS = ['created_at', 'company_name', 'stage', 'status'] as const;
+export const STARTUP_SORT_OPTIONS = [
+  'updated_at',
+  'created_at',
+  'company_name',
+  'stage',
+  'status',
+] as const;
 export type StartupSortOption = (typeof STARTUP_SORT_OPTIONS)[number];
 
 export const zAdminStartupListItem = z
@@ -536,6 +542,7 @@ export const zAdminStartupListItem = z
     website_url: z.string().nullable(),
     deal_manager: z.string().nullable().optional(),
     created_at: zISODateTime,
+    updated_at: zISODateTime.nullable(),
   })
   .passthrough();
 export type AdminStartupListItem = z.infer<typeof zAdminStartupListItem>;

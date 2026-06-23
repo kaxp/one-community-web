@@ -27,6 +27,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 const DEFAULT_LIMIT = 100;
 
 const SORT_LABEL: Record<StartupSortOption, string> = {
+  updated_at: 'Last Updated',
   created_at: 'Created',
   company_name: 'Name',
   stage: 'Stage',
@@ -135,7 +136,7 @@ export function AdminStartupsPage() {
   const [params, setParams] = useSearchParams();
 
   const search = params.get('search') ?? '';
-  const sortBy = (params.get('sort_by') ?? 'created_at') as StartupSortOption;
+  const sortBy = (params.get('sort_by') ?? 'updated_at') as StartupSortOption;
   const sortDir = (params.get('sort_dir') ?? 'desc') as 'asc' | 'desc';
   const offset = Math.max(0, Number.parseInt(params.get('offset') ?? '0', 10) || 0);
 
@@ -299,6 +300,15 @@ export function AdminStartupsPage() {
             </a>
           );
         },
+      },
+      {
+        id: 'updated_at',
+        header: () => <SortHeader col="updated_at" label="Last Updated" />,
+        cell: ({ row }) => (
+          <span className="text-xs text-ink-muted">
+            {row.original.updated_at ? fmtDateTime(row.original.updated_at) : '—'}
+          </span>
+        ),
       },
       {
         id: 'created_at',
