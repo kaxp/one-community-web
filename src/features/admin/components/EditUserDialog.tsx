@@ -12,10 +12,40 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/forms/PhoneInput';
 import type { ApiError } from '@/api/errors';
 import { useAdminUserUpdate } from '@/features/admin/hooks/use-admin-user-update';
 import { type AdminUserUpdateRequest, ADMIN_POC_OPTIONS } from '@/features/admin/schemas';
 import type { UserRole } from '@/types/enums';
+
+// Ordered longest-first so shorter prefixes don't shadow longer ones.
+const KNOWN_CODES = [
+  '+971',
+  '+966',
+  '+234',
+  '+81',
+  '+86',
+  '+82',
+  '+61',
+  '+55',
+  '+27',
+  '+44',
+  '+91',
+  '+49',
+  '+33',
+  '+65',
+  '+60',
+  '+62',
+  '+1',
+  '+7',
+];
+
+function splitE164(phone: string): { code: string; local: string } {
+  for (const code of KNOWN_CODES) {
+    if (phone.startsWith(code)) return { code, local: phone.slice(code.length) };
+  }
+  return { code: '+91', local: phone.replace(/^\+/, '') };
+}
 
 const USER_ROLE_OPTIONS = [
   'lp',
@@ -55,9 +85,12 @@ interface Props {
 export function EditUserDialog({ user, onClose, onSaved }: Props) {
   const update = useAdminUserUpdate();
   const [form, setForm] = useState<AdminUserUpdateRequest>({});
+  const [dialCode, setDialCode] = useState('+91');
 
   useEffect(() => {
     if (user) {
+      const { code } = splitE164(user.phone ?? '');
+      setDialCode(code);
       setForm({
         name: user.name ?? '',
         phone: user.phone ?? '',
@@ -113,7 +146,7 @@ export function EditUserDialog({ user, onClose, onSaved }: Props) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
+            <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="edit-name">Name</Label>
               <Input
                 id="edit-name"
@@ -121,12 +154,24 @@ export function EditUserDialog({ user, onClose, onSaved }: Props) {
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="edit-phone">Phone</Label>
-              <Input
+              <PhoneInput
                 id="edit-phone"
-                value={form.phone ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                countryCode={dialCode}
+                onCountryCodeChange={(code) => {
+                  const local = (form.phone ?? '').startsWith(dialCode)
+                    ? (form.phone ?? '').slice(dialCode.length)
+                    : (form.phone ?? '');
+                  setDialCode(code);
+                  setForm((f) => ({ ...f, phone: code + local }));
+                }}
+                value={
+                  (form.phone ?? '').startsWith(dialCode)
+                    ? (form.phone ?? '').slice(dialCode.length)
+                    : (form.phone ?? '')
+                }
+                onChange={(e) => setForm((f) => ({ ...f, phone: dialCode + e.target.value }))}
               />
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
