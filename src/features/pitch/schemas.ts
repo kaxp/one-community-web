@@ -73,7 +73,10 @@ export const zStartupProfileResponse = z.object({
   user_id: zUUID,
   name: z.string(),
   tagline: z.string().nullable().optional(),
-  sector: z.string().nullable().optional(),
+  sector: z
+    .union([z.string(), z.array(z.string()).transform((arr) => arr.join(', '))])
+    .nullable()
+    .optional(),
   stage: z.enum(STARTUP_STAGES).nullable().optional(),
   deck_url: z.string().nullable().optional(),
   website_url: z.string().nullable().optional(),

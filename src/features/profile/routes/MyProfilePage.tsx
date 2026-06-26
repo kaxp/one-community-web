@@ -5,6 +5,7 @@ import { User } from 'lucide-react';
 import { ExecutionPanel } from '@/components/execution-panel';
 import { FormField } from '@/components/forms/FormField';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/forms/PhoneInput';
 import { useCompleteProfile } from '@/features/onboarding/hooks/use-complete-profile';
 import {
   zProfileUpdateRequest,
@@ -17,6 +18,35 @@ import { qk } from '@/api/query-keys';
 import { useAuthStore } from '@/auth/auth-store';
 import { profileFromMe } from '@/features/auth/lib/hydrate-session';
 import { PageHeader } from '@/components/layout/PageHeader';
+
+// Ordered longest-first so shorter prefixes don't shadow longer ones.
+const KNOWN_CODES = [
+  '+971',
+  '+966',
+  '+234',
+  '+81',
+  '+86',
+  '+82',
+  '+61',
+  '+55',
+  '+27',
+  '+44',
+  '+91',
+  '+49',
+  '+33',
+  '+65',
+  '+60',
+  '+62',
+  '+1',
+  '+7',
+];
+
+function splitPhone(e164: string): { code: string; local: string } {
+  for (const code of KNOWN_CODES) {
+    if (e164.startsWith(code)) return { code, local: e164.slice(code.length) };
+  }
+  return { code: '+91', local: e164.replace(/^\+/, '') };
+}
 
 export function MyProfilePage() {
   const user = useUser();
@@ -71,64 +101,81 @@ export function MyProfilePage() {
           }}
           mutation={profileMutation}
           submitLabel="Save details"
-          renderForm={({ register, formState }) => (
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                label="Full name"
-                htmlFor="my-profile-name"
-                error={formState.errors.name?.message}
-                className="md:col-span-2"
-              >
-                <Input id="my-profile-name" placeholder="Your name" {...register('name')} />
-              </FormField>
-              <FormField
-                label="Email"
-                htmlFor="my-profile-email"
-                error={formState.errors.email?.message}
-              >
-                <Input
-                  id="my-profile-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  {...register('email')}
-                />
-              </FormField>
-              <FormField
-                label="Organisation"
-                htmlFor="my-profile-org"
-                error={formState.errors.organisation?.message}
-              >
-                <Input
-                  id="my-profile-org"
-                  placeholder="Warmup Ventures"
-                  {...register('organisation')}
-                />
-              </FormField>
-              <FormField
-                label="Designation"
-                htmlFor="my-profile-designation"
-                error={formState.errors.designation?.message}
-              >
-                <Input
-                  id="my-profile-designation"
-                  placeholder="Principal"
-                  {...register('designation')}
-                />
-              </FormField>
-              <FormField
-                label="LinkedIn URL"
-                htmlFor="my-profile-linkedin"
-                error={formState.errors.linkedin_url?.message}
-                className="md:col-span-2"
-              >
-                <Input
-                  id="my-profile-linkedin"
-                  placeholder="https://linkedin.com/in/…"
-                  {...register('linkedin_url')}
-                />
-              </FormField>
-            </div>
-          )}
+          renderForm={({ register, formState }) => {
+            const { code: phoneCode, local: phoneLocal } = splitPhone(user?.phone ?? '');
+            return (
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  label="Full name"
+                  htmlFor="my-profile-name"
+                  error={formState.errors.name?.message}
+                  className="md:col-span-2"
+                >
+                  <Input id="my-profile-name" placeholder="Your name" {...register('name')} />
+                </FormField>
+                <FormField
+                  label="Email"
+                  htmlFor="my-profile-email"
+                  error={formState.errors.email?.message}
+                >
+                  <Input
+                    id="my-profile-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    {...register('email')}
+                  />
+                </FormField>
+                <FormField
+                  label="Phone"
+                  htmlFor="my-profile-phone"
+                  hint="Your sign-in number — contact support to change"
+                >
+                  <PhoneInput
+                    id="my-profile-phone"
+                    countryCode={phoneCode}
+                    value={phoneLocal}
+                    readOnly
+                    disabled
+                    className="cursor-not-allowed opacity-60"
+                  />
+                </FormField>
+                <FormField
+                  label="Organisation"
+                  htmlFor="my-profile-org"
+                  error={formState.errors.organisation?.message}
+                >
+                  <Input
+                    id="my-profile-org"
+                    placeholder="Warmup Ventures"
+                    {...register('organisation')}
+                  />
+                </FormField>
+                <FormField
+                  label="Designation"
+                  htmlFor="my-profile-designation"
+                  error={formState.errors.designation?.message}
+                >
+                  <Input
+                    id="my-profile-designation"
+                    placeholder="Principal"
+                    {...register('designation')}
+                  />
+                </FormField>
+                <FormField
+                  label="LinkedIn URL"
+                  htmlFor="my-profile-linkedin"
+                  error={formState.errors.linkedin_url?.message}
+                  className="md:col-span-2"
+                >
+                  <Input
+                    id="my-profile-linkedin"
+                    placeholder="https://linkedin.com/in/…"
+                    {...register('linkedin_url')}
+                  />
+                </FormField>
+              </div>
+            );
+          }}
         />
       </section>
     </div>
