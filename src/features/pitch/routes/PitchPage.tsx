@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import { useUser } from '@/auth/use-auth';
 import { useStartupProfile } from '@/features/pitch/hooks/use-startup-profile';
@@ -20,6 +21,10 @@ function isTab(v: string | null): v is Tab {
   return !!v && (TABS as readonly string[]).includes(v);
 }
 
+function hasDeck(url: string | null | undefined): boolean {
+  return !!url && url !== '-' && url.startsWith('http');
+}
+
 // PRD §7.3 — tabbed pitch page.
 //   • Profile (always)        — useStartupProfile, 404 → empty form, else prefilled.
 //   • Deck (if profile exists)— ExecutionPanel<jobPoll> wrapping POST /pitch/deck.
@@ -32,6 +37,24 @@ export function PitchPage() {
   const queryTab = params.get('tab');
   const [latestEval, setLatestEval] = useState<AIEvaluationResult | null>(null);
 
+  // Once the uploader is shown for this session it stays mounted regardless of
+  // profile refetches that update deck_url. This prevents DeckUploadPanel from
+  // unmounting mid-poll when useSubmitDeck invalidates qk.pitch.profile.
+  const [uploaderActive, setUploaderActive] = useState(false);
+
+  const profilePresent = profile.data?.status === 'present' ? profile.data.data : null;
+  const deckSubmitted = hasDeck(profilePresent?.deck_url);
+
+  // Activate the uploader the moment the profile first loads without a deck.
+  // Keyed on startup_id so subsequent refetches (which only update deck_url)
+  // don't toggle it back off.
+  useEffect(() => {
+    if (profilePresent && !hasDeck(profilePresent.deck_url)) {
+      setUploaderActive(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profilePresent?.startup_id]);
+
   // If the URL points at "evaluation" but we don't have one yet, fall back
   // to "profile" rather than rendering an empty tab body.
   const requestedTab: Tab = isTab(queryTab) ? queryTab : 'profile';
@@ -42,8 +65,6 @@ export function PitchPage() {
     next.set('tab', t);
     setParams(next, { replace: true });
   };
-
-  const profilePresent = profile.data?.status === 'present' ? profile.data.data : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,8 +110,14 @@ export function PitchPage() {
 
           {activeTab === 'deck' && profilePresent ? (
             <div className="flex flex-col gap-4">
-              <CurrentDeckSummary profile={profilePresent} />
-              <DeckUploadPanel userId={user?.id ?? null} onEvaluation={setLatestEval} />
+              <CurrentDeckCard
+                profile={profilePresent}
+                onReplace={() => setUploaderActive(true)}
+                showReplaceButton={deckSubmitted && !uploaderActive}
+              />
+              {uploaderActive ? (
+                <DeckUploadPanel userId={user?.id ?? null} onEvaluation={setLatestEval} />
+              ) : null}
             </div>
           ) : null}
 
@@ -148,36 +175,54 @@ function ProfileSkeleton() {
   );
 }
 
-function CurrentDeckSummary({ profile }: { profile: StartupProfileResponse }) {
+function CurrentDeckCard({
+  profile,
+  onReplace,
+  showReplaceButton,
+}: {
+  profile: StartupProfileResponse;
+  onReplace: () => void;
+  showReplaceButton: boolean;
+}) {
+  const deckPresent = hasDeck(profile.deck_url);
+
   return (
-    <div className="rounded-lg border border-border bg-surface p-4 text-sm">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-ink-body">
-        <span>
-          <span className="text-ink-muted">Stage:</span>{' '}
-          <span className="font-medium text-ink-heading">{stageLabel(profile.stage)}</span>
-        </span>
-        <span>
-          <span className="text-ink-muted">Ask:</span>{' '}
-          <span className="font-medium text-ink-heading">{formatCrore(profile.ask_amount_cr)}</span>
-        </span>
-        {profile.deck_url ? (
-          <span className="flex items-center gap-1.5">
-            <span className="text-ink-muted">Current deck:</span>
+    <div className="rounded-lg border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-body">
+          <span>
+            <span className="text-ink-muted">Stage:</span>{' '}
+            <span className="font-medium text-ink-heading">{stageLabel(profile.stage)}</span>
+          </span>
+          <span>
+            <span className="text-ink-muted">Ask:</span>{' '}
+            <span className="font-medium text-ink-heading">
+              {formatCrore(profile.ask_amount_cr)}
+            </span>
+          </span>
+          {deckPresent ? (
             <a
-              href={profile.deck_url}
+              href={profile.deck_url!}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-brand hover:underline"
+              className="flex items-center gap-1.5 font-medium text-brand hover:underline"
             >
-              View
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              View current deck
             </a>
-          </span>
-        ) : (
-          <span className="flex items-center gap-1.5 text-ink-muted">
-            <Loader2 className="h-3.5 w-3.5" aria-hidden />
-            No deck submitted yet
-          </span>
-        )}
+          ) : (
+            <span className="flex items-center gap-1.5 text-ink-muted">
+              <Loader2 className="h-3.5 w-3.5" aria-hidden />
+              No deck submitted yet
+            </span>
+          )}
+        </div>
+        {showReplaceButton ? (
+          <Button type="button" variant="outline" size="sm" onClick={onReplace}>
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+            Replace deck
+          </Button>
+        ) : null}
       </div>
     </div>
   );

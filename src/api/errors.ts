@@ -9,7 +9,7 @@ export const USER_MESSAGES: Record<string, string> = {
   token_expired: 'Your session has expired. Please sign in again.',
   insufficient_role: 'You do not have access to this page.',
   forbidden: 'You do not have access to this resource.',
-  conflict: 'This action conflicts with the current state.',
+  // conflict is intentionally absent — backend always provides a specific message
   rate_limit_exceeded: 'Too many requests. Please try again shortly.',
   not_found: 'We could not find what you were looking for.',
   mis_already_submitted: 'MIS for this period was already submitted.',

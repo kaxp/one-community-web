@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { User } from 'lucide-react';
@@ -18,6 +18,7 @@ import { qk } from '@/api/query-keys';
 import { useAuthStore } from '@/auth/auth-store';
 import { profileFromMe } from '@/features/auth/lib/hydrate-session';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { toE164 } from '@/lib/phone';
 
 // Ordered longest-first so shorter prefixes don't shadow longer ones.
 const KNOWN_CODES = [
@@ -51,10 +52,21 @@ function splitPhone(e164: string): { code: string; local: string } {
 export function MyProfilePage() {
   const user = useUser();
   const qc = useQueryClient();
-
   const profileMutation = useCompleteProfile();
 
-  // Refresh auth store after basic profile save
+  const [phoneCode, setPhoneCode] = useState(() => splitPhone(user?.phone ?? '').code);
+  const [phoneLocal, setPhoneLocal] = useState(() => splitPhone(user?.phone ?? '').local);
+
+  // Re-sync if user hydrates after first render
+  useEffect(() => {
+    if (user?.phone) {
+      const { code, local } = splitPhone(user.phone);
+      setPhoneCode(code);
+      setPhoneLocal(local);
+    }
+  }, [user?.phone]);
+
+  // Refresh auth store after profile save
   useEffect(() => {
     if (!profileMutation.isSuccess) return;
     let cancelled = false;
@@ -95,87 +107,101 @@ export function MyProfilePage() {
           defaultValues={{
             name: user?.name ?? '',
             email: user?.email ?? '',
+            phone: user?.phone ?? '',
             organisation: user?.organisation ?? '',
             designation: user?.designation ?? '',
             linkedin_url: user?.linkedin_url ?? '',
           }}
           mutation={profileMutation}
           submitLabel="Save details"
-          renderForm={({ register, formState }) => {
-            const { code: phoneCode, local: phoneLocal } = splitPhone(user?.phone ?? '');
-            return (
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  label="Full name"
-                  htmlFor="my-profile-name"
-                  error={formState.errors.name?.message}
-                  className="md:col-span-2"
-                >
-                  <Input id="my-profile-name" placeholder="Your name" {...register('name')} />
-                </FormField>
-                <FormField
-                  label="Email"
-                  htmlFor="my-profile-email"
-                  error={formState.errors.email?.message}
-                >
-                  <Input
-                    id="my-profile-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    {...register('email')}
-                  />
-                </FormField>
-                <FormField
-                  label="Phone"
-                  htmlFor="my-profile-phone"
-                  hint="Your sign-in number — contact support to change"
-                >
-                  <PhoneInput
-                    id="my-profile-phone"
-                    countryCode={phoneCode}
-                    value={phoneLocal}
-                    readOnly
-                    disabled
-                    className="cursor-not-allowed opacity-60"
-                  />
-                </FormField>
-                <FormField
-                  label="Organisation"
-                  htmlFor="my-profile-org"
-                  error={formState.errors.organisation?.message}
-                >
-                  <Input
-                    id="my-profile-org"
-                    placeholder="Warmup Ventures"
-                    {...register('organisation')}
-                  />
-                </FormField>
-                <FormField
-                  label="Designation"
-                  htmlFor="my-profile-designation"
-                  error={formState.errors.designation?.message}
-                >
-                  <Input
-                    id="my-profile-designation"
-                    placeholder="Principal"
-                    {...register('designation')}
-                  />
-                </FormField>
-                <FormField
-                  label="LinkedIn URL"
-                  htmlFor="my-profile-linkedin"
-                  error={formState.errors.linkedin_url?.message}
-                  className="md:col-span-2"
-                >
-                  <Input
-                    id="my-profile-linkedin"
-                    placeholder="https://linkedin.com/in/…"
-                    {...register('linkedin_url')}
-                  />
-                </FormField>
-              </div>
-            );
-          }}
+          renderForm={({ register, formState, setValue }) => (
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                label="Full name"
+                htmlFor="my-profile-name"
+                error={formState.errors.name?.message}
+                className="md:col-span-2"
+              >
+                <Input id="my-profile-name" placeholder="Your name" {...register('name')} />
+              </FormField>
+              <FormField
+                label="Email"
+                htmlFor="my-profile-email"
+                error={formState.errors.email?.message}
+              >
+                <Input
+                  id="my-profile-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  {...register('email')}
+                />
+              </FormField>
+              <FormField
+                label="Phone"
+                htmlFor="my-profile-phone"
+                error={formState.errors.phone?.message}
+              >
+                <PhoneInput
+                  id="my-profile-phone"
+                  countryCode={phoneCode}
+                  onCountryCodeChange={(code) => {
+                    setPhoneCode(code);
+                    setValue(
+                      'phone',
+                      toE164(phoneLocal, code.replace('+', '')) as ProfileUpdateRequest['phone'],
+                      { shouldDirty: true, shouldValidate: true },
+                    );
+                  }}
+                  value={phoneLocal}
+                  onChange={(e) => {
+                    setPhoneLocal(e.target.value);
+                    setValue(
+                      'phone',
+                      toE164(
+                        e.target.value,
+                        phoneCode.replace('+', ''),
+                      ) as ProfileUpdateRequest['phone'],
+                      { shouldDirty: true, shouldValidate: true },
+                    );
+                  }}
+                />
+              </FormField>
+              <FormField
+                label="Organisation"
+                htmlFor="my-profile-org"
+                error={formState.errors.organisation?.message}
+              >
+                <Input
+                  id="my-profile-org"
+                  placeholder="Warmup Ventures"
+                  {...register('organisation')}
+                />
+              </FormField>
+              <FormField
+                label="Designation"
+                htmlFor="my-profile-designation"
+                error={formState.errors.designation?.message}
+              >
+                <Input
+                  id="my-profile-designation"
+                  placeholder="Principal"
+                  {...register('designation')}
+                />
+              </FormField>
+              <FormField
+                label="LinkedIn URL"
+                htmlFor="my-profile-linkedin"
+                error={formState.errors.linkedin_url?.message}
+                className="md:col-span-2"
+              >
+                <Input
+                  id="my-profile-linkedin"
+                  placeholder="https://linkedin.com/in/…"
+                  {...register('linkedin_url')}
+                />
+              </FormField>
+            </div>
+          )}
         />
       </section>
     </div>

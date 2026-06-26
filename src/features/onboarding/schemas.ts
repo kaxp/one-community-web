@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { zUUID } from '@/lib/zod-helpers';
+import { zUUID, zE164 } from '@/lib/zod-helpers';
 import { zUserRole } from '@/features/auth/schemas';
 
 export const STARTUP_STAGES = [
@@ -31,6 +31,7 @@ export const zProfileUpdateRequest = z
       .email('Enter a valid email')
       .optional()
       .or(z.literal('').transform(() => undefined)),
+    phone: zE164.optional().or(z.literal('').transform(() => undefined)),
     organisation: optionalString(200),
     designation: optionalString(200),
     linkedin_url: z
