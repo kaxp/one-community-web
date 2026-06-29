@@ -104,6 +104,10 @@ import {
   type QuarterlyReportApproveResponse,
   type QuarterlyReportsResponse,
   type VideoPitchesResponse,
+  zInvestorStartupsResponse,
+  zInfoRequestsResponse,
+  type InvestorStartupsResponse,
+  type InfoRequestsResponse,
 } from '@/features/admin/schemas';
 import {
   zAnalyticsCohort,
@@ -350,8 +354,11 @@ export async function searchConversation(body: ConversationRequest): Promise<Con
   return zConversationResponse.parse(unwrap(resp.data, '/search/conversation'));
 }
 
-export async function getSearchDetailStartup(userId: string): Promise<SearchDetailStartup> {
-  const path = `/search/detail/startup/${userId}`;
+export async function getSearchDetailStartup(
+  userId: string,
+  source?: string,
+): Promise<SearchDetailStartup> {
+  const path = `/search/detail/startup/${userId}${source ? `?source=${source}` : ''}`;
   const resp = await apiClient.get<ApiEnvelope<SearchDetailStartup>>(path);
   return zSearchDetailStartup.parse(unwrap(resp.data, path));
 }
@@ -1163,6 +1170,71 @@ export async function getAdminStartups(
   const url = `/admin/startups${qs ? `?${qs}` : ''}`;
   const resp = await apiClient.get<ApiEnvelope<AdminStartupsResponse>>(url);
   return zAdminStartupsResponse.parse(unwrap(resp.data, url));
+}
+
+// ── Investor Startups tab (lp / potential_lp) ────────────────────────────────
+
+export interface InvestorStartupsArgs {
+  /** Comma-separated sector values, e.g. 'fintech,saas' */
+  sector?: string;
+  sort_by?: string;
+  sort_dir?: string;
+  /** Comma-separated stage values, e.g. 'seed,series_a' */
+  stage?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getInvestorStartups(
+  args: InvestorStartupsArgs = {},
+): Promise<InvestorStartupsResponse> {
+  const params = new URLSearchParams();
+  if (args.sector) params.set('sector', args.sector);
+  if (args.sort_by) params.set('sort_by', args.sort_by);
+  if (args.sort_dir) params.set('sort_dir', args.sort_dir);
+  if (args.stage) params.set('stage', args.stage);
+  if (args.limit !== undefined) params.set('limit', String(args.limit));
+  if (args.offset !== undefined) params.set('offset', String(args.offset));
+  const qs = params.toString();
+  const url = `/search/startups${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<InvestorStartupsResponse>>(url);
+  return zInvestorStartupsResponse.parse(unwrap(resp.data, url));
+}
+
+// ── Info Requests (investor startup reveal flow) ──────────────────────────────
+
+export async function postInfoRequest(body: {
+  startup_id: string;
+  message?: string;
+}): Promise<{ info_request_id: string; status: string }> {
+  const resp = await apiClient.post<ApiEnvelope<{ info_request_id: string; status: string }>>(
+    '/info-requests/request',
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return unwrap(resp.data, '/info-requests/request');
+}
+
+export async function getAdminInfoRequests(
+  args: { status?: string; cursor?: string | null } = {},
+): Promise<InfoRequestsResponse> {
+  const params = new URLSearchParams();
+  if (args.status) params.set('status', args.status);
+  if (args.cursor) params.set('cursor', args.cursor);
+  const qs = params.toString();
+  const url = `/info-requests/admin${qs ? `?${qs}` : ''}`;
+  const resp = await apiClient.get<ApiEnvelope<InfoRequestsResponse>>(url);
+  return zInfoRequestsResponse.parse(unwrap(resp.data, url));
+}
+
+export async function patchAdminInfoRequest(
+  id: string,
+  body: { action: 'approve' | 'reject'; note?: string },
+): Promise<{ id: string; status: string }> {
+  const resp = await apiClient.patch<ApiEnvelope<{ id: string; status: string }>>(
+    `/info-requests/${id}/admin`,
+    stripUndefined(body as unknown as Record<string, unknown>),
+  );
+  return unwrap(resp.data, `/info-requests/${id}/admin`);
 }
 
 // ── LP CRM ────────────────────────────────────────────────────────────────────

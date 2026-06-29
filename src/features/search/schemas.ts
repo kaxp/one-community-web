@@ -380,6 +380,21 @@ export const zSearchDetailStartup = z.object({
   partner_on_call: z.array(z.string()).nullable().optional(),
   notion_status: z.string().nullable().optional(),
   investment_memo_url: z.string().nullable().optional(),
+  // AI evaluation — visible to lp/potential_lp (signal + raw stripped) and admin (full)
+  ai_evaluation: z
+    .object({
+      summary: z.string().nullable().optional(),
+      strengths: z.array(z.string()).nullable().optional(),
+      concerns: z.array(z.string()).nullable().optional(),
+      recommended_lp_types: z.array(z.string()).nullable().optional(),
+    })
+    .passthrough()
+    .nullable()
+    .optional(),
+  // Catalog masking — present when source=catalog and viewer is lp/potential_lp
+  startup_id: zUUID.nullable().optional(),
+  identity_masked: z.boolean().optional(),
+  info_request_status: z.enum(['pending', 'approved', 'rejected']).nullable().optional(),
 });
 export type SearchDetailStartup = z.infer<typeof zSearchDetailStartup>;
 

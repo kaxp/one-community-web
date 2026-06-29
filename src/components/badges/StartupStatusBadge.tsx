@@ -26,6 +26,35 @@ function statusColors(status: string): string {
   return 'bg-slate-100 text-slate-600';
 }
 
+// ── Investor-facing badge (4 clean buckets) ──────────────────────────────────
+
+const INVESTOR_STATUS_COLORS: Record<string, string> = {
+  Portfolio: 'bg-emerald-100 text-emerald-700',
+  'Under Evaluation': 'bg-cyan-100 text-cyan-700',
+  'On Hold': 'bg-sky-100 text-sky-700',
+  'Not Shortlisted': 'bg-rose-100 text-rose-700',
+};
+
+export function InvestorStartupStatusBadge({
+  statusLabel,
+}: {
+  statusLabel: string | null | undefined;
+}) {
+  if (!statusLabel) return <span className="text-sm text-ink-muted">—</span>;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium',
+        INVESTOR_STATUS_COLORS[statusLabel] ?? 'bg-slate-100 text-slate-600',
+      )}
+    >
+      {statusLabel}
+    </span>
+  );
+}
+
+// ── Admin-facing badge (all 24 pipeline statuses) ─────────────────────────────
+
 export function StartupStatusBadge({ status }: { status: string | null | undefined }) {
   if (!status) return <span className="text-sm text-ink-muted">—</span>;
   return (

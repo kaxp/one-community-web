@@ -181,6 +181,16 @@ const PortfolioFundDeckPage = lazy(() =>
     default: m.PortfolioFundDeckPage,
   })),
 );
+const InvestorStartupsPage = lazy(() =>
+  import('@/features/admin/routes/InvestorStartupsPage').then((m) => ({
+    default: m.InvestorStartupsPage,
+  })),
+);
+const AdminInfoRequestsPage = lazy(() =>
+  import('@/features/admin/routes/AdminInfoRequestsPage').then((m) => ({
+    default: m.AdminInfoRequestsPage,
+  })),
+);
 
 export const router = createBrowserRouter(
   [
@@ -462,6 +472,23 @@ export const router = createBrowserRouter(
                   ],
                 },
                 {
+                  // Investor-facing startup browser — lp/potential_lp only.
+                  // Backend masks contact fields and strips AI signal text.
+                  // Add 'partner' here (and in role-capabilities.ts + service.py)
+                  // to extend access to partners later.
+                  element: <RoleGuard roles={['lp', 'potential_lp']} />,
+                  children: [
+                    {
+                      path: '/startups',
+                      element: (
+                        <Susp>
+                          <InvestorStartupsPage />
+                        </Susp>
+                      ),
+                    },
+                  ],
+                },
+                {
                   element: <RoleGuard roles={['admin', 'super_admin']} />,
                   children: [
                     {
@@ -609,6 +636,16 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <AdminStartupsPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // Investor "Request Info" approval queue — lp/potential_lp
+                      // request company identity reveal; admins approve/reject here.
+                      path: '/admin/info-requests',
+                      element: (
+                        <Susp>
+                          <AdminInfoRequestsPage />
                         </Susp>
                       ),
                     },
