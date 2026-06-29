@@ -208,6 +208,16 @@ export const NAV_ITEMS: readonly NavItem[] = [
   //   roles: ['lp', 'potential_lp', 'vc', 'startup_inprogress', 'startup_onboarded', 'startup_funded', 'partner', 'advisor'],
   // },
 
+  // ── Investor — Startups tab (lp / potential_lp) ──────────────────────────
+  // To enable partners later: add 'partner' to this roles array.
+  {
+    key: 'investor-startups',
+    label: 'Startups',
+    path: '/startups',
+    icon: 'Building2',
+    roles: ['lp', 'potential_lp'],
+  },
+
   // ── Admin — Core ─────────────────────────────────────────────────────────
   {
     key: 'admin-users',
@@ -247,6 +257,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     key: 'admin-connections',
     label: 'Connection queue',
     path: '/admin/connections',
+    icon: 'Inbox',
+    roles: ['admin', 'super_admin'],
+    adminSection: 'operations',
+  },
+  {
+    key: 'admin-info-requests',
+    label: 'Startup info requests',
+    path: '/admin/info-requests',
     icon: 'Inbox',
     roles: ['admin', 'super_admin'],
     adminSection: 'operations',

@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, UserSearch, Clock, UserCheck } from 'lucide-react';
+import { ArrowLeft, UserSearch, Clock, UserCheck, Info } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { BlurredText } from '@/components/ui/blurred-text';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { stageLabel } from '@/features/search/lib/labels';
@@ -14,18 +22,21 @@ import { StartupRichDetailBlock } from '@/features/profile/components/StartupRic
 import { LpRichDetailBlock } from '@/features/profile/components/LpRichDetailBlock';
 import { useLogInteraction } from '@/features/interactions/hooks/use-log-interaction';
 import { RequestConnectDialog } from '@/features/connections/components/RequestConnectDialog';
+import { useRequestInfo } from '@/features/admin/hooks/use-info-requests';
 import { can } from '@/lib/role-capabilities';
 import { useRole, useUser } from '@/auth/use-auth';
 import { qk } from '@/api/query-keys';
 
-// The route receives `targetType` via location.state (set by ResultCard on
-// navigate). This avoids polluting the URL while keeping the page bookmarkable
-// as a startup-first fallback (unknown type → tries startup endpoint).
+// The route receives `targetType` via location.state (set by ResultCard or
+// InvestorStartupsPage on navigate). `from` distinguishes catalog navigation
+// (investor_startups) from search — catalog views request source=catalog so
+// the backend applies identity masking for lp/potential_lp.
 type TargetType = 'startup' | 'lp';
 
 interface LocationState {
   targetType?: TargetType;
   ai_reason?: string;
+  from?: string;
 }
 
 export function SearchDetailPage() {
@@ -40,8 +51,12 @@ export function SearchDetailPage() {
   const state = location.state as LocationState | null;
   const targetType: TargetType = state?.targetType ?? 'startup';
   const aiReason = state?.ai_reason ?? null;
+  const isFromCatalog = state?.from === 'investor_startups';
 
-  const startupQuery = useStartupDetail(targetType === 'startup' ? id : undefined);
+  const startupQuery = useStartupDetail(
+    targetType === 'startup' ? id : undefined,
+    isFromCatalog ? 'catalog' : undefined,
+  );
   const lpQuery = useLpDetail(targetType === 'lp' ? id : undefined);
 
   const isLoading = targetType === 'startup' ? startupQuery.isLoading : lpQuery.isLoading;
@@ -59,6 +74,9 @@ export function SearchDetailPage() {
     ? 'pending_admin'
     : ((targetType === 'startup' ? startupData?.connection_status : lpData?.connection_status) ??
       null);
+
+  const identityMasked = isFromCatalog && (startupData?.identity_masked ?? false);
+  const infoRequestStatus = startupData?.info_request_status ?? null;
 
   const canConnect =
     !!id && can(role, 'connections.request') && currentUser?.id !== id && !connectionStatus;
@@ -153,8 +171,10 @@ export function SearchDetailPage() {
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <CardTitle className="text-xl">{startupData.company_name ?? 'Startup'}</CardTitle>
-                  {startupData.one_liner ? (
+                  <CardTitle className="text-xl">
+                    {identityMasked ? <BlurredText /> : (startupData.company_name ?? 'Startup')}
+                  </CardTitle>
+                  {!identityMasked && startupData.one_liner ? (
                     <p className="mt-1 text-sm text-ink-body">{startupData.one_liner}</p>
                   ) : null}
                 </div>
@@ -169,14 +189,22 @@ export function SearchDetailPage() {
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 pt-0">
-              {startupData.description ? (
+              {!identityMasked && startupData.description ? (
                 <p className="text-sm text-ink-body">{startupData.description}</p>
               ) : null}
-              <ConnectSection
-                canConnect={canConnect}
-                connectionStatus={connectionStatus}
-                onConnect={() => setConnectOpen(true)}
-              />
+              {identityMasked ? (
+                <RequestInfoSection
+                  startupId={startupData.startup_id ?? id ?? ''}
+                  infoRequestStatus={infoRequestStatus}
+                  onSuccess={() => void startupQuery.refetch()}
+                />
+              ) : (
+                <ConnectSection
+                  canConnect={canConnect}
+                  connectionStatus={connectionStatus}
+                  onConnect={() => setConnectOpen(true)}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -229,6 +257,97 @@ interface ConnectSectionProps {
   canConnect: boolean;
   connectionStatus: string | null;
   onConnect: () => void;
+}
+
+interface RequestInfoSectionProps {
+  startupId: string;
+  infoRequestStatus: string | null;
+  onSuccess: () => void;
+}
+
+function RequestInfoSection({ startupId, infoRequestStatus, onSuccess }: RequestInfoSectionProps) {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const requestInfo = useRequestInfo();
+
+  if (infoRequestStatus === 'pending') {
+    return (
+      <div className="flex items-center gap-1.5 text-sm text-ink-muted">
+        <Clock className="h-4 w-4" aria-hidden />
+        Info request sent — awaiting admin approval
+      </div>
+    );
+  }
+
+  if (!infoRequestStatus) {
+    const handleSubmit = () => {
+      requestInfo.mutate(
+        { startup_id: startupId, ...(message ? { message } : {}) },
+        {
+          onSuccess: () => {
+            onSuccess();
+            setOpen(false);
+            setMessage('');
+          },
+        },
+      );
+    };
+
+    return (
+      <>
+        <Button size="sm" className="self-start" onClick={() => setOpen(true)}>
+          <Info className="mr-1.5 h-4 w-4" aria-hidden />
+          Request Info
+        </Button>
+        <Dialog
+          open={open}
+          onOpenChange={(o) => {
+            if (!o) {
+              setOpen(false);
+              setMessage('');
+            } else {
+              setOpen(true);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Request Company Info</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 py-2">
+              <p className="text-sm text-ink-muted">
+                Your request will be reviewed by the Warmup Ventures team. Once approved,
+                you&apos;ll receive the full company profile via WhatsApp.
+              </p>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-ink-heading">
+                  Note <span className="font-normal text-ink-muted">(optional, max 200 chars)</span>
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value.slice(0, 200))}
+                  rows={3}
+                  className="w-full resize-none rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-brand"
+                  placeholder="Why are you interested in this company?"
+                />
+                <span className="self-end text-[10px] text-ink-muted">{message.length}/200</span>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSubmit} disabled={requestInfo.isPending}>
+                {requestInfo.isPending ? 'Requesting…' : 'Request Info'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  return null;
 }
 
 function ConnectSection({ canConnect, connectionStatus, onConnect }: ConnectSectionProps) {

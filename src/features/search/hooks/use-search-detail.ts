@@ -4,10 +4,12 @@ import { qk } from '@/api/query-keys';
 import type { ApiError } from '@/api/errors';
 import type { SearchDetailLp, SearchDetailStartup } from '@/features/search/schemas';
 
-export function useStartupDetail(userId: string | undefined) {
+export function useStartupDetail(userId: string | undefined, source?: string) {
   return useQuery<SearchDetailStartup, ApiError>({
-    queryKey: userId ? qk.search.detailStartup(userId) : ['search', 'detail', 'startup', 'noop'],
-    queryFn: () => getSearchDetailStartup(userId as string),
+    queryKey: userId
+      ? [...qk.search.detailStartup(userId), source ?? 'search']
+      : ['search', 'detail', 'startup', 'noop'],
+    queryFn: () => getSearchDetailStartup(userId as string, source),
     enabled: !!userId,
     staleTime: 60_000,
   });

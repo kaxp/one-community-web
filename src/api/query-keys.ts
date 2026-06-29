@@ -118,6 +118,19 @@ export const qk = {
       ['admin', 'lps', args] as const,
     lpDetail: (userId: string) => ['admin', 'lps', userId] as const,
     lpNotesAll: (userId: string) => ['admin', 'lps', userId, 'notes'] as const,
+    infoRequestsAll: ['admin', 'info-requests'] as const,
+    infoRequests: (status?: string) => ['admin', 'info-requests', { status }] as const,
+  },
+  investor: {
+    startupsAll: ['investor', 'startups'] as const,
+    startups: (args: {
+      sector?: string;
+      sort_by?: string;
+      sort_dir?: string;
+      stage?: string;
+      limit?: number;
+      offset?: number;
+    }) => ['investor', 'startups', args] as const,
   },
   digest: {
     pending: ['digest', 'pending'] as const,

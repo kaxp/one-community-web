@@ -555,6 +555,43 @@ export const zAdminStartupsResponse = z
   .passthrough();
 export type AdminStartupsResponse = z.infer<typeof zAdminStartupsResponse>;
 
+// ── Investor Startups tab (lp / potential_lp) ─────────────────────────────────
+
+export const INVESTOR_STARTUP_SORT_OPTIONS = ['created_at', 'updated_at'] as const;
+export type InvestorSortOption = (typeof INVESTOR_STARTUP_SORT_OPTIONS)[number];
+
+export const zInvestorStartupListItem = z
+  .object({
+    id: zUUID,
+    user_id: zUUID.nullable(),
+    is_portfolio: z.boolean(),
+    identity_masked: z.boolean(),
+    info_request_status: z.enum(['pending', 'approved', 'rejected']).nullable(),
+    company_name: z.string().nullable(),
+    founder_name: z.string().nullable(),
+    website_url: z.string().nullable(),
+    sector: z.array(z.string()),
+    stage: z.string().nullable(),
+    status_label: z.string().nullable(),
+    funding_target_cr: z.number().nullable().optional(),
+    raising_raw: z.string().nullable().optional(),
+    mrr_arr: z.string().nullable().optional(),
+    revenue_monthly: z.number().nullable().optional(),
+    growth_pct: z.number().nullable().optional(),
+    customer_count: z.number().int().nullable().optional(),
+    runway_months: z.number().int().nullable().optional(),
+  })
+  .passthrough();
+export type InvestorStartupListItem = z.infer<typeof zInvestorStartupListItem>;
+
+export const zInvestorStartupsResponse = z
+  .object({
+    items: z.array(zInvestorStartupListItem),
+    total: z.number().int().nonnegative(),
+  })
+  .passthrough();
+export type InvestorStartupsResponse = z.infer<typeof zInvestorStartupsResponse>;
+
 // Referrals schemas (existing, keeping in place)
 
 export const zAppConfigItem = z.object({
@@ -667,3 +704,34 @@ export const zLpCrmNoteCreate = z.object({
   follow_up_date: z.string().nullable().optional(),
 });
 export type LpCrmNoteCreate = z.infer<typeof zLpCrmNoteCreate>;
+
+// ── Startup Info Requests (investor catalog unmask flow) ──────────────────────
+
+export const INFO_REQUEST_STATUSES = ['pending', 'approved', 'rejected'] as const;
+export type InfoRequestStatus = (typeof INFO_REQUEST_STATUSES)[number];
+
+const zInfoRequestParty = z
+  .object({ user_id: zUUID, name: z.string().nullable(), role: zUserRole })
+  .passthrough();
+
+const zInfoRequestStartup = z
+  .object({ startup_id: zUUID, sector: z.array(z.string()), stage: z.string().nullable() })
+  .passthrough();
+
+export const zInfoRequest = z
+  .object({
+    id: zUUID,
+    status: z.enum(INFO_REQUEST_STATUSES),
+    requester: zInfoRequestParty,
+    startup: zInfoRequestStartup,
+    message: z.string().nullable().optional(),
+    created_at: zISODateTime,
+    decided_at: zISODateTime.nullable().optional(),
+  })
+  .passthrough();
+export type InfoRequest = z.infer<typeof zInfoRequest>;
+
+export const zInfoRequestsResponse = z
+  .object({ items: z.array(zInfoRequest), next_cursor: z.string().nullable() })
+  .passthrough();
+export type InfoRequestsResponse = z.infer<typeof zInfoRequestsResponse>;
