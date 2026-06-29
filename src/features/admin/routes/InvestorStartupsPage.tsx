@@ -242,14 +242,8 @@ export function InvestorStartupsPage() {
 
   const [requestInfoTarget, setRequestInfoTarget] = useState<string | null>(null);
 
-  // Restore scroll position when coming back from detail page
-  useEffect(() => {
-    const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (saved) {
-      window.scrollTo(0, Number.parseInt(saved, 10));
-      sessionStorage.removeItem(SCROLL_KEY);
-    }
-  }, []);
+  // Capture the saved scroll value at mount time so it survives re-renders.
+  const savedScrollRef = useRef<string | null>(sessionStorage.getItem(SCROLL_KEY));
 
   const setSort = (by: InvestorSortOption) => {
     const sp = new URLSearchParams(params);
@@ -314,6 +308,17 @@ export function InvestorStartupsPage() {
   const list = useInvestorStartups(queryArgs);
   const items = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
+
+  // Restore scroll after data loads — firing on mount is a no-op because
+  // the list hasn't rendered yet and the page height is too small to scroll.
+  useEffect(() => {
+    if (!list.isLoading && savedScrollRef.current) {
+      const y = Number.parseInt(savedScrollRef.current, 10);
+      savedScrollRef.current = null;
+      sessionStorage.removeItem(SCROLL_KEY);
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+  }, [list.isLoading]);
 
   const handleRowClick = (row: InvestorStartupListItem) => {
     sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
