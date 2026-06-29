@@ -521,13 +521,7 @@ export type AdminUserDeleteResponse = z.infer<typeof zAdminUserDeleteResponse>;
 
 // ── Admin Startups tab ────────────────────────────────────────────────────────
 
-export const STARTUP_SORT_OPTIONS = [
-  'updated_at',
-  'created_at',
-  'company_name',
-  'stage',
-  'status',
-] as const;
+export const STARTUP_SORT_OPTIONS = ['updated_at', 'created_at', 'company_name'] as const;
 export type StartupSortOption = (typeof STARTUP_SORT_OPTIONS)[number];
 
 export const zAdminStartupListItem = z
@@ -567,9 +561,9 @@ export const zInvestorStartupListItem = z
     is_portfolio: z.boolean(),
     identity_masked: z.boolean(),
     info_request_status: z.enum(['pending', 'approved', 'rejected']).nullable(),
-    company_name: z.string().nullable(),
-    founder_name: z.string().nullable(),
-    website_url: z.string().nullable(),
+    company_name: z.string().nullable().optional(),
+    founder_name: z.string().nullable().optional(),
+    website_url: z.string().nullable().optional(),
     sector: z.array(z.string()),
     stage: z.string().nullable(),
     status_label: z.string().nullable(),

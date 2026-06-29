@@ -30,8 +30,6 @@ const SORT_LABEL: Record<StartupSortOption, string> = {
   updated_at: 'Last Updated',
   created_at: 'Created',
   company_name: 'Name',
-  stage: 'Stage',
-  status: 'Status',
 };
 
 // ── Local multi-select filter dropdown ───────────────────────────────────────
@@ -254,12 +252,20 @@ export function AdminStartupsPage() {
       },
       {
         id: 'stage',
-        header: () => <SortHeader col="stage" label="Stage" />,
+        header: () => (
+          <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+            Stage
+          </span>
+        ),
         cell: ({ row }) => <StartupStageBadge stage={row.original.stage} />,
       },
       {
         id: 'status',
-        header: () => <SortHeader col="status" label="Status" />,
+        header: () => (
+          <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+            Status
+          </span>
+        ),
         cell: ({ row }) => <StartupStatusBadge status={row.original.status} />,
       },
       {
