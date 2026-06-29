@@ -18,8 +18,18 @@ import type { UserRole } from '@/types/enums';
 import { StartupStageBadge } from '@/components/badges/StartupStageBadge';
 import { InfoRow } from './InfoRow';
 
-const PITCH_DECK_ROLES: ReadonlySet<UserRole> = new Set(['lp', 'admin', 'super_admin']);
-const FINANCIAL_ROLES: ReadonlySet<UserRole> = new Set(['lp', 'admin', 'super_admin']);
+const PITCH_DECK_ROLES: ReadonlySet<UserRole> = new Set([
+  'lp',
+  'potential_lp',
+  'admin',
+  'super_admin',
+]);
+const FINANCIAL_ROLES: ReadonlySet<UserRole> = new Set([
+  'lp',
+  'potential_lp',
+  'admin',
+  'super_admin',
+]);
 const ADMIN_ROLES: ReadonlySet<UserRole> = new Set(['admin', 'super_admin']);
 
 interface Props {
@@ -320,32 +330,15 @@ const SIGNAL_CONTAINER: Record<string, string> = {
   yellow: 'bg-amber-50 border-amber-200',
   red: 'bg-red-50 border-red-200',
 };
-const SIGNAL_BADGE: Record<string, string> = {
-  strong: 'bg-green-100 text-green-800',
-  moderate: 'bg-amber-100 text-amber-800',
-  weak: 'bg-red-100 text-red-800',
-};
-
-/** Top-of-page verdict banner (admin only) — surfaced above everything else instead of buried in its own card. */
+/** Top-of-page verdict banner — color background kept for all users; signal-rating text intentionally hidden. */
 function InvestmentSignalBanner({ signal }: { signal: IntelSignal }) {
   if (!signal.signal && !signal.line_1) return null;
   const containerCls = SIGNAL_CONTAINER[signal.color ?? ''] ?? 'bg-muted/40 border-border';
-  const badgeCls = SIGNAL_BADGE[signal.signal ?? ''] ?? 'bg-muted text-ink-muted';
   return (
     <div className={`flex flex-col gap-2 rounded-xl border p-4 ${containerCls}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-          Investment signal
-        </span>
-        {signal.signal ? (
-          <span
-            className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase ${badgeCls}`}
-          >
-            {signal.signal}
-            {signal.confidence ? ` · ${signal.confidence} confidence` : ''}
-          </span>
-        ) : null}
-      </div>
+      <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+        Investment signal
+      </span>
       {signal.line_1 ? <p className="text-sm text-ink-body">{signal.line_1}</p> : null}
       {signal.line_2 ? <p className="text-sm text-ink-muted">{signal.line_2}</p> : null}
     </div>
@@ -434,6 +427,7 @@ export function StartupRichDetailBlock({ detail }: Props) {
   const canSeeFinancials = role != null && FINANCIAL_ROLES.has(role);
   const isAdmin = role != null && ADMIN_ROLES.has(role);
 
+  const isInvestor = role === 'lp' || role === 'potential_lp';
   const pitchDeckUrl = cleanText(canSeePitchDeck ? detail.pitch_deck_url : null);
   const intel = detail.latest_intel_structured ?? null;
 
@@ -1106,8 +1100,75 @@ export function StartupRichDetailBlock({ detail }: Props) {
         </Card>
       ) : null}
 
+      {/* Evaluation — lp / potential_lp: ai summary + strengths / concerns / recommended LP types */}
+      {isInvestor && (detail.ai_pitch_summary || detail.ai_evaluation) ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-ink-muted" aria-hidden />
+              Pitch Evaluation
+            </CardTitle>
+            <p className="text-xs text-ink-muted">AI-generated evaluation</p>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            {detail.ai_pitch_summary ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  Summary
+                </span>
+                <p className="text-sm text-ink-body">{detail.ai_pitch_summary}</p>
+              </div>
+            ) : null}
+            {detail.ai_evaluation?.strengths?.length ? (
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  Strengths
+                </span>
+                <ul className="flex flex-col gap-1">
+                  {detail.ai_evaluation.strengths.map((s, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-ink-body">
+                      <span className="mt-0.5 shrink-0 font-bold text-emerald-500">+</span>
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {detail.ai_evaluation?.concerns?.length ? (
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  Concerns
+                </span>
+                <ul className="flex flex-col gap-1">
+                  {detail.ai_evaluation.concerns.map((c, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-ink-body">
+                      <span className="mt-0.5 shrink-0 font-bold text-amber-500">!</span>
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {detail.ai_evaluation?.recommended_lp_types?.length ? (
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  Recommended for
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {detail.ai_evaluation.recommended_lp_types.map((t) => (
+                    <Badge key={t} variant="secondary">
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* Internal — admin only */}
-      {hasAdminFields ? (
+      {isAdmin && hasAdminFields ? (
         <Card className="border-dashed">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
