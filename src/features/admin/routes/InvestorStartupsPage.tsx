@@ -4,7 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ChevronDown, Check, X, Clock, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import {
   Dialog,
   DialogContent,
@@ -353,11 +353,6 @@ export function InvestorStartupsPage() {
               <span className="text-xs text-ink-muted">
                 ₹{row.original.funding_target_cr}Cr target
               </span>
-            ) : null}
-            {row.original.is_portfolio ? (
-              <Badge variant="success" className="mt-0.5 w-fit text-[10px]">
-                Portfolio
-              </Badge>
             ) : null}
           </div>
         ),
