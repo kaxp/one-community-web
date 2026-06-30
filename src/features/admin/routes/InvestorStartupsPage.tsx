@@ -34,6 +34,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 const DEFAULT_LIMIT = 100;
 const SCROLL_KEY = 'investor-startups-scroll';
 
+const getMainEl = () => document.querySelector<HTMLElement>('main');
+
 const SORT_LABEL: Record<InvestorSortOption, string> = {
   created_at: 'Created',
   updated_at: 'Updated',
@@ -316,12 +318,14 @@ export function InvestorStartupsPage() {
       const y = Number.parseInt(savedScrollRef.current, 10);
       savedScrollRef.current = null;
       sessionStorage.removeItem(SCROLL_KEY);
-      requestAnimationFrame(() => window.scrollTo(0, y));
+      // AppShell's useScrollToTop runs synchronously in effects; rAF fires after,
+      // so our restore always wins the race against the reset.
+      requestAnimationFrame(() => getMainEl()?.scrollTo({ top: y, behavior: 'instant' }));
     }
   }, [list.isLoading]);
 
   const handleRowClick = (row: InvestorStartupListItem) => {
-    sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+    sessionStorage.setItem(SCROLL_KEY, String(getMainEl()?.scrollTop ?? 0));
     const targetId = row.user_id ?? row.id;
     navigate(`/search/profile/${targetId}`, {
       state: { targetType: 'startup', from: 'investor_startups' },

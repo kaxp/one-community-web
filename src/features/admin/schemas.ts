@@ -715,6 +715,7 @@ const zInfoRequestStartup = z
     company_name: z.string().nullable().optional(),
     sector: z.array(z.string()),
     stage: z.string().nullable(),
+    status: z.string().nullable().optional(),
   })
   .passthrough();
 
