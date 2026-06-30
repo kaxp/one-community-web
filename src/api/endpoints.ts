@@ -26,11 +26,15 @@ import {
   type ProfileUpdateResponse,
 } from '@/features/onboarding/schemas';
 import {
+  zConversationDetailResponse,
+  zConversationListResponse,
   zConversationResponse,
   zSearchDetailLp,
   zSearchDetailStartup,
   zSearchResponse,
   zSearchSource,
+  type ConversationDetailResponse,
+  type ConversationListResponse,
   type ConversationRequest,
   type ConversationResponse,
   type SearchDetailLp,
@@ -384,6 +388,29 @@ export async function getConversationHistory(conversationId: string): Promise<Co
     ts: t.ts ?? null,
   }));
   return { conversation_id: (data as ConversationHistory).conversation_id, turns };
+}
+
+// GET /search/conversations — offset-paginated list of the signed-in user's
+// past conversation threads. limit clamps 1..100 server-side.
+export async function listConversations(params: {
+  limit: number;
+  offset: number;
+}): Promise<ConversationListResponse> {
+  const qs = new URLSearchParams({
+    limit: String(params.limit),
+    offset: String(params.offset),
+  });
+  const url = `/search/conversations?${qs.toString()}`;
+  const resp = await apiClient.get<ApiEnvelope<ConversationListResponse>>(url);
+  return zConversationListResponse.parse(unwrap(resp.data, url));
+}
+
+// GET /search/conversations/:id — full thread for a single conversation.
+// Ownership-scoped; missing/foreign id → ApiError with code 'not_found'.
+export async function getConversationDetail(id: string): Promise<ConversationDetailResponse> {
+  const url = `/search/conversations/${encodeURIComponent(id)}`;
+  const resp = await apiClient.get<ApiEnvelope<ConversationDetailResponse>>(url);
+  return zConversationDetailResponse.parse(unwrap(resp.data, url));
 }
 
 export async function logInteraction(body: InteractionLogRequest): Promise<InteractionLogResponse> {
