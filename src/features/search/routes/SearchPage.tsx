@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/features/search/components/SearchBar';
 import { ChatTurn } from '@/features/search/components/ChatTurn';
-import { ProseAnswerBlock } from '@/features/search/components/ProseAnswerBlock';
+import { ReadOnlyTurn } from '@/features/search/components/ReadOnlyTurn';
+import { RecentChats } from '@/features/search/components/RecentChats';
 import { useConversation } from '@/features/search/hooks/use-conversation';
 import { type SearchTargetType } from '@/features/search/schemas';
 import { useRole } from '@/auth/use-auth';
@@ -116,7 +117,7 @@ export function SearchPage() {
     </div>
   );
 
-  // ── Pristine state: centred hero card ────────────────────────────────────
+  // ── Pristine state: centred hero card + recent conversations ─────────────
   if (!hasThread) {
     return (
       <div className="flex flex-col gap-6">
@@ -130,6 +131,7 @@ export function SearchPage() {
           </CardHeader>
           <CardContent>{searchControls}</CardContent>
         </Card>
+        <RecentChats />
       </div>
     );
   }
@@ -165,14 +167,11 @@ export function SearchPage() {
             Continued from WhatsApp
           </p>
           {preloadedTurns.map((t) => (
-            <div key={t.turn} className="flex flex-col gap-3">
-              <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl bg-brand/10 px-4 py-2 text-[15px] text-ink-heading">
-                  {t.user_message}
-                </div>
-              </div>
-              {t.answer_markdown ? <ProseAnswerBlock markdown={t.answer_markdown} /> : null}
-            </div>
+            <ReadOnlyTurn
+              key={t.turn}
+              userMessage={t.user_message}
+              answerMarkdown={t.answer_markdown}
+            />
           ))}
         </div>
       ) : null}

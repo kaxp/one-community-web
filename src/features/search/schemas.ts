@@ -217,6 +217,43 @@ export function filtersFromSearchParams(params: URLSearchParams): SearchFilters 
   return out;
 }
 
+// ── Conversation list + detail schemas (GET /search/conversations) ────────────
+// Turn shape reuses fields from ConversationHistoryTurn in endpoints.ts; kept
+// here so Zod can parse the detail response end-to-end.
+export const zConversationTurn = z.object({
+  turn: z.number().int(),
+  user_message: z.string(),
+  answer_markdown: z.string().nullable(),
+  sources: z.array(zSearchSource),
+  intent: z.string().nullable(),
+  ts: z.string().nullable(),
+});
+export type ConversationTurn = z.infer<typeof zConversationTurn>;
+
+export const zConversationSummary = z.object({
+  conversation_id: z.string(),
+  title: z.string().nullable(),
+  turn_count: z.number().int(),
+  created_at: z.string(),
+  last_message_at: z.string(),
+});
+export type ConversationSummary = z.infer<typeof zConversationSummary>;
+
+export const zConversationListResponse = z.object({
+  conversations: z.array(zConversationSummary),
+  total: z.number().int(),
+});
+export type ConversationListResponse = z.infer<typeof zConversationListResponse>;
+
+export const zConversationDetailResponse = z.object({
+  conversation_id: z.string(),
+  title: z.string().nullable(),
+  turns: z.array(zConversationTurn),
+  created_at: z.string(),
+  last_message_at: z.string(),
+});
+export type ConversationDetailResponse = z.infer<typeof zConversationDetailResponse>;
+
 // ── Detail page schemas (/search/detail/startup/:id + /search/detail/lp/:id) ─
 // All fields are nullable/optional — the backend gates them by role and
 // connection status, so the same schema parses any viewer's response.

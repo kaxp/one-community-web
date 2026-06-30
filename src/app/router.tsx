@@ -34,6 +34,11 @@ const SearchDetailPage = lazy(() =>
     default: m.SearchDetailPage,
   })),
 );
+const SearchConversationPage = lazy(() =>
+  import('@/features/search/routes/SearchConversationPage').then((m) => ({
+    default: m.SearchConversationPage,
+  })),
+);
 const AdminConnectionsPage = lazy(() =>
   import('@/features/admin/routes/AdminConnectionsPage').then((m) => ({
     default: m.AdminConnectionsPage,
@@ -291,6 +296,16 @@ export const router = createBrowserRouter(
                       element: (
                         <Susp>
                           <SearchDetailPage />
+                        </Susp>
+                      ),
+                    },
+                    {
+                      // Read-only viewer for a past conversation thread.
+                      // Ownership-scoped on the backend; foreign IDs → 404.
+                      path: '/search/conversations/:id',
+                      element: (
+                        <Susp>
+                          <SearchConversationPage />
                         </Susp>
                       ),
                     },

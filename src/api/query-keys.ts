@@ -26,6 +26,9 @@ export const qk = {
     query: (body: unknown) => ['search', 'query', body] as const,
     detailStartup: (id: string) => ['search', 'detail', 'startup', id] as const,
     detailLp: (id: string) => ['search', 'detail', 'lp', id] as const,
+    conversations: (p: { limit: number; offset: number }) =>
+      ['search', 'conversations', p] as const,
+    conversationDetail: (id: string) => ['search', 'conversation-detail', id] as const,
   },
   profile: {
     all: ['profile'] as const,

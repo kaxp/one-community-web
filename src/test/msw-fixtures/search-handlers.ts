@@ -11,6 +11,28 @@ import {
 import { seedProfileFor } from './seed-users';
 import type { LPResultItem, SearchResponse, StartupResultItem } from '@/features/search/schemas';
 
+// ── Conversation list / detail error queues ──────────────────────────────────
+// One-shot: first request that would succeed is replaced by the queued error.
+let conversationsErrorQueue: { status: number; code: string; message: string } | null = null;
+let conversationDetailErrorQueue: { status: number; code: string; message: string } | null = null;
+
+export function queueConversationsError(err: { status: number; code: string; message: string }) {
+  conversationsErrorQueue = err;
+}
+
+export function queueConversationDetailError(err: {
+  status: number;
+  code: string;
+  message: string;
+}) {
+  conversationDetailErrorQueue = err;
+}
+
+export function resetConversationMswState() {
+  conversationsErrorQueue = null;
+  conversationDetailErrorQueue = null;
+}
+
 // Scenarios:
 //   'auto'              — DEFAULT. Filter the catalogue by request.query + filters.
 //                         Pick target_type from the signed-in user's role.
@@ -384,5 +406,97 @@ export const searchHandlers: HttpHandler[] = [
   http.post('*/api/v1/interactions/log', async () => {
     interactionLogCount += 1;
     return HttpResponse.json({ data: { logged: true, deduped: false }, error: null });
+  }),
+
+  // GET /search/conversations — offset-paginated list (3 seeded items).
+  http.get('*/api/v1/search/conversations', () => {
+    if (conversationsErrorQueue) {
+      const err = conversationsErrorQueue;
+      conversationsErrorQueue = null;
+      return HttpResponse.json(
+        { data: null, error: { code: err.code, message: err.message } },
+        { status: err.status },
+      );
+    }
+    return HttpResponse.json({
+      data: {
+        conversations: [
+          {
+            conversation_id: 'conv-seed-1',
+            title: 'Fintech startups in India',
+            turn_count: 3,
+            created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+            last_message_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            conversation_id: 'conv-seed-2',
+            title: null,
+            turn_count: 1,
+            created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+            last_message_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            conversation_id: 'conv-seed-3',
+            title: 'SaaS comparison',
+            turn_count: 5,
+            created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+            last_message_at: new Date(Date.now() - 47 * 60 * 60 * 1000).toISOString(),
+          },
+        ],
+        total: 3,
+      },
+      error: null,
+    });
+  }),
+
+  // GET /search/conversations/:id — full thread for a seeded conversation.
+  // Foreign / unknown IDs trigger the not_found error shape.
+  http.get('*/api/v1/search/conversations/:id', ({ params: routeParams }) => {
+    if (conversationDetailErrorQueue) {
+      const err = conversationDetailErrorQueue;
+      conversationDetailErrorQueue = null;
+      return HttpResponse.json(
+        { data: null, error: { code: err.code, message: err.message } },
+        { status: err.status },
+      );
+    }
+    const id = routeParams.id as string;
+    // Return a 404 for any id that isn't one of the seeded ids or the special
+    // "abc" id used in tests (which maps to a valid seeded detail).
+    const knownIds = new Set(['conv-seed-1', 'conv-seed-2', 'conv-seed-3', 'abc']);
+    if (!knownIds.has(id)) {
+      return HttpResponse.json(
+        { data: null, error: { code: 'not_found', message: 'Conversation not found' } },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({
+      data: {
+        conversation_id: id,
+        title: 'Fintech startups in India',
+        turns: [
+          {
+            turn: 1,
+            user_message: 'Show me fintech startups',
+            answer_markdown:
+              'Here are some fintech startups:\n\n- [**Acme Fin**](/search/profile/mock-id-1): Payments infrastructure.',
+            sources: [{ startup_id: 'mock-id-1', company_name: 'Acme Fin' }],
+            intent: 'list_query',
+            ts: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            turn: 2,
+            user_message: 'Tell me more about Acme Fin',
+            answer_markdown: 'Acme Fin focuses on B2B payments infrastructure for SMEs.',
+            sources: [{ startup_id: 'mock-id-1', company_name: 'Acme Fin' }],
+            intent: 'drill_in',
+            ts: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          },
+        ],
+        created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+        last_message_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      },
+      error: null,
+    });
   }),
 ];
