@@ -26,6 +26,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 const DEFAULT_LIMIT = 100;
 const SCROLL_KEY = 'admin-startups-scroll';
 
+const getMainEl = () => document.querySelector<HTMLElement>('main');
+
 const SORT_LABEL: Record<StartupSortOption, string> = {
   updated_at: 'Last Updated',
   created_at: 'Created',
@@ -220,13 +222,13 @@ export function AdminStartupsPage() {
       const y = Number.parseInt(savedScrollRef.current, 10);
       savedScrollRef.current = null;
       sessionStorage.removeItem(SCROLL_KEY);
-      requestAnimationFrame(() => window.scrollTo(0, y));
+      requestAnimationFrame(() => getMainEl()?.scrollTo({ top: y, behavior: 'instant' }));
     }
   }, [list.isLoading]);
 
   const handleRowClick = useCallback(
     (row: AdminStartupListItem) => {
-      sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+      sessionStorage.setItem(SCROLL_KEY, String(getMainEl()?.scrollTop ?? 0));
       const targetId = row.user_id ?? row.id;
       navigate(`/search/profile/${targetId}`);
     },

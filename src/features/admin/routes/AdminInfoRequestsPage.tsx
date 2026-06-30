@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { EmptyState } from '@/components/empty-state/EmptyState';
 import { SectorBadgeList } from '@/components/badges/SectorBadge';
-import { StartupStageBadge } from '@/components/badges/StartupStageBadge';
+import { StartupStatusBadge } from '@/components/badges/StartupStatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader';
 import {
   useAdminInfoRequests,
@@ -30,8 +30,20 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'warning' | 'succes
   rejected: { label: 'Rejected', variant: 'error' },
 };
 
+const TABLE_COLS = [
+  'Requested By',
+  'Requested For',
+  'Status',
+  'Sector',
+  'Message',
+  'Received Date',
+  'Action Date',
+  'Action',
+  'Admin',
+];
+
 function formatDate(iso: string | null | undefined) {
-  if (!iso) return '—';
+  if (!iso) return null;
   return new Date(iso).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -109,6 +121,11 @@ function RowActions({ request }: { request: InfoRequest }) {
   );
 }
 
+// ── Dash cell — centred empty placeholder ─────────────────────────────────────
+function Dash() {
+  return <span className="block text-center text-xs text-ink-muted">—</span>;
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function AdminInfoRequestsPage() {
@@ -126,8 +143,20 @@ export function AdminInfoRequestsPage() {
     setParams(sp, { replace: true });
   };
 
-  const goToProfile = (userId: string | null | undefined) => {
-    if (userId) navigate(`/search/profile/${userId}`);
+  // Route LP/potential_lp requesters to their LP funnel page; everyone else
+  // to the search profile. For startups, prefer user_id over startup_id.
+  const goToRequester = (req: InfoRequest['requester']) => {
+    const role = req.role;
+    if (role === 'lp' || role === 'potential_lp') {
+      navigate(`/admin/lp-funnel/${req.user_id}`);
+    } else {
+      navigate(`/search/profile/${req.user_id}`);
+    }
+  };
+
+  const goToStartup = (startup: InfoRequest['startup']) => {
+    const targetId = startup.user_id ?? startup.startup_id;
+    navigate(`/search/profile/${targetId}`);
   };
 
   return (
@@ -189,18 +218,10 @@ export function AdminInfoRequestsPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-surface-muted">
                 <tr>
-                  {[
-                    'Requested By',
-                    'Requested For',
-                    'Message',
-                    'Received Date',
-                    'Action Date',
-                    'Action',
-                    'Admin',
-                  ].map((col) => (
+                  {TABLE_COLS.map((col) => (
                     <th
                       key={col}
-                      className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-muted"
+                      className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-muted"
                       scope="col"
                     >
                       {col}
@@ -218,48 +239,80 @@ export function AdminInfoRequestsPage() {
                     <td className="px-4 py-3 align-top">
                       <button
                         type="button"
-                        className="text-left hover:underline"
-                        onClick={() => goToProfile(req.requester.user_id)}
+                        className="text-left"
+                        onClick={() => goToRequester(req.requester)}
                       >
-                        <p className="font-medium text-brand">{req.requester.name ?? '—'}</p>
+                        <p className="font-medium text-brand hover:underline">
+                          {req.requester.name ?? '—'}
+                        </p>
                         <p className="text-xs text-ink-muted">{req.requester.role}</p>
                       </button>
                     </td>
 
-                    {/* Requested For */}
+                    {/* Requested For — company name only */}
                     <td className="px-4 py-3 align-top">
-                      <button
-                        type="button"
-                        className="flex flex-col gap-1 text-left hover:underline"
-                        onClick={() => goToProfile(req.startup.user_id ?? req.startup.startup_id)}
-                      >
-                        <span className="font-medium text-brand">
-                          {req.startup.company_name ?? '—'}
-                        </span>
+                      {req.startup.company_name ? (
+                        <button
+                          type="button"
+                          className="font-medium text-brand hover:underline"
+                          onClick={() => goToStartup(req.startup)}
+                        >
+                          {req.startup.company_name}
+                        </button>
+                      ) : (
+                        <Dash />
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-3 align-top">
+                      {req.startup.status ? (
+                        <StartupStatusBadge status={req.startup.status} />
+                      ) : (
+                        <Dash />
+                      )}
+                    </td>
+
+                    {/* Sector */}
+                    <td className="px-4 py-3 align-top">
+                      {req.startup.sector.length > 0 ? (
                         <SectorBadgeList sectors={req.startup.sector} />
-                        <StartupStageBadge stage={req.startup.stage} />
-                      </button>
+                      ) : (
+                        <Dash />
+                      )}
                     </td>
 
                     {/* Message */}
                     <td className="px-4 py-3 align-top">
                       {req.message ? (
-                        <p className="max-w-[200px] text-xs text-ink-body line-clamp-3">
+                        <p className="max-w-[160px] text-xs text-ink-body line-clamp-3">
                           {req.message}
                         </p>
                       ) : (
-                        <span className="text-xs text-ink-muted">—</span>
+                        <Dash />
                       )}
                     </td>
 
                     {/* Received Date */}
-                    <td className="whitespace-nowrap px-4 py-3 align-top text-xs text-ink-muted">
-                      {formatDate(req.created_at)}
+                    <td className="px-4 py-3 align-top text-center">
+                      {formatDate(req.created_at) ? (
+                        <span className="whitespace-nowrap text-xs text-ink-muted">
+                          {formatDate(req.created_at)}
+                        </span>
+                      ) : (
+                        <Dash />
+                      )}
                     </td>
 
                     {/* Action Date */}
-                    <td className="whitespace-nowrap px-4 py-3 align-top text-xs text-ink-muted">
-                      {formatDate(req.decided_at)}
+                    <td className="px-4 py-3 align-top text-center">
+                      {formatDate(req.decided_at) ? (
+                        <span className="whitespace-nowrap text-xs text-ink-muted">
+                          {formatDate(req.decided_at)}
+                        </span>
+                      ) : (
+                        <Dash />
+                      )}
                     </td>
 
                     {/* Action */}
@@ -268,8 +321,12 @@ export function AdminInfoRequestsPage() {
                     </td>
 
                     {/* Admin */}
-                    <td className="px-4 py-3 align-top text-xs text-ink-muted">
-                      {req.decided_by?.name ?? '—'}
+                    <td className="px-4 py-3 align-top">
+                      {req.decided_by?.name ? (
+                        <span className="text-xs text-ink-body">{req.decided_by.name}</span>
+                      ) : (
+                        <Dash />
+                      )}
                     </td>
                   </tr>
                 ))}
