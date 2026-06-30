@@ -4,7 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ChevronDown, Check, X, Clock, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import {
   Dialog,
   DialogContent,
@@ -354,11 +354,6 @@ export function InvestorStartupsPage() {
                 ₹{row.original.funding_target_cr}Cr target
               </span>
             ) : null}
-            {row.original.is_portfolio ? (
-              <Badge variant="success" className="mt-0.5 w-fit text-[10px]">
-                Portfolio
-              </Badge>
-            ) : null}
           </div>
         ),
       },
@@ -399,7 +394,7 @@ export function InvestorStartupsPage() {
 
           if (info_request_status === 'pending') {
             return (
-              <div className="flex items-center gap-1 text-xs text-ink-muted">
+              <div className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-xs text-ink-muted">
                 <Clock className="h-3 w-3" />
                 Pending
               </div>
@@ -410,14 +405,14 @@ export function InvestorStartupsPage() {
             return (
               <Button
                 size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-xs"
+                variant="outline"
+                className="h-7 gap-1.5 border-brand/40 px-2.5 text-xs text-brand hover:border-brand hover:bg-brand/5 hover:text-brand"
                 onClick={(e) => {
                   e.stopPropagation();
                   setRequestInfoTarget(startupId);
                 }}
               >
-                <Info className="mr-1 h-3 w-3" />
+                <Info className="h-3 w-3" />
                 Request Info
               </Button>
             );

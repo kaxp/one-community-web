@@ -709,8 +709,19 @@ const zInfoRequestParty = z
   .passthrough();
 
 const zInfoRequestStartup = z
-  .object({ startup_id: zUUID, sector: z.array(z.string()), stage: z.string().nullable() })
+  .object({
+    startup_id: zUUID,
+    user_id: zUUID.nullable().optional(),
+    company_name: z.string().nullable().optional(),
+    sector: z.array(z.string()),
+    stage: z.string().nullable(),
+  })
   .passthrough();
+
+const zInfoRequestDecidedBy = z
+  .object({ user_id: zUUID.nullable(), name: z.string().nullable() })
+  .nullable()
+  .optional();
 
 export const zInfoRequest = z
   .object({
@@ -721,6 +732,7 @@ export const zInfoRequest = z
     message: z.string().nullable().optional(),
     created_at: zISODateTime,
     decided_at: zISODateTime.nullable().optional(),
+    decided_by: zInfoRequestDecidedBy,
   })
   .passthrough();
 export type InfoRequest = z.infer<typeof zInfoRequest>;

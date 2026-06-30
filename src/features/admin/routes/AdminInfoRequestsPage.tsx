@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,8 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'warning' | 'succes
   rejected: { label: 'Rejected', variant: 'error' },
 };
 
-function formatDate(iso: string) {
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -46,9 +47,9 @@ function RowActions({ request }: { request: InfoRequest }) {
 
   if (request.status !== 'pending') {
     return (
-      <span className="text-xs text-ink-muted">
-        {request.decided_at ? formatDate(request.decided_at) : '—'}
-      </span>
+      <Badge variant={STATUS_BADGE[request.status]?.variant ?? 'secondary'}>
+        {STATUS_BADGE[request.status]?.label ?? request.status}
+      </Badge>
     );
   }
 
@@ -112,6 +113,7 @@ function RowActions({ request }: { request: InfoRequest }) {
 
 export function AdminInfoRequestsPage() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const statusParam = params.get('status') ?? undefined;
 
   const query = useAdminInfoRequests(statusParam);
@@ -122,6 +124,10 @@ export function AdminInfoRequestsPage() {
     if (val) sp.set('status', val);
     else sp.delete('status');
     setParams(sp, { replace: true });
+  };
+
+  const goToProfile = (userId: string | null | undefined) => {
+    if (userId) navigate(`/search/profile/${userId}`);
   };
 
   return (
@@ -159,70 +165,116 @@ export function AdminInfoRequestsPage() {
               : `${items.length} request${items.length !== 1 ? 's' : ''}`}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto p-0">
           {query.isLoading ? (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 p-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-14 w-full" />
               ))}
             </div>
           ) : query.isError ? (
-            <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+            <div className="p-6">
+              <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+            </div>
           ) : items.length === 0 ? (
-            <EmptyState
-              title="No requests"
-              description={
-                statusParam ? `No ${statusParam} info requests.` : 'No info requests yet.'
-              }
-            />
+            <div className="p-6">
+              <EmptyState
+                title="No requests"
+                description={
+                  statusParam ? `No ${statusParam} info requests.` : 'No info requests yet.'
+                }
+              />
+            </div>
           ) : (
-            <div className="divide-y">
-              {items.map((req) => {
-                const statusInfo = STATUS_BADGE[req.status] ?? {
-                  label: req.status,
-                  variant: 'secondary' as const,
-                };
-                return (
-                  <div key={req.id} className="flex flex-wrap items-center gap-4 py-3">
-                    {/* Requester */}
-                    <div className="min-w-[140px] flex-1">
-                      <p className="text-sm font-medium text-ink-heading">
-                        {req.requester.name ?? 'Unknown'}
-                      </p>
-                      <p className="text-xs text-ink-muted">{req.requester.role}</p>
-                    </div>
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border bg-surface-muted">
+                <tr>
+                  {[
+                    'Requested By',
+                    'Requested For',
+                    'Message',
+                    'Received Date',
+                    'Action Date',
+                    'Action',
+                    'Admin',
+                  ].map((col) => (
+                    <th
+                      key={col}
+                      className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-muted"
+                      scope="col"
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((req) => (
+                  <tr
+                    key={req.id}
+                    className="border-b border-border last:border-b-0 hover:bg-surface-muted/50"
+                  >
+                    {/* Requested By */}
+                    <td className="px-4 py-3 align-top">
+                      <button
+                        type="button"
+                        className="text-left hover:underline"
+                        onClick={() => goToProfile(req.requester.user_id)}
+                      >
+                        <p className="font-medium text-brand">{req.requester.name ?? '—'}</p>
+                        <p className="text-xs text-ink-muted">{req.requester.role}</p>
+                      </button>
+                    </td>
 
-                    {/* Startup */}
-                    <div className="flex min-w-[120px] flex-1 flex-col gap-1">
-                      <SectorBadgeList sectors={req.startup.sector} />
-                      <StartupStageBadge stage={req.startup.stage} />
-                    </div>
+                    {/* Requested For */}
+                    <td className="px-4 py-3 align-top">
+                      <button
+                        type="button"
+                        className="flex flex-col gap-1 text-left hover:underline"
+                        onClick={() => goToProfile(req.startup.user_id ?? req.startup.startup_id)}
+                      >
+                        <span className="font-medium text-brand">
+                          {req.startup.company_name ?? '—'}
+                        </span>
+                        <SectorBadgeList sectors={req.startup.sector} />
+                        <StartupStageBadge stage={req.startup.stage} />
+                      </button>
+                    </td>
 
                     {/* Message */}
-                    <div className="hidden min-w-[160px] flex-1 md:block">
+                    <td className="px-4 py-3 align-top">
                       {req.message ? (
-                        <p className="text-xs text-ink-body line-clamp-2">{req.message}</p>
+                        <p className="max-w-[200px] text-xs text-ink-body line-clamp-3">
+                          {req.message}
+                        </p>
                       ) : (
                         <span className="text-xs text-ink-muted">—</span>
                       )}
-                    </div>
+                    </td>
 
-                    {/* Status + Date */}
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-                      <span className="text-[10px] text-ink-muted">
-                        {formatDate(req.created_at)}
-                      </span>
-                    </div>
+                    {/* Received Date */}
+                    <td className="whitespace-nowrap px-4 py-3 align-top text-xs text-ink-muted">
+                      {formatDate(req.created_at)}
+                    </td>
 
-                    {/* Actions */}
-                    <div className="shrink-0">
+                    {/* Action Date */}
+                    <td className="whitespace-nowrap px-4 py-3 align-top text-xs text-ink-muted">
+                      {formatDate(req.decided_at)}
+                    </td>
+
+                    {/* Action */}
+                    <td className="px-4 py-3 align-top">
                       <RowActions request={req} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    </td>
+
+                    {/* Admin */}
+                    <td className="px-4 py-3 align-top text-xs text-ink-muted">
+                      {req.decided_by?.name ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </CardContent>
       </Card>

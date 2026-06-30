@@ -1,9 +1,8 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ExternalLink, ArrowUpDown, ChevronDown, Check, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/error-state/ErrorState';
@@ -25,6 +24,7 @@ import { cn } from '@/lib/cn';
 import { PageHeader } from '@/components/layout/PageHeader';
 
 const DEFAULT_LIMIT = 100;
+const SCROLL_KEY = 'admin-startups-scroll';
 
 const SORT_LABEL: Record<StartupSortOption, string> = {
   updated_at: 'Last Updated',
@@ -213,6 +213,26 @@ export function AdminStartupsPage() {
   const items = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
 
+  const savedScrollRef = useRef<string | null>(sessionStorage.getItem(SCROLL_KEY));
+
+  useEffect(() => {
+    if (!list.isLoading && savedScrollRef.current) {
+      const y = Number.parseInt(savedScrollRef.current, 10);
+      savedScrollRef.current = null;
+      sessionStorage.removeItem(SCROLL_KEY);
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+  }, [list.isLoading]);
+
+  const handleRowClick = useCallback(
+    (row: AdminStartupListItem) => {
+      sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+      const targetId = row.user_id ?? row.id;
+      navigate(`/search/profile/${targetId}`);
+    },
+    [navigate],
+  );
+
   const SortHeader = ({ col, label }: { col: StartupSortOption; label: string }) => (
     <button
       type="button"
@@ -323,28 +343,9 @@ export function AdminStartupsPage() {
           <span className="text-xs text-ink-muted">{fmtDateTime(row.original.created_at)}</span>
         ),
       },
-      {
-        id: 'profile',
-        header: () => null,
-        cell: ({ row }) => {
-          const targetId = row.original.user_id ?? row.original.id;
-          return (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs text-brand"
-              onClick={() => navigate(`/search/profile/${targetId}`)}
-              title="View startup profile"
-            >
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-              Profile
-            </Button>
-          );
-        },
-      },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sortBy, sortDir, navigate],
+    [sortBy, sortDir],
   );
 
   const hasActiveFilters = selectedStages.length > 0 || selectedStatuses.length > 0;
@@ -460,6 +461,7 @@ export function AdminStartupsPage() {
                 columns={columns}
                 data={items}
                 getRowId={(row) => row.id}
+                onRowClick={handleRowClick}
                 emptyState={
                   <EmptyState
                     title="No startups found"
