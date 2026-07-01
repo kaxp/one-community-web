@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { ErrorState } from '@/components/error-state/ErrorState';
 import { ReadOnlyTurn } from '@/features/search/components/ReadOnlyTurn';
 import { useConversationDetail } from '@/features/search/hooks/use-conversation-detail';
@@ -11,23 +12,24 @@ export function SearchConversationPage() {
   const { data, isLoading, isError, error, refetch } = useConversationDetail(id);
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-10">
+    <div className="flex flex-col gap-6 pb-10">
       <h1 className="sr-only">Conversation</h1>
 
-      {/* Header row */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/search">
-            <ArrowLeft className="mr-1 h-4 w-4" aria-hidden />
-            Back to search
-          </Link>
-        </Button>
-        {data ? (
-          <span className="truncate text-base font-semibold text-ink-heading">
-            {data.title ?? 'Untitled conversation'}
-          </span>
-        ) : null}
-        <span className="ml-auto text-xs text-ink-muted">Read-only</span>
+      <Button variant="ghost" size="sm" className="self-start" asChild>
+        <Link to="/search">
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Back to search
+        </Link>
+      </Button>
+
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+        <h2 className="truncate text-xl font-semibold text-ink-heading">
+          {data ? (data.title ?? 'Untitled conversation') : null}
+        </h2>
+        <Badge variant="secondary" className="shrink-0">
+          Read-only
+        </Badge>
       </div>
 
       {/* Content */}
